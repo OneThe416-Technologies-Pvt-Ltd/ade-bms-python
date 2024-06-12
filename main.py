@@ -5,7 +5,8 @@ def main():
     # Create and display splash screen
     splash = SplashScreen()
     splash.run()
-
+    
+    #aravind
     # Create main application window
     app = tk.Tk()
     app.title("Python Desktop App")
