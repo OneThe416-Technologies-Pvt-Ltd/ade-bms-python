@@ -42,15 +42,15 @@ class MainApp:
 
         # Add welcome message to the left frame
         welcome_message = """\
-Welcome to the ADE Battery Management System!
-Our state-of-the-art system ensures optimal 
-performance and safety for your battery operations.
-Monitor, control, and maintain your battery 
-systems efficiently and effectively.
-Navigate through CAN and RS232 interfaces with ease.
-Enhance battery performance and longevity 
-at your fingertips.
-"""
+        Welcome to the ADE Battery Management System!
+        Our state-of-the-art system ensures optimal 
+        performance and safety for your battery operations.
+        Monitor, control, and maintain your battery 
+        systems efficiently and effectively.
+        Navigate through CAN and RS232 interfaces with ease.
+        Enhance battery performance and longevity 
+        at your fingertips.
+        """
         welcome_label = tk.Label(
             left_frame, text=welcome_message, bg="#267dff", fg="white", 
             font=("Palatino Linotype", 14, "bold"), justify=tk.LEFT, padx=20, pady=20
@@ -58,12 +58,12 @@ at your fingertips.
         welcome_label.pack(expand=True)
 
         # Define the base path for your images
-        base_path = os.path.join(os.path.dirname(__file__), "images2")
+        base_path = os.path.join(os.path.dirname(__file__), "asserts", "images")
 
         # Load and resize images for buttons
         can_image_path = os.path.join(base_path, "canmy.png")
         rs_image_path = os.path.join(base_path, "rsmy.png")
-        
+
         can_image = Image.open(can_image_path)  # Replace with your CAN image path
         rs_image = Image.open(rs_image_path)   # Replace with your RS image path
         button_size = (250, 100)  # Adjusted size
@@ -131,8 +131,10 @@ if __name__ == "__main__":
     # Set the geometry to fill the entire screen
     root.geometry(f"{screen_width}x{screen_height}+0+0")
 
-    # Maximize the window
+        # Maximize the window
     root.state('zoomed')
 
     app = MainApp(root)
     root.mainloop()
+
+   
