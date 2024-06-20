@@ -1,51 +1,82 @@
-import tkinter as tk
-from tkinter import ttk
-from PIL import Image, ImageTk
+# dashboard.py
 
-def create_dashboard(root, show_home, load_can_func, load_rs_func):
-    # Implementation for creating the dashboard
-    dashboard_frame = tk.Frame(root, bg="#090b33")
-    dashboard_frame.pack(fill="both", expand=True)
-    
-    # Load and resize images for buttons
-    can_image = Image.open("path_to_can_image.png")  # Replace with your CAN image path
-    rs_image = Image.open("path_to_rs_image.png")    # Replace with your RS image path
-    button_size = (80, 80)  # Example size, adjust as needed
-    can_image = can_image.resize(button_size, Image.LANCZOS)
-    rs_image = rs_image.resize(button_size, Image.LANCZOS)
+import customtkinter
 
-    can_photo = ImageTk.PhotoImage(can_image)
-    rs_photo = ImageTk.PhotoImage(rs_image)
-    
-    # Create CAN button
-    button_can = ttk.Button(dashboard_frame, command=lambda: load_can_func(root, show_home), image=can_photo)
-    button_can.pack(pady=10, padx=10)
-    
-    # Create RS button
-    button_rs = ttk.Button(dashboard_frame, command=lambda: load_rs_func(root, show_home), image=rs_photo)
-    button_rs.pack(pady=10, padx=10)
-    
-    back_button = tk.Button(dashboard_frame, text="Back", command=show_home)
-    back_button.pack(pady=10)
+class Dashboard(customtkinter.CTkFrame):
+    def __init__(self, parent, main_app):
+        super().__init__(parent,fg_color="#ffffff")
 
-def load_can(root, back_command):
-    # Implementation for loading CAN functionality
-    can_frame = tk.Frame(root, bg="#090b33")
-    can_frame.pack(fill="both", expand=True)
-    
-    tk.Label(can_frame, text="Loading CAN...", font=("Arial", 24), bg="#090b33", fg="white").pack(pady=20)
-    
-    back_button = tk.Button(can_frame, text="Back", command=back_command)
-    back_button.pack(pady=20)
-    # Add CAN specific functionality here
+        self.main_app = main_app
 
-def load_rs(root, back_command):
-    # Implementation for loading RS functionality
-    rs_frame = tk.Frame(root, bg="#090b33")
-    rs_frame.pack(fill="both", expand=True)
-    
-    tk.Label(rs_frame, text="Loading RS...", font=("Arial", 24), bg="#090b33", fg="white").pack(pady=20)
-    
-    back_button = tk.Button(rs_frame, text="Back", command=back_command)
-    back_button.pack(pady=20)
-    # Add RS specific functionality here
+        # create sidebar frame with widgets
+        self.sidebar_frame = customtkinter.CTkFrame(self, width=140, corner_radius=0)
+        self.sidebar_frame.pack(side="left", fill="y")
+
+        self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="BMS-ADE", font=customtkinter.CTkFont(size=20, weight="bold"))
+        self.logo_label.pack(padx=20, pady=(20, 10))
+
+        welcome_message = """\
+        Welcome to the ADE Battery Management System!
+        Our state-of-the-art system ensures optimal 
+        performance and safety for your battery operations.
+        Monitor, control, and maintain your battery 
+        systems efficiently and effectively.
+        Navigate through CAN and RS232 interfaces with ease.
+        Enhance battery performance and longevity 
+        at your fingertips.
+        """
+
+        self.welcome_label = customtkinter.CTkLabel(self.sidebar_frame, text=welcome_message, font=customtkinter.CTkFont(size=12))
+        self.welcome_label.pack(padx=20, pady=(10, 20), anchor="w")
+
+        # Label to indicate CAN selection
+        self.can_label = customtkinter.CTkLabel(self, text="CAN selected", font=customtkinter.CTkFont(size=20))
+        self.can_label.pack(padx=20, pady=(40, 20))
+
+        # Back button to navigate back to the main frame
+        self.back_button = customtkinter.CTkButton(self, text="Back", command=self.go_back)
+        self.back_button.pack(padx=20, pady=(20, 20))
+
+    def go_back(self):
+        self.pack_forget()
+        self.main_app.main_frame.pack(fill="both", expand=True)
+
+class RSFrame(customtkinter.CTkFrame):
+    def __init__(self, parent, main_app):
+        super().__init__(parent,fg_color="#ffffff")
+
+        self.main_app = main_app
+
+        # create sidebar frame with widgets
+        self.sidebar_frame = customtkinter.CTkFrame(self, width=140, corner_radius=0)
+        self.sidebar_frame.pack(side="left", fill="y")
+
+        self.logo_label = customtkinter.CTkLabel(self.sidebar_frame, text="BMS-ADE", font=customtkinter.CTkFont(size=20, weight="bold"))
+        self.logo_label.pack(padx=20, pady=(20, 10))
+
+        welcome_message = """\
+        Welcome to the ADE Battery Management System!
+        Our state-of-the-art system ensures optimal 
+        performance and safety for your battery operations.
+        Monitor, control, and maintain your battery 
+        systems efficiently and effectively.
+        Navigate through CAN and RS232 interfaces with ease.
+        Enhance battery performance and longevity 
+        at your fingertips.
+        """
+
+        self.welcome_label = customtkinter.CTkLabel(self.sidebar_frame, text=welcome_message, font=customtkinter.CTkFont(size=12))
+        self.welcome_label.pack(padx=20, pady=(10, 20), anchor="w")
+
+        # Label to indicate RS selection
+        self.rs_label = customtkinter.CTkLabel(self, text="RS selected", font=customtkinter.CTkFont(size=20))
+        self.rs_label.pack(padx=20, pady=(40, 20))
+
+        # Back button to navigate back to the main frame
+        self.back_button = customtkinter.CTkButton(self, text="Back", command=self.go_back)
+        self.back_button.pack(padx=20, pady=(20, 20))
+
+        
+    def go_back(self):
+        self.pack_forget()
+        self.main_app.main_frame.pack(fill="both", expand=True)

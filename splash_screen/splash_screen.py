@@ -28,6 +28,7 @@ class SplashScreen:
         base_path2 = os.path.join(os.path.dirname(__file__), "../asserts")
 
         # Load and display the background image
+    
         splash_image_path = os.path.join(base_path, "splash_bg.png")
         self.background_image = ImageTk.PhotoImage(Image.open(splash_image_path))
         self.canvas = tk.Canvas(self.root, width=splash_width, height=splash_height)
