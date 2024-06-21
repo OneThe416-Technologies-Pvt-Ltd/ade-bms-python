@@ -4,7 +4,8 @@ from PIL import Image, ImageTk
 from splash_screen.splash_screen import SplashScreen
 import os
 import customtkinter
-from dashboard.dashboard import Dashboard, RSFrame
+from frames.can_frame import CANFrame
+from frames.rs_frame import RSFrame
 
 customtkinter.set_appearance_mode("Light")  # Modes: "System" (standard), "Dark", "Light"
 customtkinter.set_default_color_theme("blue")  # Themes: "blue" (standard), "green", "dark-blue")
@@ -95,8 +96,8 @@ class App(customtkinter.CTk):
     def show_can(self):
         # Hide the main frame and show the dashboard frame
         self.main_frame.pack_forget()
-        self.dashboard_frame = Dashboard(self, self)
-        self.dashboard_frame.pack(fill="both", expand=True)
+        self.can_frame = CANFrame(self, self)
+        self.can_frame.pack(fill="both", expand=True)
 
     def show_rs(self):
         # Hide the main frame and show the RS frame
@@ -106,8 +107,8 @@ class App(customtkinter.CTk):
 
 if __name__ == "__main__":
     # Create and run the splash screen
-    splash = SplashScreen()
-    splash.run()
+    # splash = SplashScreen()
+    # splash.run()
 
     app = App()
     app.mainloop()
