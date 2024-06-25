@@ -9,12 +9,11 @@ class App(ctk.CTk):
         self.configure(bg="#f0f0f0")
         self.panel_expanded = True
 
-        self.main_container = ctk.CTkFrame(self, fg_color="#f0f0f0")
+        self.main_container = ctk.CTkFrame(self, fg_color="#e0e0e0")
         self.main_container.pack(fill="both", expand=True)
 
-
         self.side_menu = ctk.CTkFrame(self.main_container, corner_radius=10, fg_color="#e0e0e0")
-        self.side_menu.pack(side="left", fill="y", padx=10, pady=10)
+        self.side_menu.pack(side="left", fill="y", padx=30, pady=20)
 
         self.separator = ctk.CTkFrame(self.main_container, width=2, fg_color="#d0d0d0")
         self.separator.pack(side="left", fill="y", padx=5)
@@ -23,7 +22,6 @@ class App(ctk.CTk):
         self.content_area.pack(side="right", fill="both", expand=True, padx=10, pady=10)
 
         self.create_side_menu_options()
-
         self.create_initial_content()
 
         self.toggle_button = ctk.CTkButton(self, text="Collapse", command=self.toggle_side_menu, corner_radius=10, fg_color="#007acc", hover_color="#005fa3")
@@ -31,28 +29,47 @@ class App(ctk.CTk):
 
     def create_side_menu_options(self):
         options = [
-            ("Voltage", lambda: self.show_content("content1")),
+            ("Temperature", lambda: self.show_content("content1")),
             ("Current", lambda: self.show_content("content2")),
-            ("Serial Number", lambda: self.show_content("content3")),
-            ("Manufacturing  date", lambda: self.show_content("content4")),
-            ("Temperature", lambda: self.show_content("content5")),
-            ("Pressure", lambda: self.show_content("content6")),
+            ("Pressure", lambda: self.show_content("content3")),
+            ("Capacity", lambda: self.show_content("content4")),
+            ("Voltage", lambda: self.show_content("content5")),
+            ("Device Info", lambda: self.show_content("content6")),
         ]
         for text, command in options:
             button = self.create_custom_button(text, command)
-            button.pack(pady=5)
+            button.pack(pady=10)
 
     def create_initial_content(self):
         self.content_frame = ctk.CTkFrame(self.content_area, corner_radius=10, fg_color="#ffffff")
         self.content_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
-        label = ctk.CTkLabel(
+        title_label = ctk.CTkLabel(
             self.content_frame,
             text="BATTERY - INFORMATION",
             font=("Palatino Linotype", 24, "bold"),
             text_color="#333333"
         )
-        label.pack(pady=20)
+        title_label.pack(pady=20)
+
+        # Create a frame to hold the labels
+        info_frame = ctk.CTkFrame(self.content_frame, corner_radius=10, fg_color="#f8f8f8", border_color="#d0d0d0", border_width=2)
+        info_frame.pack(padx=60, pady=60, anchor="n")
+
+        labels = [
+              "Device Name: Example Device",
+              "Serial Number: 123456789",
+              "Manufacture Date: 2023-01-01",
+              "Manufacturer Name: Example Manufacturer",
+              "Battery Status: Good",
+              "Cycle Count: 150",
+              "Hardware Version: 1.0",
+              "Software Version: 2.0"
+        ]
+
+        for label_text in labels:
+            label = ctk.CTkLabel(info_frame, text=label_text, font=("Palatino Linotype", 18), text_color="#333333")
+            label.pack(padx=10,pady=10, anchor="w")
 
     def show_content(self, content_name):
         for widget in self.content_area.winfo_children():
@@ -73,8 +90,8 @@ class App(ctk.CTk):
         elif content_name == "content5":
             content5 = Content5(self.content_area)
             content5.pack(fill="both", expand=True)
-        elif content_name == "content5":
-            content6 = Content5(self.content_area)
+        elif content_name == "content6":
+            content6 = Content6(self.content_area)
             content6.pack(fill="both", expand=True)
 
     def create_custom_button(self, text, command):
@@ -120,7 +137,13 @@ class Content4(ctk.CTkFrame):
 class Content5(ctk.CTkFrame):
     def __init__(self, parent):
         super().__init__(parent, corner_radius=10, fg_color="#ffffff")
-        label = ctk.CTkLabel(self, text="This is the content for Option 5.", font=("Arial", 14), text_color="#333333")
+        label = ctk.CTkLabel(self, text="This is the content for Option 5.", font=("Palatino Linotype", 14), text_color="#333333")
+        label.pack(pady=20)
+
+class Content6(ctk.CTkFrame):
+    def __init__(self, parent):
+        super().__init__(parent, corner_radius=10, fg_color="#ffffff")
+        label = ctk.CTkLabel(self, text="This is the content for Option 6.", font=("Palatino Linotype", 14), text_color="#333333")
         label.pack(pady=20)
 
 if __name__ == "__main__":
