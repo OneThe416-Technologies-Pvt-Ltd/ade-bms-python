@@ -165,8 +165,8 @@ class MainWindow:
 
         title_label = CTkLabel(
             self.content_frame,
-            text="BATTERY - INFORMATION",
-            font=("Palatino Linotype", 24, "bold"),
+            text="Other - Info",
+            font=("Palatino Linotype", 20, "bold"),
             text_color="#333333"
         )
         title_label.pack(pady=20)
@@ -175,18 +175,19 @@ class MainWindow:
         info_frame.pack(padx=40, pady=40, anchor="n")
 
         labels = [
-            "Device Name: Example Device",
-            "Serial Number: 123456789",
-            "Manufacture Date: 2023-01-01",
-            "Manufacturer Name: Example Manufacturer",
-            "Battery Status: Good",
-            "Cycle Count: 150",
-            "Design Capacity: 1.0",
-            "Design Voltage: 2.0"
+            "At Rate: 100mA",
+            "At Rate Time To Full: 120 mins",
+            "At Rate Time To Empty: 90 mins",
+            "At Rate OK: 1",
+            "Rel State of Charge: 80 %",
+            "Absolute State of Charge: 75 %",
+            "Run Time To Empty: 60 mins",
+            "Avg Time To Empty: 70 mins",
+            "Avg Time To Full: 50 mins"
         ]
 
         for label_text in labels:
-            label = CTkLabel(info_frame, text=label_text, font=("Palatino Linotype", 18), text_color="#333333")
+            label = CTkLabel(info_frame, text=label_text, font=("Palatino Linotype", 14), text_color="#333333")
             label.pack(padx=10, pady=10, anchor="w")
 
     def get_bootstyle(self, value):
