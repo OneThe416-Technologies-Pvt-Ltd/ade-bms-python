@@ -1,16 +1,17 @@
+#splash_screen.py
 import tkinter as tk
 from PIL import Image, ImageTk
 import os
 
-class SplashScreen:
-    def __init__(self):
-        self.root = tk.Tk()
-        self.root.title("Welcome to: Battery Management System")
-        self.root.overrideredirect(True)  # Hides the window decorations
+class SplashScreen(tk.Toplevel):
+    def __init__(self, master=None):
+        super().__init__(master)
+        self.title("Welcome to: Battery Management System")
+        self.overrideredirect(True)  # Hides the window decorations
 
         # Get the screen width and height
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
+        screen_width = self.winfo_screenwidth()
+        screen_height = self.winfo_screenheight()
 
         # Set the width and height of the splash screen
         splash_width = 500
@@ -21,7 +22,7 @@ class SplashScreen:
         y_pos = (screen_height - splash_height) // 2
 
         # Set the geometry of the splash screen window
-        self.root.geometry(f"{splash_width}x{splash_height}+{x_pos}+{y_pos}")
+        self.geometry(f"{splash_width}x{splash_height}+{x_pos}+{y_pos}")
 
         # Define the base path for your images
         base_path = os.path.join(os.path.dirname(__file__), "../asserts", "images")
@@ -31,7 +32,7 @@ class SplashScreen:
     
         splash_image_path = os.path.join(base_path, "splash_bg.png")
         self.background_image = ImageTk.PhotoImage(Image.open(splash_image_path))
-        self.canvas = tk.Canvas(self.root, width=splash_width, height=splash_height)
+        self.canvas = tk.Canvas(self, width=splash_width, height=splash_height)
         self.canvas.pack(fill="both", expand=True)
         self.canvas.create_image(splash_width // 2, splash_height // 2, anchor="center", image=self.background_image)
 
@@ -52,13 +53,13 @@ class SplashScreen:
         logo_height = self.logo_image.height()
         self.canvas.create_image(splash_width // 2, splash_height - logo_height // 2 - 20, anchor="center", image=self.logo_image)
 
-        self.root.after(5000, self.close_splash)  # Close splash screen after 5 seconds
+        self.after(5000, self.close_splash)  # Close splash screen after 5 seconds
 
     def close_splash(self):
-        self.root.destroy()
+        self.destroy()
 
     def run(self):
-        self.root.mainloop()
+        self.mainloop()
 
 # Example usage
 if __name__ == "__main__":

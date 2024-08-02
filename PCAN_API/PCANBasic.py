@@ -615,7 +615,6 @@ class PCANBasic:
         self,
         Channel,
         MessageBuffer):
-
         """
           Transmits a CAN message 
           

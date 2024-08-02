@@ -1,13 +1,19 @@
 import tkinter as tk
 import customtkinter as ctk
+from PCAN_API.custom_pcan_methods import *
+from components.gauges.thermometer import CircularGauge
+from components.gauges.gauge import full_circle_gauge, semi_circle_gauge, quarter_circle_gauge, custom_arc_gauge
+from ttkbootstrap import Style
 
-class App(ctk.CTk):
+class BatteryInfo(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("Side Menu")
-        self.geometry("800x600")
-        self.configure(bg="#f0f0f0")
-        self.panel_expanded = True
+        self.title("ADE BMS")
+        self.geometry("1000x600")
+        self.resizable(False, False)  # Disable maximize
+
+        # Set custom icon
+        self.iconbitmap('asserts/logo/drdo_icon.ico')
 
         self.main_container = ctk.CTkFrame(self, fg_color="#e0e0e0")
         self.main_container.pack(fill="both", expand=True)
@@ -21,20 +27,10 @@ class App(ctk.CTk):
         self.content_area = ctk.CTkFrame(self.main_container, corner_radius=10, fg_color="#ffffff")
         self.content_area.pack(side="right", fill="both", expand=True, padx=10, pady=10)
 
-        self.create_search_bar()
         self.create_side_menu_options()
-
-        self.toggle_button = ctk.CTkButton(self, text="Collapse", command=self.toggle_side_menu, corner_radius=10, fg_color="#003f6b", hover_color="#001f3b")
-        self.toggle_button.pack(side="top", pady=10)
 
         self.active_button = None
         self.show_content("Device Info")  # Show Device Info by default
-
-    def create_search_bar(self):
-        self.search_var = tk.StringVar()
-        self.search_var.trace("w", self.update_side_menu)
-        search_entry = ctk.CTkEntry(self.side_menu, textvariable=self.search_var, placeholder_text="Search...")
-        search_entry.pack(pady=10, padx=10, fill="x")
 
     def create_side_menu_options(self):
         self.buttons = []
@@ -56,14 +52,6 @@ class App(ctk.CTk):
             self.buttons.append((text, button))
             button.pack(pady=10, padx=10, fill="x")
 
-    def update_side_menu(self, *args):
-        search_text = self.search_var.get().lower()
-        for text, button in self.buttons:
-            if search_text in text.lower():
-                button.pack(pady=10, padx=10, fill="x")
-            else:
-                button.pack_forget()
-
     def create_initial_content(self):
         self.content_frame = ctk.CTkFrame(self.content_area, corner_radius=10, fg_color="#ffffff")
         self.content_frame.pack(fill="both", expand=True, padx=20, pady=20)
@@ -76,10 +64,9 @@ class App(ctk.CTk):
         )
         title_label.pack(pady=20)
 
-        # Create a frame to hold the labels
         info_frame = ctk.CTkFrame(self.content_frame, corner_radius=10, fg_color="#f8f8f8", border_color="#d0d0d0", border_width=2)
-        info_frame.pack(padx=60, pady=60, anchor="n")
-
+        info_frame.pack(padx=40, pady=40, anchor="n")
+        
         labels = [
             "Device Name: Example Device",
             "Serial Number: 123456789",
@@ -99,7 +86,6 @@ class App(ctk.CTk):
         for widget in self.content_area.winfo_children():
             widget.destroy()
 
-        # Update button colors
         for text, button in self.buttons:
             if text == content_name:
                 button.configure(fg_color="#003f6b", hover_color="#001f3b")
@@ -140,23 +126,26 @@ class App(ctk.CTk):
 
         command()
 
-    def toggle_side_menu(self):
-        if self.panel_expanded:
-            self.side_menu.pack_forget()
-            self.separator.pack_forget()
-            self.toggle_button.configure(text="Expand")
-            self.panel_expanded = False
-        else:
-            self.side_menu.pack(side="left", fill="y", padx=10, pady=10)
-            self.separator.pack(side="left", fill="y", padx=5)
-            self.toggle_button.configure(text="Collapse")
-            self.panel_expanded = True
-
 class Content1(ctk.CTkFrame):
     def __init__(self, parent):
         super().__init__(parent, corner_radius=10, fg_color="#ffffff")
-        label = ctk.CTkLabel(self, text="This is the content for Temperature.", font=("Palatino Linotype", 14), text_color="#333333")
-        label.pack(pady=20)
+
+        thermometer = CircularGauge(self, min_temp=0, max_temp=100)
+        thermometer.pack(pady=20)
+        thermometer.set_temperature(10)
+        
+        # Example of adding the new gauges
+        full_gauge = full_circle_gauge(self)
+        full_gauge.pack(pady=10)
+
+        semi_gauge = semi_circle_gauge(self)
+        semi_gauge.pack(pady=10)
+
+        quarter_gauge = quarter_circle_gauge(self)
+        quarter_gauge.pack(pady=10)
+
+        custom_gauge = custom_arc_gauge(self)
+        custom_gauge.pack(pady=10)
 
 class Content2(ctk.CTkFrame):
     def __init__(self, parent):
@@ -183,7 +172,6 @@ class Content5(ctk.CTkFrame):
         label.pack(pady=20)
 
 if __name__ == "__main__":
-    ctk.set_appearance_mode("light")  # Modes: system (default), light, dark
-    ctk.set_default_color_theme("blue")  # Themes: blue (default), dark-blue, green
-    app = App()
+    style = Style(theme='superhero')
+    app = BatteryInfo()
     app.mainloop()
