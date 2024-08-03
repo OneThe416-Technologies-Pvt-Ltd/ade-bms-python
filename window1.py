@@ -3,9 +3,12 @@ from PIL import Image, ImageTk
 Image.CUBIC = Image.BICUBIC
 from tkinter import messagebox
 import ttkbootstrap as ttk
-from customtkinter import CTk, CTkFrame, CTkButton, CTkLabel, CTkEntry
+from customtkinter import CTk, CTkFrame, CTkButton, CTkLabel, CTkEntry, set_appearance_mode
 from helpers.methods import load_and_resize_image, create_image_button
 from gui.can_connect import CanConnection
+
+# # Set appearance mode to light
+# set_appearance_mode("White")
 
 class MainWindow:
     def __init__(self, master):
@@ -85,16 +88,16 @@ class MainWindow:
                 self.canvas_items[key] = item_id
 
     def create_battery_info_frame(self):
-        self.battery_info_frame = CTkFrame(self.master, fg_color="#33b4b4", corner_radius=20)
-        self.battery_info_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        self.battery_info_frame = CTkFrame(self.master, fg_color="#ffffff")
+        self.battery_info_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        self.side_menu = CTkFrame(self.battery_info_frame, corner_radius=0, fg_color="#009688")
-        self.side_menu.pack(side="left", fill="y", padx=10, pady=10)
+        self.side_menu = CTkFrame(self.battery_info_frame, corner_radius=10, fg_color="#009688")
+        self.side_menu.pack(side="left", fill="y", padx=15, pady=10)
 
-        self.separator = CTkFrame(self.battery_info_frame, width=2, fg_color="#33b4b4")
-        self.separator.pack(side="left", fill="y", padx=5)
+        # self.separator = CTkFrame(self.battery_info_frame, width=)
+        # self.separator.pack(side="left", fill="y", padx=5)
 
-        self.content_area = CTkFrame(self.battery_info_frame, corner_radius=0, fg_color="#33b4b4")
+        self.content_area = CTkFrame(self.battery_info_frame, corner_radius=10, fg_color="#33b4b4")
         self.content_area.pack(side="right", fill="both", expand=True, padx=10, pady=10)
 
         self.create_side_menu_options()
@@ -108,12 +111,12 @@ class MainWindow:
         # Home button
         home_button = self.create_custom_button("Home", self.go_home)
         self.buttons.append(("Home", home_button))
-        home_button.pack(pady=10, padx=5)
+        home_button.pack(pady=5, padx=5)
 
         # Dashboard button
         dashboard_button = self.create_custom_button("Dashboard", lambda: self.show_content("Dashboard"))
         self.buttons.append(("Dashboard", dashboard_button))
-        dashboard_button.pack(pady=10, padx=5)
+        dashboard_button.pack(pady=5, padx=5)
 
         # Device Info button
         # device_info_button = self.create_custom_button("Battery Info", lambda: self.show_content("Device Info"))
@@ -130,38 +133,36 @@ class MainWindow:
         for text, command in options:
             button = self.create_custom_button(text, command)
             self.buttons.append((text, button))
-            button.pack(pady=6, padx=6)
+            button.pack(pady=5, padx=5)
+
+        device_name = "device name"
+        serial_number = 1234
+        manufacture_date = 122022
+        manufacturer_name = "manufacturer_name"
+        battery_status = "Good"
+        cycle_count =20
+        design_capacity = 200
+        design_voltage = 200
 
         fields = [
-            "Device Name: Example Device",
-            "Serial Number: 123456789",
-            "Manufacture Date: 2023-01-01",
-            "Manufacturer Name: Example Manufacturer",
-            "Battery Status: Good",
-            "Cycle Count: 150",
-            "Design Capacity: 1.0",
-            "Design Voltage: 2.0"
+            f"Device Name: {device_name}",
+            f"Serial Number: {serial_number}",
+            f"Manufacture Date: {manufacture_date}",
+            f"Manufacturer Name: {manufacturer_name}",
+            f"Battery Status: {battery_status}",
+            f"Cycle Count: {cycle_count}",
+            f"Design Capacity: {design_capacity}",
+            f"Design Voltage: {design_voltage}"
         ]
-
-        # fields = [
-        #     f"Device Name: {device_name}",
-        #     f"Serial Number: {serial_number}",
-        #     f"Manufacture Date: {manufacture_date}",
-        #     f"Manufacturer Name: {manufacturer_name}",
-        #     f"Battery Status: {battery_status}",
-        #     f"Cycle Count: {cycle_count}",
-        #     f"Design Capacity: {design_capacity}",
-        #     f"Design Voltage: {design_voltage}"
-        # ]
         
         for field in reversed(fields):
-            label = CTkLabel(self.side_menu, text=field, font=("Palatino Linotype", 12), text_color="#000000", fg_color="transparent")
+            label = CTkLabel(self.side_menu, text=field, font=("Palatino Linotype", 12))
             label.pack(side="bottom", pady=4, padx=4)
 
 
     def create_initial_content(self):
         self.content_frame = CTkFrame(self.content_area, corner_radius=10, fg_color="#ffffff")
-        self.content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        self.content_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         title_label = CTkLabel(
             self.content_frame,
@@ -172,18 +173,32 @@ class MainWindow:
         title_label.pack(pady=20)
 
         info_frame = CTkFrame(self.content_frame, corner_radius=10, fg_color="#f8f8f8", border_color="#d0d0d0", border_width=2)
-        info_frame.pack(padx=40, pady=40, anchor="n")
+        info_frame.pack(padx=10, pady=10, anchor="n")
 
+        at_rate = 100
+        at_rate_time_to_full = 120
+        at_rate_time_to_empty = 90
+        at_rate_ok = 1
+        at_rate_ok_text = "Yes" if at_rate_ok == 1 else "No"
+        rel_state_of_charge = 80
+        abs_state_of_charge = 75
+        run_time_to_empty = 60
+        avg_time_to_empty = 70
+        avg_time_to_full = 50
+        max_error = 20
+
+        # Update labels with variables
         labels = [
-            "At Rate: 100mA",
-            "At Rate Time To Full: 120 mins",
-            "At Rate Time To Empty: 90 mins",
-            "At Rate OK: 1",
-            "Rel State of Charge: 80 %",
-            "Absolute State of Charge: 75 %",
-            "Run Time To Empty: 60 mins",
-            "Avg Time To Empty: 70 mins",
-            "Avg Time To Full: 50 mins"
+            f"At Rate: {at_rate} mA",
+            f"At Rate Time To Full: {at_rate_time_to_full} mins",
+            f"At Rate Time To Empty: {at_rate_time_to_empty} mins",
+            f"At Rate OK: {at_rate_ok_text}",
+            f"Rel State of Charge: {rel_state_of_charge} %",
+            f"Absolute State of Charge: {abs_state_of_charge} %",
+            f"Run Time To Empty: {run_time_to_empty} mins",
+            f"Avg Time To Empty: {avg_time_to_empty} mins",
+            f"Avg Time To Full: {avg_time_to_full} mins",
+            f"Max Error: {max_error} %"
         ]
 
         for label_text in labels:
@@ -212,7 +227,7 @@ class MainWindow:
             "Voltage": {"amountused": voltage, "subtext": "Voltage", "textright": "V", "bootstyle": "dark","stripethickness":5,"amounttotal":300}
         }
 
-        dashboard_frame = CTkFrame(parent_frame, corner_radius=0, fg_color="#ffffff", bg_color="#33b4b4")
+        dashboard_frame = CTkFrame(parent_frame, corner_radius=10, fg_color="#ffffff", bg_color="#33b4b4")
         dashboard_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         row, col = 0, 0
@@ -226,7 +241,7 @@ class MainWindow:
             meter_frame = CTkFrame(dashboard_frame, corner_radius=10, fg_color="#ffffff", border_width=0, border_color="#f8f8f8")
             meter_frame.grid(row=row, column=col, padx=60, pady=10)
 
-            title_label = CTkLabel(meter_frame, text=f"{name}", font=("Helvetica", 16, "bold"))
+            title_label = CTkLabel(meter_frame, text=f"{name}", font=("Helvetica", 16, "bold"), text_color="#333333")
             title_label.pack(pady=(10, 10))
 
             bootstyle = self.get_bootstyle(config["amountused"])
@@ -249,13 +264,13 @@ class MainWindow:
     def create_temperature_content(self, parent_frame):
         temp = 70.6
         content_frame = CTkFrame(self.content_area, corner_radius=10, fg_color="#ffffff")
-        content_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        content_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        title_label = CTkLabel(content_frame, text="Temperature", font=("Helvetica", 16, "bold"))
+        title_label = CTkLabel(content_frame, text="Temperature", font=("Helvetica", 16, "bold"), text_color="#333333")
         title_label.pack(pady=(20, 10))
 
         meter_frame = CTkFrame(content_frame, corner_radius=10, fg_color="#ffffff")  # Set fg_color to match the background
-        meter_frame.pack(padx=20, pady=20, anchor="n")
+        meter_frame.pack(padx=10, pady=10, anchor="n")
 
         meter = ttk.Meter(
             master=meter_frame,
@@ -264,6 +279,8 @@ class MainWindow:
             amounttotal=100,
             meterthickness=10,
             metertype="semi",
+            subtext="Temperature",
+            textright="°C",
         )
         meter.pack(pady=20)
 
@@ -296,8 +313,8 @@ class MainWindow:
             "Charging Current": {"amountused": charging_current, "subtext": "Charging Current", "textright": "%", "bootstyle": "warning","stripethickness":8,"amounttotal":100},
         }
 
-        dashboard_frame = CTkFrame(parent_frame, corner_radius=0, fg_color="#ffffff")
-        dashboard_frame.pack(fill="both", expand=True, padx=10, pady=5)
+        dashboard_frame = CTkFrame(parent_frame, corner_radius=10, fg_color="#ffffff", bg_color="#33b4b4")
+        dashboard_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         row, col = 0, 0
 
@@ -315,7 +332,7 @@ class MainWindow:
             meter_frame = CTkFrame(dashboard_frame, corner_radius=10, fg_color="#ffffff", border_width=0, border_color="#d0d0d0")
             meter_frame.grid(row=row, column=col, padx=padding_x, pady=10)
 
-            title_label = CTkLabel(meter_frame, text=f"{name}", font=("Helvetica", 16, "bold"))
+            title_label = CTkLabel(meter_frame, text=f"{name}", font=("Helvetica", 16, "bold"), text_color="#333333")
             title_label.pack(pady=(10, 10))
 
             meter = ttk.Meter(
@@ -344,8 +361,8 @@ class MainWindow:
             "Design Capacity": {"amountused": design_capacity, "subtext": "Design Capacity", "textright": "%", "bootstyle": "warning","stripethickness":8,"amounttotal":100},
         }
 
-        dashboard_frame = CTkFrame(parent_frame, corner_radius=0, fg_color="#ffffff")
-        dashboard_frame.pack(fill="both", expand=True, padx=10, pady=5)
+        dashboard_frame = CTkFrame(parent_frame, corner_radius=10, fg_color="#ffffff", bg_color="#33b4b4")
+        dashboard_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         row, col = 0, 0
 
@@ -363,7 +380,7 @@ class MainWindow:
             meter_frame = CTkFrame(dashboard_frame, corner_radius=10, fg_color="#ffffff", border_width=0, border_color="#d0d0d0")
             meter_frame.grid(row=row, column=col, padx=padding_x, pady=10)
 
-            title_label = CTkLabel(meter_frame, text=f"{name}", font=("Helvetica", 16, "bold"))
+            title_label = CTkLabel(meter_frame, text=f"{name}", font=("Helvetica", 16, "bold"),text_color="#333333")
             title_label.pack(pady=(10, 10))
 
             meter = ttk.Meter(
@@ -392,8 +409,8 @@ class MainWindow:
             "Design Voltage": {"amountused": design_voltage, "subtext": "Design Voltage", "textright": "%", "bootstyle": "warning","stripethickness":8,"amounttotal":100},
         }
 
-        dashboard_frame = CTkFrame(parent_frame, corner_radius=0, fg_color="#ffffff")
-        dashboard_frame.pack(fill="both", expand=True, padx=10, pady=5)
+        dashboard_frame = CTkFrame(parent_frame, corner_radius=10, fg_color="#ffffff", bg_color="#33b4b4")
+        dashboard_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         row, col = 0, 0
 
@@ -411,7 +428,7 @@ class MainWindow:
             meter_frame = CTkFrame(dashboard_frame, corner_radius=10, fg_color="#ffffff", border_width=0, border_color="#d0d0d0")
             meter_frame.grid(row=row, column=col, padx=padding_x, pady=10)
 
-            title_label = CTkLabel(meter_frame, text=f"{name}", font=("Helvetica", 16, "bold"))
+            title_label = CTkLabel(meter_frame, text=f"{name}", font=("Helvetica", 16, "bold"),text_color="#333333")
             title_label.pack(pady=(10, 10))
 
             meter = ttk.Meter(
