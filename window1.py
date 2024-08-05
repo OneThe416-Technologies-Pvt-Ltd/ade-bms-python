@@ -5,6 +5,7 @@ from tkinter import messagebox
 import ttkbootstrap as ttk
 from customtkinter import CTk, CTkFrame, CTkButton, CTkLabel, CTkEntry, set_appearance_mode
 from helpers.methods import load_and_resize_image, create_image_button
+from PCAN_API.custom_pcan_methods import pcan_write, pcan_read
 from gui.can_connect import CanConnection
 
 # # Set appearance mode to light
@@ -688,6 +689,8 @@ class MainWindow:
         elif not self.can_connected:
             messagebox.showerror("ERROR!", "CAN not connected")
         else:
+            result = pcan_write('serial_no') 
+            print("can serial value",result)
             self.show_battery_info()
 
 

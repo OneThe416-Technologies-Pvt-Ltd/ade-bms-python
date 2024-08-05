@@ -107,48 +107,53 @@ def pcan_write(call_name):
              
 #PCAN Read API Call
 def pcan_read():
-        second_byte = int('73', 16)
-        first_byte = int('E2', 16)
+        # second_byte = int('73', 16)
+        # first_byte = int('E2', 16)
 
-        # Swap the bytes and create the hexadecimal number
-        swapped_hex = (second_byte << 8) | first_byte
+        # # Swap the bytes and create the hexadecimal number
+        # swapped_hex = (second_byte << 8) | first_byte
 
-        # Convert to decimal
-        result = int(swapped_hex)
-        first_four_digits = int(str(result)[:4])
+        # # Convert to decimal
+        # result = int(swapped_hex)
+        # first_four_digits = int(str(result)[:4])
         
-        # Divide the extracted number by 100 and round to two decimal places
-        read_result = round(first_four_digits / 100, 2)
+        # # Divide the extracted number by 100 and round to two decimal places
+        # read_result = round(first_four_digits / 100, 2)
 
-        print(f"Original first byte: {first_byte:02X}")
-        print(f"Original second byte: {second_byte:02X}")
-        print(f"Swapped hex: {second_byte:02X}{first_byte:02X}")
-        print(f"Decimal value: {read_result}") 
-        return read_result
-        # result = m_objPCANBasic.Read(m_PcanHandle)
-        # if result == PCAN_ERROR_OK:
-        #     args = result[1:]
-        #     theMsg = args[0][0]
-        #     newMsg = TPCANMsg()
-        #     for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN):
-        #         newMsg.DATA[i] = theMsg.DATA[i]
-        #     # first_byte = newMsg.DATA[0]
-        #     # second_byte = newMsg.DATA[1]
-        #     first_byte = 'E2'
-        #     second_byte = '73'
+        # print(f"Original first byte: {first_byte:02X}")
+        # print(f"Original second byte: {second_byte:02X}")
+        # print(f"Swapped hex: {second_byte:02X}{first_byte:02X}")
+        # print(f"Decimal value: {read_result}") 
+        # return read_result
+        result = m_objPCANBasic.Read(m_PcanHandle)
+        print("result",result)
+        if result[0:] == PCAN_ERROR_OK:
+            print("result in")
+            args = result[1:]
+            theMsg = args[0]
+            newMsg = TPCANMsgFD()
+            newMsg.ID = theMsg.ID
+            newMsg.DLC = theMsg.LEN
+            for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN):
+                newMsg.DATA[i] = theMsg.DATA[i]
+            first_byte = newMsg.DATA[0]
+            second_byte = newMsg.DATA[1]
+            # first_byte = 'E2'
+            # second_byte = '73'
 
-        #     # Swap the bytes and create the hexadecimal number
-        #     swapped_hex = (second_byte << 8) | first_byte
+            # Swap the bytes and create the hexadecimal number
+            swapped_hex = (second_byte << 8) | first_byte
 
-        #     # Convert to decimal
-        #     decimal_value = int(swapped_hex)
-        #     print(f"Original first byte: {first_byte:02X}")
-        #     print(f"Original second byte: {second_byte:02X}")
-        #     print(f"Swapped hex: {second_byte:02X}{first_byte:02X}")
-        #     print(f"Decimal value: {decimal_value}")
-        #     return decimal_value
-        # else:
-        #     messagebox.showinfo("Connect Confirmation", "Connection established!")
+            # Convert to decimal
+            decimal_value = int(swapped_hex)
+            print(f"Original first byte: {first_byte:02X}")
+            print(f"Original second byte: {second_byte:02X}")
+            print(f"Swapped hex: {second_byte:02X}{first_byte:02X}")
+            print(f"Decimal value: {decimal_value}")
+            return decimal_value
+        else:
+            return 0
+            # messagebox.showinfo("Error", "Error")
 
 def GetFormatedError(error):
         # Gets the text using the GetErrorText API function
