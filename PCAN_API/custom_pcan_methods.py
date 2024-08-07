@@ -1,6 +1,7 @@
 #pcan_methods.py
 from PCAN_API.PCANBasic import *
 from tkinter import messagebox
+import time
 
 m_objPCANBasic = PCANBasic()
 m_PcanHandle = 81
@@ -102,58 +103,101 @@ def pcan_write(call_name):
             messagebox.showerror("Error!", GetFormatedError(result))
             return 0, False
         else:
-            read_result = pcan_read()
+            time.sleep(0.1)
+            read_result, success = retry_pcan_read()
+            return read_result, success
+        
+def retry_pcan_read(retries=5, delay=0.1):
+    for _ in range(retries):
+        read_result = pcan_read()
+        if read_result != 0:
             return read_result, True
+        time.sleep(delay)
+    return 0, False
              
 #PCAN Read API Call
 def pcan_read():
-        # second_byte = int('73', 16)
-        # first_byte = int('E2', 16)
-
-        # # Swap the bytes and create the hexadecimal number
-        # swapped_hex = (second_byte << 8) | first_byte
-
-        # # Convert to decimal
-        # result = int(swapped_hex)
-        # first_four_digits = int(str(result)[:4])
+    result = m_objPCANBasic.Read(m_PcanHandle)
+    if result[0:] == PCAN_ERROR_OK:
+        args = result[1:]
+        theMsg = args[0]
+        newMsg = TPCANMsgFD()
+        newMsg.ID = theMsg.ID
+        newMsg.DLC = theMsg.LEN
+        for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN):
+            newMsg.DATA[i] = theMsg.DATA[i]
         
-        # # Divide the extracted number by 100 and round to two decimal places
-        # read_result = round(first_four_digits / 100, 2)
+        command_code = newMsg.DATA[2]
+        first_byte = newMsg.DATA[0]
+        second_byte = newMsg.DATA[1]
 
-        # print(f"Original first byte: {first_byte:02X}")
-        # print(f"Original second byte: {second_byte:02X}")
-        # print(f"Swapped hex: {second_byte:02X}{first_byte:02X}")
-        # print(f"Decimal value: {read_result}") 
-        # return read_result
-        result = m_objPCANBasic.Read(m_PcanHandle)
-        print("result",result)
-        if result[0:] == PCAN_ERROR_OK:
-            print("result in")
-            args = result[1:]
-            theMsg = args[0]
-            newMsg = TPCANMsgFD()
-            newMsg.ID = theMsg.ID
-            newMsg.DLC = theMsg.LEN
-            for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN):
-                newMsg.DATA[i] = theMsg.DATA[i]
-            first_byte = newMsg.DATA[0]
-            second_byte = newMsg.DATA[1]
-            # first_byte = 'E2'
-            # second_byte = '73'
+        # Swap the bytes to create the correct hex value
+        swapped_hex = (second_byte << 8) | first_byte
+        decimal_value = int(swapped_hex)
 
-            # Swap the bytes and create the hexadecimal number
-            swapped_hex = (second_byte << 8) | first_byte
+        display_value = convert_data(command_code, decimal_value)
 
-            # Convert to decimal
-            decimal_value = int(swapped_hex)
-            print(f"Original first byte: {first_byte:02X}")
-            print(f"Original second byte: {second_byte:02X}")
-            print(f"Swapped hex: {second_byte:02X}{first_byte:02X}")
-            print(f"Decimal value: {decimal_value}")
-            return decimal_value
-        else:
-            return 0
-            # messagebox.showinfo("Error", "Error")
+        print(f"Command code: {command_code:02X}")
+        print(f"Original first byte: {first_byte:02X}")
+        print(f"Original second byte: {second_byte:02X}")
+        print(f"Decimal value: {decimal_value}")
+        print(f"Display value: {display_value}")
+
+        return display_value
+    else:
+        return 0
+
+def convert_data(command_code, decimal_value):
+    # Conversion rules
+    if command_code == 0x04:  # AtRate: mA / 40 unsigned
+        return decimal_value * 40
+    elif command_code == 0x05:  # AtRateTimeToFull: minutes unsigned
+        return decimal_value
+    elif command_code == 0x06:  # AtRateTimeToEmpty: minutes unsigned
+        return decimal_value
+    elif command_code == 0x07:  # AtRateOK: Boolean
+        return "Yes" if decimal_value != 0 else "No"
+    elif command_code == 0x08:  # Temperature: 0.1⁰K signed
+        return decimal_value / 10
+    elif command_code == 0x09:  # Voltage: mV unsigned
+        return decimal_value
+    elif command_code == 0x0c:  # MaxError: Percent unsigned
+        return decimal_value
+    elif command_code == 0x0d:  # RelStateofCharge: Percent unsigned
+        return decimal_value
+    elif command_code == 0x0e:  # AbsoluteStateofCharge: Percent unsigned
+        return decimal_value
+    elif command_code == 0x0f:  # RemainingCapacity: mAh / 40 unsigned
+        return decimal_value * 40
+    elif command_code == 0x10:  # FullChargeCapacity: mAh / 40 unsigned
+        return decimal_value * 40
+    elif command_code == 0x11:  # RunTimeToEmpty: minutes unsigned
+        return decimal_value
+    elif command_code == 0x12:  # AvgTimeToEmpty: minutes unsigned
+        return decimal_value
+    elif command_code == 0x13:  # AvgTimeToFull: minutes unsigned
+        return decimal_value
+    elif command_code == 0x14:  # ChargingCurrent: mA / 40 unsigned
+        return decimal_value * 40
+    elif command_code == 0x15:  # ChargingVoltage: mV unsigned
+        return decimal_value
+    elif command_code == 0x16:  # BatteryStatus4: bit flags unsigned
+        return bin(decimal_value)
+    elif command_code == 0x17:  # CycleCount: Count unsigned
+        return decimal_value
+    elif command_code == 0x18:  # DesignCapacity: mAh / 40 unsigned
+        return decimal_value * 40
+    elif command_code == 0x19:  # DesignVoltage: mV unsigned
+        return decimal_value
+    elif command_code == 0x1b:  # ManufactureDate: unsigned int unsigned
+        return decimal_value
+    elif command_code == 0x1c:  # SerialNumber: number unsigned
+        return decimal_value
+    elif command_code in [0x20, 0x21]:  # ManufacturerName and DeviceName: string
+        return hex(decimal_value)  # Assuming string data is processed differently
+
+    return decimal_value
+
 
 def GetFormatedError(error):
         # Gets the text using the GetErrorText API function
