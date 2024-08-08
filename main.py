@@ -5,7 +5,7 @@ from PIL import Image, ImageTk
 Image.CUBIC = Image.BICUBIC
 from tkinter import messagebox
 import ttkbootstrap as ttk
-from customtkinter import CTk, CTkFrame, CTkButton, CTkLabel, CTkEntry, set_appearance_mode
+from customtkinter import CTk, CTkFrame, CTkButton, CTkLabel, CTkEntry, CTkImage
 from helpers.methods import load_and_resize_image, create_image_button
 from PCAN_API.custom_pcan_methods import pcan_write
 from gui.can_connect import CanConnection
@@ -237,8 +237,9 @@ class MainWindow:
         if not os.path.isfile(image_path):
             raise FileNotFoundError(f"Image file not found: {image_path}")
 
+        image = Image.open(image_path)
         # Load the download icon image
-        download_icon = PhotoImage(file=image_path)
+        download_icon = CTkImage(image)
 
         # Create and place the download button in the top right corner
         download_button = CTkButton(dashboard_frame, image=download_icon, fg_color="#ff6600", text="", width=30, height=30)
