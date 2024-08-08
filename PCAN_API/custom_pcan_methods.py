@@ -84,7 +84,7 @@ def pcan_write(call_name):
             CANMsg.DATA[2] = int('18',16)
         elif call_name == 'desgin_voltage':
             CANMsg.DATA[2] = int('19',16)
-        elif call_name == 'manufacturer_ate':
+        elif call_name == 'manufacturer_date':
             CANMsg.DATA[2] = int('1b',16)
         elif call_name == 'manufacturer_name':
             CANMsg.DATA[2] = int('20',16)
@@ -97,33 +97,41 @@ def pcan_write(call_name):
         CANMsg.DATA[5] = int('02',16)
         CANMsg.DATA[6] = int('00',16)
         CANMsg.DATA[7] = int('00',16)
-        print(f"Can write: {CANMsg.DATA[2]}")
-        result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)  
+        result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)
+        print(f"call name: {call_name}")
         if result != PCAN_ERROR_OK:
             messagebox.showerror("Error!", GetFormatedError(result))
-            return 0, False
+            return 0
         else:
             time.sleep(0.1)
-            read_result, success = retry_pcan_read()
-            return read_result, success
+            read_result = retry_pcan_read()
+            return read_result
         
 def retry_pcan_read(retries=5, delay=0.1):
     for _ in range(retries):
         read_result = pcan_read()
         if read_result != 0:
-            return read_result, True
+            return read_result
         time.sleep(delay)
-    return 0, False
+    return 0
              
 #PCAN Read API Call
 def pcan_read():
     result = m_objPCANBasic.Read(m_PcanHandle)
-    if result[0:] == PCAN_ERROR_OK:
+    # print("can result 0 value",result[0])
+    # print("can result 1 value",result[1])
+    if result[0] != PCAN_ERROR_OK:
+        # messagebox.showerror("Error!", GetFormatedError(result))
+        return 250
+    else:
         args = result[1:]
+        # print("args",args[0])
         theMsg = args[0]
+        # print("theMsg",theMsg)
         newMsg = TPCANMsgFD()
         newMsg.ID = theMsg.ID
         newMsg.DLC = theMsg.LEN
+        # print("theMsg.LEN",theMsg.LEN)
         for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN):
             newMsg.DATA[i] = theMsg.DATA[i]
         
@@ -137,15 +145,9 @@ def pcan_read():
 
         display_value = convert_data(command_code, decimal_value)
 
-        print(f"Command code: {command_code:02X}")
-        print(f"Original first byte: {first_byte:02X}")
-        print(f"Original second byte: {second_byte:02X}")
-        print(f"Decimal value: {decimal_value}")
         print(f"Display value: {display_value}")
 
         return display_value
-    else:
-        return 0
 
 def convert_data(command_code, decimal_value):
     # Conversion rules

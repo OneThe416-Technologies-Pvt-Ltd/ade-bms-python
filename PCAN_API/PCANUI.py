@@ -321,16 +321,16 @@ class PCANBasicExample(object):
         # Parent's configuration       
         self.m_Parent = parent
         self.m_Parent.wm_title("ADE BMS")
-        self.m_Parent.iconbitmap('asserts/logo/drdo_icon.ico')
+        self.m_Parent.iconbitmap('assets/logo/drdo_icon.ico')
         self.m_Parent.resizable(False,False)
         self.m_Parent.protocol("WM_DELETE_WINDOW",self.Form_OnClosing)
-        background_image = tk.PhotoImage(file='asserts/images/bg_main.png')
+        # background_image = tk.PhotoImage(file='asserts/images/bg_main.png')
 
         # Create a label to hold the image
-        background_label = tk.Label(self.m_Parent, image=background_image)
+        # background_label = tk.Label(self.m_Parent, image=background_image)
 
-        # Place the label in the background
-        background_label.place(relwidth=1, relheight=1)
+        # # Place the label in the background
+        # background_label.place(relwidth=1, relheight=1)
 
                
         # Frame's configuration
@@ -2130,6 +2130,8 @@ class PCANBasicExample(object):
             for i in range(CANMsg.LEN):
                 CANMsg.DATA[i] = int(self.m_DataEdits[i].get(),16)
 
+            print(f"Can write: {CANMsg}")
+
         # The message is sent to the configured hardware
         #
         return self.m_objPCANBasic.Write(self.m_PcanHandle, CANMsg)
@@ -2525,4 +2527,3 @@ if __name__ == '__main__':
     #
     RunMain(root)
 ###*****************************************************************
-

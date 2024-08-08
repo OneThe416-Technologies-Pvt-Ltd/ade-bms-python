@@ -1,6 +1,6 @@
 import os
 import tkinter as tk
-from tkinter import filedialog, PhotoImage
+# from tkinter import filedialog, PhotoImage
 from PIL import Image, ImageTk
 Image.CUBIC = Image.BICUBIC
 from tkinter import messagebox
@@ -26,6 +26,32 @@ class MainWindow:
 
         self.can_connected = False
         self.rs_connected = False
+        self.at_rate = 0
+        self.at_rate_time_to_full = 0
+        self.at_rate_time_to_empty = 0
+        self.at_rate_ok_text = ""
+        self.rel_state_of_charge = 0
+        self.abs_state_of_charge = 0
+        self.run_time_to_empty = 0
+        self.avg_time_to_empty = 0
+        self.avg_time_to_full = 0
+        self.max_error = 0
+        self.device_name = ""
+        self.serial_number = 0 
+        self.manufacture_date = 0
+        self.manufacturer_name = ""
+        self.battery_status = ""
+        self.cycle_count =0
+        self.design_capacity = 0
+        self.design_voltage = 0
+        self.temp = 0
+        self.current = 0
+        self.voltage = 0
+        self.avg_current = 0
+        self.charging_current = 0
+        self.remaining_capacity = 0
+        self.full_charge_capacity = 0
+        self.charging_voltage = 0
 
         # Load background image
         self.background_image_path = os.path.join(base_dir, 'assets/images/bg_main1.png')
@@ -130,27 +156,26 @@ class MainWindow:
             button = self.create_custom_button(text, command)
             self.buttons.append((text, button))
             button.pack(pady=5, padx=5)
-
-        device_name = "device name"
-        serial_number = 1234
-        manufacture_date = 122022
-        manufacturer_name = "manufacturer_name"
-        battery_status = "Good"
-        cycle_count =20
-        design_capacity = 200
-        design_voltage = 200
+        # if self.can_connected:
+        #     device_name = "device name"
+        #     serial_number = pcan_write('serial_no') 
+        #     manufacture_date = 122022
+        #     manufacturer_name = "manufacturer_name"
+        #     battery_status = "Good"
+        #     cycle_count =20
+        #     design_capacity = 200
+        #     design_voltage = 200
 
         fields = [
-            f"Device Name: {device_name}",
-            f"Serial Number: {serial_number}",
-            f"Manufacture Date: {manufacture_date}",
-            f"Manufacturer Name: {manufacturer_name}",
-            f"Battery Status: {battery_status}",
-            f"Cycle Count: {cycle_count}",
-            f"Design Capacity: {design_capacity}",
-            f"Design Voltage: {design_voltage}"
+            f"Device Name: {self.device_name}",
+            f"Serial Number: {self.serial_number}",
+            f"Manufacture Date: {self.manufacture_date}",
+            f"Manufacturer Name: {self.manufacturer_name}",
+            f"Battery Status: {self.battery_status}",
+            f"Cycle Count: {self.cycle_count}",
+            f"Design Capacity: {self.design_capacity}",
+            f"Design Voltage: {self.design_voltage}"
         ]
-        
         for field in reversed(fields):
             label = CTkLabel(self.side_menu, text=field, font=("Palatino Linotype", 12))
             label.pack(side="bottom", pady=4, padx=4)
@@ -171,30 +196,30 @@ class MainWindow:
         info_frame = CTkFrame(self.content_frame, corner_radius=10, fg_color="#f8f8f8", border_color="#d0d0d0", border_width=2)
         info_frame.pack(padx=10, pady=10, anchor="n")
 
-        at_rate = 100
-        at_rate_time_to_full = 120
-        at_rate_time_to_empty = 90
-        at_rate_ok = 1
-        at_rate_ok_text = "Yes" if at_rate_ok == 1 else "No"
-        rel_state_of_charge = 80
-        abs_state_of_charge = 75
-        run_time_to_empty = 60
-        avg_time_to_empty = 70
-        avg_time_to_full = 50
-        max_error = 20
+        # at_rate = 100
+        # at_rate_time_to_full = 120
+        # at_rate_time_to_empty = 90
+        # at_rate_ok = 1
+        # at_rate_ok_text = "Yes" if at_rate_ok == 1 else "No"
+        # rel_state_of_charge = 80
+        # abs_state_of_charge = 75
+        # run_time_to_empty = 60
+        # avg_time_to_empty = 70
+        # avg_time_to_full = 50
+        # max_error = 20
 
-        # Update labels with variables
+        # Update labels with variable
         labels = [
-            f"At Rate: {at_rate} mA",
-            f"At Rate Time To Full: {at_rate_time_to_full} mins",
-            f"At Rate Time To Empty: {at_rate_time_to_empty} mins",
-            f"At Rate OK: {at_rate_ok_text}",
-            f"Rel State of Charge: {rel_state_of_charge} %",
-            f"Absolute State of Charge: {abs_state_of_charge} %",
-            f"Run Time To Empty: {run_time_to_empty} mins",
-            f"Avg Time To Empty: {avg_time_to_empty} mins",
-            f"Avg Time To Full: {avg_time_to_full} mins",
-            f"Max Error: {max_error} %"
+            f"At Rate: {self.at_rate} mA",
+            f"At Rate Time To Full: {self.at_rate_time_to_full} mins",
+            f"At Rate Time To Empty: {self.at_rate_time_to_empty} mins",
+            f"At Rate OK: {self.at_rate_ok_text}",
+            f"Rel State of Charge: {self.rel_state_of_charge} %",
+            f"Absolute State of Charge: {self.abs_state_of_charge} %",
+            f"Run Time To Empty: {self.run_time_to_empty} mins",
+            f"Avg Time To Empty: {self.avg_time_to_empty} mins",
+            f"Avg Time To Full: {self.avg_time_to_full} mins",
+            f"Max Error: {self.max_error} %"
         ]
 
         for label_text in labels:
@@ -212,15 +237,15 @@ class MainWindow:
             return "danger"
 
     def create_dashboard(self, parent_frame):
-        temp = 50.5
-        current = 50
-        capacity = 70
-        voltage = 240
+        # temp = 50.5
+        # current = 50
+        # capacity = 70
+        # voltage = 240
         meter_info = {
-            "Temperature": {"amountused": temp, "subtext": "Temperature", "textright": "°C", "bootstyle": "danger","stripethickness":0,"amounttotal":100},
-            "Current": {"amountused": current, "subtext": "Current", "textright": "mA", "bootstyle": "info","stripethickness":10,"amounttotal":100},
-            "Capacity": {"amountused": capacity, "subtext": "Capacity", "textright": "%", "bootstyle": "warning","stripethickness":8,"amounttotal":100},
-            "Voltage": {"amountused": voltage, "subtext": "Voltage", "textright": "V", "bootstyle": "dark","stripethickness":5,"amounttotal":300}
+            "Temperature": {"amountused": self.temp, "subtext": "Temperature", "textright": "°C", "bootstyle": "danger","stripethickness":0,"amounttotal":100},
+            "Current": {"amountused": self.current, "subtext": "Current", "textright": "mA", "bootstyle": "info","stripethickness":10,"amounttotal":100},
+            "Capacity": {"amountused": self.remaining_capacity, "subtext": "Capacity", "textright": "%", "bootstyle": "warning","stripethickness":8,"amounttotal":100},
+            "Voltage": {"amountused": self.voltage, "subtext": "Voltage", "textright": "V", "bootstyle": "dark","stripethickness":5,"amounttotal":300}
         }
 
         dashboard_frame = CTkFrame(parent_frame, corner_radius=10, fg_color="#ffffff", bg_color="#33b4b4")
@@ -299,13 +324,13 @@ class MainWindow:
     #     meter.pack(pady=20)
 
     def create_current_content(self, parent_frame):
-        avg_current = 50.5
-        current = 50
-        charging_current = 70
+        # avg_current = 50.5
+        # current = 50
+        # charging_current = 70
         meter_info = {
-            "Avg Current": {"amountused": avg_current, "subtext": "Avg Current", "textright": "°C", "bootstyle": "danger","stripethickness":0,"amounttotal":100},
-            "Current": {"amountused": current, "subtext": "Current", "textright": "mA", "bootstyle": "info","stripethickness":10,"amounttotal":100},
-            "Charging Current": {"amountused": charging_current, "subtext": "Charging Current", "textright": "%", "bootstyle": "warning","stripethickness":8,"amounttotal":100},
+            "Avg Current": {"amountused": self.avg_current, "subtext": "Avg Current", "textright": "°C", "bootstyle": "danger","stripethickness":0,"amounttotal":100},
+            "Current": {"amountused": self.current, "subtext": "Current", "textright": "mA", "bootstyle": "info","stripethickness":10,"amounttotal":100},
+            "Charging Current": {"amountused": self.charging_current, "subtext": "Charging Current", "textright": "%", "bootstyle": "warning","stripethickness":8,"amounttotal":100},
         }
 
         dashboard_frame = CTkFrame(parent_frame, corner_radius=10, fg_color="#ffffff", bg_color="#33b4b4")
@@ -346,14 +371,14 @@ class MainWindow:
             meter.pack()
 
     def create_capacity_content(self, parent_frame):
-        remaing_capacity = 50.5
-        full_charge_capacity = 50
-        design_capacity = 70
+        # remaing_capacity = 50.5
+        # full_charge_capacity = 50
+        # design_capacity = 70
 
         meter_info = {
-            "Remaing Capacity": {"amountused": remaing_capacity, "subtext": "Remaing Capacity", "textright": "°C", "bootstyle": "danger","stripethickness":0,"amounttotal":100},
-            "Full Charge Capacity": {"amountused": full_charge_capacity, "subtext": "Full Charge Capacity", "textright": "mA", "bootstyle": "info","stripethickness":10,"amounttotal":100},
-            "Design Capacity": {"amountused": design_capacity, "subtext": "Design Capacity", "textright": "%", "bootstyle": "warning","stripethickness":8,"amounttotal":100},
+            "Remaing Capacity": {"amountused": self.remaining_capacity, "subtext": "Remaing Capacity", "textright": "°C", "bootstyle": "danger","stripethickness":0,"amounttotal":100},
+            "Full Charge Capacity": {"amountused": self.full_charge_capacity, "subtext": "Full Charge Capacity", "textright": "mA", "bootstyle": "info","stripethickness":10,"amounttotal":100},
+            "Design Capacity": {"amountused": self.design_capacity, "subtext": "Design Capacity", "textright": "%", "bootstyle": "warning","stripethickness":8,"amounttotal":100},
         }
 
         dashboard_frame = CTkFrame(parent_frame, corner_radius=10, fg_color="#ffffff", bg_color="#33b4b4")
@@ -394,14 +419,14 @@ class MainWindow:
             meter.pack()
 
     def create_voltage_content(self, parent_frame):
-        voltage = 50.5
-        charging_voltage = 50
-        design_voltage = 70
+        # voltage = 50.5
+        # charging_voltage = 50
+        # design_voltage = 70
 
         meter_info = {
-            "Voltage": {"amountused": voltage, "subtext": "Voltage", "textright": "°C", "bootstyle": "danger","stripethickness":0,"amounttotal":100},
-            "Charging Voltage": {"amountused": charging_voltage, "subtext": "Charging Voltage", "textright": "mA", "bootstyle": "info","stripethickness":10,"amounttotal":100},
-            "Design Voltage": {"amountused": design_voltage, "subtext": "Design Voltage", "textright": "%", "bootstyle": "warning","stripethickness":8,"amounttotal":100},
+            "Voltage": {"amountused": self.voltage, "subtext": "Voltage", "textright": "°C", "bootstyle": "danger","stripethickness":0,"amounttotal":100},
+            "Charging Voltage": {"amountused": self.charging_voltage, "subtext": "Charging Voltage", "textright": "mA", "bootstyle": "info","stripethickness":10,"amounttotal":100},
+            "Design Voltage": {"amountused": self.design_voltage, "subtext": "Design Voltage", "textright": "%", "bootstyle": "warning","stripethickness":8,"amounttotal":100},
         }
 
         dashboard_frame = CTkFrame(parent_frame, corner_radius=10, fg_color="#ffffff", bg_color="#33b4b4")
@@ -527,6 +552,7 @@ class MainWindow:
 
     def update_colors(self):
         if self.can_connected:
+
             self.colors['can'] = 'green'
             self.colors['can_battery'] = 'green'
         else:
@@ -572,6 +598,15 @@ class MainWindow:
 
     def on_can_window_close(self, window, can_connection):
         self.can_connected = can_connection.get_connection_status()
+        # if self.can_connected:
+        #     self.device_name = pcan_write('device_name')
+        #     self.serial_number = pcan_write('serial_no') 
+        #     self.manufacture_date = pcan_write('manufacturer_date')
+        #     self.manufacturer_name = pcan_write('manufacturer_name')
+        #     self.battery_status = pcan_write('battery_status')
+        #     self.cycle_count = pcan_write('cycle_count')
+        #     self.design_capacity = pcan_write('design_capacity')
+        #     self.design_voltage = pcan_write('desgin_voltage')
         self.update_colors()
         window.grab_release()  # Release the grab set by can_window
         window.destroy()  # Destroy the Toplevel window
@@ -636,10 +671,34 @@ class MainWindow:
         elif not self.can_connected:
             messagebox.showerror("ERROR!", "CAN not connected")
         else:
-            # result = pcan_write('serial_no') 
-            # print("can serial value",result)
+            self.device_name = pcan_write('device_name')
+            self.serial_number = pcan_write('serial_no') 
+            self.manufacture_date = pcan_write('manufacturer_date')
+            self.manufacturer_name = pcan_write('manufacturer_name')
+            self.battery_status = pcan_write('battery_status')
+            self.cycle_count = pcan_write('cycle_count')
+            self.design_capacity = pcan_write('design_capacity')
+            self.design_voltage = pcan_write('desgin_voltage')
+            self.at_rate = pcan_write('at_rate')
+            self.at_rate_time_to_full = pcan_write('at_rate_time_to_full')
+            self.at_rate_time_to_empty = pcan_write('at_rate_time_to_empty')
+            self.at_rate_ok_text = pcan_write('at_rate_ok')
+            self.rel_state_of_charge = pcan_write('rel_state_of_charge')
+            self.abs_state_of_charge = pcan_write('absolute_state_of_charge')
+            self.run_time_to_empty = pcan_write('run_time_to_empty')
+            self.avg_time_to_empty = pcan_write('avg_time_to_empty')
+            self.avg_time_to_full = pcan_write('avg_time_to_full')
+            self.max_error = pcan_write('max_error')
+            self.temp = pcan_write('temperature')
+            self.current = pcan_write('current')
+            self.remaining_capacity = pcan_write('remaining_capacity')
+            self.voltage = pcan_write('voltage')
+            self.avg_current = pcan_write('avg_current')
+            self.charging_current = pcan_write('charging_current')
+            self.full_charge_capacity = pcan_write('full_charge_capacity')
+            self.charging_voltage = pcan_write('charging_voltage')
             self.show_battery_info()
-
+            
 
 if __name__ == "__main__":
     root = tk.Tk()
