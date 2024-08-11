@@ -2,23 +2,166 @@
 from PCAN_API.PCANBasic import *
 from tkinter import messagebox
 import time
+import threading
 
 m_objPCANBasic = PCANBasic()
 m_PcanHandle = 81
 can_connected = False
 rs_connected = False
+continuous_update_thread = None
+stop_continuous_update = False
 
-#PCAN Initialize API Call
-def pcan_initialize(baudrate,hwtype,ioport,interrupt):
-        result =  m_objPCANBasic.Initialize(m_PcanHandle,baudrate,hwtype,ioport,interrupt)
-        if result != PCAN_ERROR_OK:
-            if result == 5120:
-                 result = 512
-            messagebox.showerror("Error!", GetFormatedError(result))
-            return True
-        else:
-            messagebox.showinfo("Info!", "Connection established!")
-            return True
+label_mapping = {
+            "device_name": "Device Name",
+            "serial_number": "Serial No",
+            "manufacturer_date": "Manufacturer Date",
+            "manufacturer_name": "Manufacturer Name",
+            "battery_status": "Battery Status",
+            "cycle_count": "Cycle Count",
+            "design_capacity": "Design Capacity",
+            "design_voltage": "Design Voltage",
+            "at_rate_ok_text": "At Rate",
+            "at_rate_time_to_full": "At Rate Time To Full",
+            "at_rate_time_to_empty": "At Rate Time To Empty",
+            "at_rate_ok": "At Rate OK",
+            "rel_state_of_charge": "Rel State of Charge",
+            "abs_state_of_charge": "Absolute State of Charge",
+            "run_time_to_empty": "Run Time To Empty",
+            "avg_time_to_empty": "Avg Time To Empty",
+            "avg_time_to_full": "Avg Time To Full",
+            "max_error": "Max Error",
+            "temperature": "Temperature",
+            "current": "Current",
+            "remaining_capacity": "Remaining Capacity",
+            "voltage": "Voltage",
+            "avg_current": "Avg Current",
+            "charging_current": "Charging Current",
+            "full_charge_capacity": "Full Charge Capacity",
+            "charging_voltage": "Charging Voltage"
+        }
+
+device_data = {
+            'device_name': "",
+            'serial_number': 0,
+            'manufacturer_date': 0,
+            'manufacturer_name': "",
+            'design_capacity': 0,
+            'design_voltage': 0,
+            'remaining_capacity': 0,
+            'temperature': 0,
+            'current': 0,
+            'voltage': 0,
+            'battery_status': "",
+            'cycle_count': 0,
+            'avg_current': 0,
+            'charging_current': 0,
+            'full_charge_capacity': 0,
+            'charging_voltage': 0,
+            'at_rate_time_to_full': 0,
+            'at_rate_time_to_empty': 0,
+            'at_rate_ok_text': "Yes",
+            'rel_state_of_charge': 0,
+            'abs_state_of_charge': 0,
+            'run_time_to_empty': 0,
+            'avg_time_to_empty': 0,
+            'avg_time_to_full': 0,
+            'max_error': 0
+        } 
+
+
+def fetch_and_store_data(call_name, key):
+    value = pcan_write_read(call_name)
+    device_data[key] = value
+
+
+def update_device_data(continuous=False):
+    global continuous_update_thread, stop_continuous_update
+
+    def update_all_data():
+        data_points = [
+            ('remaining_capacity', 'remaining_capacity'),
+            ('temperature', 'temperature'),
+            ('current', 'current'),
+            ('voltage', 'voltage'),
+            ('battery_status', 'battery_status'),
+            ('cycle_count', 'cycle_count'),
+            ('avg_current', 'avg_current'),
+            ('charging_current', 'charging_current'),
+            ('full_charge_capacity', 'full_charge_capacity'),
+            ('charging_voltage', 'charging_voltage'),
+            ('at_rate_time_to_full', 'at_rate_time_to_full'),
+            ('at_rate_time_to_empty', 'at_rate_time_to_empty'),
+            ('at_rate_ok_text', 'at_rate_ok_text'),
+            ('rel_state_of_charge', 'rel_state_of_charge'),
+            ('abs_state_of_charge', 'abs_state_of_charge'),
+            ('run_time_to_empty', 'run_time_to_empty'),
+            ('avg_time_to_empty', 'avg_time_to_empty'),
+            ('avg_time_to_full', 'avg_time_to_full'),
+            ('max_error', 'max_error')
+        ]
+
+        threads = []
+        for call_name, key in data_points:
+            thread = threading.Thread(target=fetch_and_store_data, args=(call_name, key))
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+    def continuous_update():
+        while not stop_continuous_update:
+            update_all_data()
+            time.sleep(5)
+
+    if continuous:
+        # Start the continuous update in a new thread
+        stop_continuous_update = False
+        continuous_update_thread = threading.Thread(target=continuous_update)
+        continuous_update_thread.start()
+    else:
+        # Stop the continuous update if running
+        stop_continuous_update = True
+        if continuous_update_thread:
+            continuous_update_thread.join()
+        update_all_data()
+
+
+def pcan_initialize(baudrate, hwtype, ioport, interrupt):
+    result = m_objPCANBasic.Initialize(m_PcanHandle, baudrate, hwtype, ioport, interrupt)
+    if result == PCAN_ERROR_OK:
+        if result == 5120:
+            result = 512
+        messagebox.showerror("Error!", GetFormatedError(result))
+        return True
+    else:
+        # Create threads for each data fetching operation
+        threads = []
+        data_points = [
+            ('temperature', 'temperature'),
+            ('current', 'current'),
+            ('remaining_capacity', 'remaining_capacity'),
+            ('voltage', 'voltage'),
+            ('design_capacity', 'design_capacity'),
+            ('design_voltage', 'design_voltage'),
+            ('manufacturer_date', 'manufacturer_date'),
+            ('serial_number', 'serial_number'),
+            ('manufacturer_name', 'manufacturer_name'),
+            ('device_name', 'device_name')
+        ]
+
+        for call_name, key in data_points:
+            thread = threading.Thread(target=fetch_and_store_data, args=(call_name, key))
+            threads.append(thread)
+            thread.start()
+
+        # Wait for all threads to complete
+        for thread in threads:
+            thread.join()
+        
+        messagebox.showinfo("Info!", "Connection established!")
+        return True
+
 
 #PCAN Uninitialize API Call
 def pcan_uninitialize(): 
@@ -30,15 +173,16 @@ def pcan_uninitialize():
             messagebox.showinfo("Info!", "Connection Disconnect!")
             return True
 
+
 #PCAN Write API Call
-def pcan_write(call_name):
+def pcan_write_read(call_name):
         CANMsg = TPCANMsg()
         CANMsg.ID = int('18EFC0D0',16)
         CANMsg.LEN = int(8)
         CANMsg.MSGTYPE = PCAN_MESSAGE_EXTENDED
         CANMsg.DATA[0] = int('01',16)
         CANMsg.DATA[1] = int('00',16)
-        if call_name == 'serial_no':
+        if call_name == 'serial_number':
             CANMsg.DATA[2] = int('1c',16)
         elif call_name == 'at_rate':
             CANMsg.DATA[2] = int('04',16)
@@ -46,7 +190,7 @@ def pcan_write(call_name):
             CANMsg.DATA[2] = int('05',16)
         elif call_name == 'at_rate_time_to_empty':
             CANMsg.DATA[2] = int('06',16)
-        elif call_name == 'at_rate_ok':
+        elif call_name == 'at_rate_ok_text':
             CANMsg.DATA[2] = int('07',16)
         elif call_name == 'temperature':
             CANMsg.DATA[2] = int('08',16)
@@ -60,7 +204,7 @@ def pcan_write(call_name):
             CANMsg.DATA[2] = int('0c',16)
         elif call_name == 'rel_state_of_charge':
             CANMsg.DATA[2] = int('0d',16)
-        elif call_name == 'absolute_state_of_charge':
+        elif call_name == 'abs_state_of_charge':
             CANMsg.DATA[2] = int('0e',16)
         elif call_name == 'remaining_capacity':
             CANMsg.DATA[2] = int('0f',16)
@@ -82,7 +226,7 @@ def pcan_write(call_name):
             CANMsg.DATA[2] = int('17',16)
         elif call_name == 'design_capacity':
             CANMsg.DATA[2] = int('18',16)
-        elif call_name == 'desgin_voltage':
+        elif call_name == 'design_voltage':
             CANMsg.DATA[2] = int('19',16)
         elif call_name == 'manufacturer_date':
             CANMsg.DATA[2] = int('1b',16)
@@ -97,7 +241,8 @@ def pcan_write(call_name):
         CANMsg.DATA[5] = int('02',16)
         CANMsg.DATA[6] = int('00',16)
         CANMsg.DATA[7] = int('00',16)
-        result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)
+        # result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)
+        result = 0
         print(f"call name: {call_name}")
         if result != PCAN_ERROR_OK:
             messagebox.showerror("Error!", GetFormatedError(result))
@@ -106,7 +251,8 @@ def pcan_write(call_name):
             time.sleep(0.1)
             read_result = retry_pcan_read()
             return read_result
-        
+
+
 def retry_pcan_read(retries=5, delay=0.1):
     for _ in range(retries):
         read_result = pcan_read()
@@ -114,13 +260,15 @@ def retry_pcan_read(retries=5, delay=0.1):
             return read_result
         time.sleep(delay)
     return 0
-             
+
+
 #PCAN Read API Call
 def pcan_read():
-    result = m_objPCANBasic.Read(m_PcanHandle)
+    # result = m_objPCANBasic.Read(m_PcanHandle)
+    result = 1
     # print("can result 0 value",result[0])
     # print("can result 1 value",result[1])
-    if result[0] != PCAN_ERROR_OK:
+    if result != PCAN_ERROR_OK:
         # messagebox.showerror("Error!", GetFormatedError(result))
         return 250
     else:
@@ -148,6 +296,7 @@ def pcan_read():
         print(f"Display value: {display_value}")
 
         return display_value
+
 
 def convert_data(command_code, decimal_value):
     # Conversion rules
@@ -212,4 +361,36 @@ def GetFormatedError(error):
         else:
             return stsReturn[1]
 
+
+def pcan_write_control(call_name):
+        CANMsg = TPCANMsg()
+        CANMsg.ID = int('18EFC0D0',16)
+        CANMsg.LEN = int(8)
+        CANMsg.MSGTYPE = PCAN_MESSAGE_EXTENDED
+        CANMsg.DATA[0] = int('03',16)
+        CANMsg.DATA[1] = int('00',16)
+        if call_name == 'both_off':
+            CANMsg.DATA[2] = int('00',16)
+        elif call_name == 'charge_on':
+            CANMsg.DATA[2] = int('01',16)
+        elif call_name == 'discharge_on':
+            CANMsg.DATA[2] = int('02',16)
+        elif call_name == 'both_on':
+            CANMsg.DATA[2] = int('03',16)
+        else:
+            messagebox.showinfo("Error!", "Write operation not found!")     
+        CANMsg.DATA[3] = int('01',16)
+        CANMsg.DATA[4] = int('08',16)
+        CANMsg.DATA[5] = int('02',16)
+        CANMsg.DATA[6] = int('00',16)
+        CANMsg.DATA[7] = int('00',16)
+        # result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)
+        result = 0
+        print(f"call name: {call_name}")
+        if result == PCAN_ERROR_OK:
+            messagebox.showinfo("Success Message",f"{call_name}")
+            return 0
+        else:
+            messagebox.showerror("Error",f"{call_name}")
+            return 0
 

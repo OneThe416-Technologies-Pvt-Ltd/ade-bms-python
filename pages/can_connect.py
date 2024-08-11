@@ -7,6 +7,13 @@ class CanConnection(tk.Frame):
 
     def __init__(self, parent):
         super().__init__(parent)
+
+        # Initialize instance variables to store selected values
+        self.selected_hwtype = None
+        self.selected_baudrate = None
+        self.selected_ioport = None
+        self.selected_interrupt = None
+
         # Initialize all the dictionaries for dropdown options
         self.m_NonPnPHandles = {
             'PCAN_ISABUS1': PCAN_TYPE_ISA, 'PCAN_ISABUS2': PCAN_TYPE_ISA_SJA, 'PCAN_ISABUS3': PCAN_TYPE_ISA_PHYTEC,
@@ -29,14 +36,14 @@ class CanConnection(tk.Frame):
         }
 
         self.m_IOPORTS = {
-            '0100':0x100, '0120':0x120, '0140':0x140, '0200':0x200, '0220':0x220, '0240':0x240, 
-            '0260':0x260, '0278':0x278, '0280':0x280, '02A0':0x2A0, '02C0':0x2C0, '02E0':0x2E0, '02E8':0x2E8,
-            '02F8':0x2F8, '0300':0x300, '0320':0x320, '0340':0x340, '0360':0x360, '0378':0x378, '0380':0x380, 
-            '03BC':0x3BC, '03E0':0x3E0, '03E8':0x3E8, '03F8':0x3F8
+            '0100': 0x100, '0120': 0x120, '0140': 0x140, '0200': 0x200, '0220': 0x220, '0240': 0x240, 
+            '0260': 0x260, '0278': 0x278, '0280': 0x280, '02A0': 0x2A0, '02C0': 0x2C0, '02E0': 0x2E0, '02E8': 0x2E8,
+            '02F8': 0x2F8, '0300': 0x300, '0320': 0x320, '0340': 0x340, '0360': 0x360, '0378': 0x378, '0380': 0x380, 
+            '03BC': 0x3BC, '03E0': 0x3E0, '03E8': 0x3E8, '03F8': 0x3F8
         }
 
         self.m_INTERRUPTS = {
-            '3':3, '4':4, '5':5, '7':7, '9':9, '10':10, '11':11, '12':12, '15':15
+            '3': 3, '4': 4, '5': 5, '7': 7, '9': 9, '10': 10, '11': 11, '12': 12, '15': 15
         }
 
         # Create GUI elements
@@ -46,33 +53,29 @@ class CanConnection(tk.Frame):
         # Label and dropdown for hardware type
         tk.Label(self, text="Hardware Type:").grid(row=0, column=0, padx=20, sticky=tk.W)
         self.cbbHwType = ctk.CTkComboBox(self, values=list(self.m_HWTYPES.keys()))
-        self.cbbHwType.set(list(self.m_HWTYPES.keys())[0])  # Set default value
         self.cbbHwType.grid(row=0, column=1, padx=20, pady=5)
 
         # Baudrate
         tk.Label(self, text="Baudrate:").grid(row=1, column=0, padx=20, sticky=tk.W)
         self.cbbBaudrates = ctk.CTkComboBox(self, values=list(self.m_BAUDRATES.keys()))
-        self.cbbBaudrates.set(list(self.m_BAUDRATES.keys())[0])  # Set default value
         self.cbbBaudrates.grid(row=1, column=1, padx=20, pady=5)
 
         # I/O Port
         tk.Label(self, text="I/O Port:").grid(row=2, column=0, padx=20, sticky=tk.W)
         self.cbbIoPort = ctk.CTkComboBox(self, values=list(self.m_IOPORTS.keys()))
-        self.cbbIoPort.set(list(self.m_IOPORTS.keys())[0])  # Set default value
         self.cbbIoPort.grid(row=2, column=1, padx=20, pady=5)
 
         # Interrupt
         tk.Label(self, text="Interrupt:").grid(row=3, column=0, padx=20, sticky=tk.W)
         self.cbbInterrupt = ctk.CTkComboBox(self, values=list(self.m_INTERRUPTS.keys()))
-        self.cbbInterrupt.set(list(self.m_INTERRUPTS.keys())[0])  # Set default value
         self.cbbInterrupt.grid(row=3, column=1, padx=20, pady=5)
 
         # Connect button
-        self.btnConnect = ctk.CTkButton(self, text="Connect", command=self.on_connect, fg_color= "green", hover_color='green')
+        self.btnConnect = ctk.CTkButton(self, text="Connect", command=self.on_connect, fg_color="green", hover_color='green')
         self.btnConnect.grid(row=4, columnspan=2, pady=10)
 
         # Disconnect button (initially disabled)
-        self.btnDisconnect = ctk.CTkButton(self, text="Disconnect", command=self.on_disconnect, fg_color= "red", hover_color='red', state=tk.DISABLED)
+        self.btnDisconnect = ctk.CTkButton(self, text="Disconnect", command=self.on_disconnect, fg_color="red", hover_color='red', state=tk.DISABLED)
         self.btnDisconnect.grid(row=5, columnspan=2, pady=10)
 
         # Center the frame within parent (can_window)
@@ -86,6 +89,17 @@ class CanConnection(tk.Frame):
         if CanConnection.can_connected:
             self.btnConnect.configure(state=tk.DISABLED)
             self.btnDisconnect.configure(state=tk.NORMAL)
+
+            # If previously selected values exist, set them
+            if self.selected_hwtype is not None:
+                self.cbbHwType.set(self.get_key_from_value(self.m_HWTYPES, self.selected_hwtype))
+            if self.selected_baudrate is not None:
+                self.cbbBaudrates.set(self.get_key_from_value(self.m_BAUDRATES, self.selected_baudrate))
+            if self.selected_ioport is not None:
+                self.cbbIoPort.set(self.get_key_from_value(self.m_IOPORTS, self.selected_ioport))
+            if self.selected_interrupt is not None:
+                self.cbbInterrupt.set(self.get_key_from_value(self.m_INTERRUPTS, self.selected_interrupt))
+
             self.cbbHwType.configure(state=tk.DISABLED)
             self.cbbBaudrates.configure(state=tk.DISABLED)
             self.cbbIoPort.configure(state=tk.DISABLED)
@@ -98,43 +112,36 @@ class CanConnection(tk.Frame):
             self.cbbIoPort.configure(state=tk.NORMAL)
             self.cbbInterrupt.configure(state=tk.NORMAL)
 
-    def on_baudrate_selected(self, event):
-        selected_baudrate = self.cbbBaudrates.get()
-        baudrate_value = self.m_BAUDRATES[selected_baudrate]
-        print(f"Selected Baudrate: {selected_baudrate}, Value: {baudrate_value}")
-
-    def on_hwtype_selected(self, event):
-        selected_hwtype = self.cbbHwType.get()
-        hwtype_value = self.m_HWTYPES[selected_hwtype]
-        print(f"Selected Hardware Type: {selected_hwtype}, Value: {hwtype_value}")
-
-    def on_ioport_selected(self, event):
-        selected_ioport = self.cbbIoPort.get()
-        ioport_value = self.m_IOPORTS[selected_ioport]
-        print(f"Selected I/O Port: {selected_ioport}, Value: {ioport_value}")
-
-    def on_interrupt_selected(self, event):
-        selected_interrupt = self.cbbInterrupt.get()
-        interrupt_value = self.m_INTERRUPTS[selected_interrupt]
-        print(f"Selected Interrupt: {selected_interrupt}, Value: {interrupt_value}")
+    def get_key_from_value(self, dictionary, value):
+        # Helper method to get the key from the value in a dictionary
+        return next(key for key, val in dictionary.items() if val == value)
 
     def on_connect(self):
-        # Retrieve selected values
-        selected_hwtype = self.m_HWTYPES['ISA-82C200']
-        selected_baudrate = self.m_BAUDRATES[self.cbbBaudrates.get()]
-        selected_ioport = int(self.cbbIoPort.get(), 16)
-        selected_interrupt = int(self.cbbInterrupt.get())
-        result =  pcan_initialize(selected_baudrate,selected_hwtype,selected_ioport,selected_interrupt)
+        # Retrieve selected values and store them in instance variables
+        self.selected_hwtype = self.m_HWTYPES[self.cbbHwType.get()]
+        self.selected_baudrate = self.m_BAUDRATES[self.cbbBaudrates.get()]
+        self.selected_ioport = int(self.cbbIoPort.get(), 16)
+        self.selected_interrupt = int(self.cbbInterrupt.get())
+
+        # Initialize the CAN connection
+        result = pcan_initialize(self.selected_baudrate, self.selected_hwtype, self.selected_ioport, self.selected_interrupt)
         if result:
             CanConnection.can_connected = True
             self.update_widgets()
 
     def on_disconnect(self):
         pcan_uninitialize()
-        # Perform disconnection logic here (example: print disconnect message)
         print("Disconnecting...")
         CanConnection.can_connected = False
+        self.clear_selected_values()  # Clear the selected values when disconnecting
         self.update_widgets()
+
+    def clear_selected_values(self):
+        # Clear instance variables when disconnecting
+        self.selected_hwtype = None
+        self.selected_baudrate = None
+        self.selected_ioport = None
+        self.selected_interrupt = None
 
     def get_connection_status(self):
         return CanConnection.can_connected   
@@ -145,4 +152,3 @@ if __name__ == "__main__":
     app.pack()
 
     root.mainloop()
-
