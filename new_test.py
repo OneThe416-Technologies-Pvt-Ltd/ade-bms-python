@@ -307,7 +307,7 @@ class MainWindow:
         self.dropdown.pack(pady=10)
 
         # Button that calls a method with the selected dropdown value
-        action_button = CTkButton(control_option_frame, text="Execute", command=self.execute_action)
+        action_button = CTkButton(control_option_frame, text="Save", command=self.execute_action)
         action_button.pack(pady=10)
   
 
@@ -355,9 +355,9 @@ class MainWindow:
     def show_battery_info(self, event=None):
         self.canvas.pack_forget()
         self.battery_info_frame.pack(fill="both", expand=True)
-        update_device_data(continuous=False)
         self.show_content("Dashboard")
-
+        update_device_data(continuous=False)
+        
 
     def show_main_window(self):
         self.battery_info_frame.pack_forget()

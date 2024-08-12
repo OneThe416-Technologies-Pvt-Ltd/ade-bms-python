@@ -20,10 +20,10 @@ label_mapping = {
             "cycle_count": "Cycle Count",
             "design_capacity": "Design Capacity",
             "design_voltage": "Design Voltage",
-            "at_rate_ok_text": "At Rate",
+            "at_rate_ok_text": "At Rate OK",
             "at_rate_time_to_full": "At Rate Time To Full",
             "at_rate_time_to_empty": "At Rate Time To Empty",
-            "at_rate_ok": "At Rate OK",
+            "at_rate_ok": "At Rate",
             "rel_state_of_charge": "Rel State of Charge",
             "abs_state_of_charge": "Absolute State of Charge",
             "run_time_to_empty": "Run Time To Empty",
@@ -92,6 +92,7 @@ def update_device_data(continuous=False):
             ('at_rate_time_to_full', 'at_rate_time_to_full'),
             ('at_rate_time_to_empty', 'at_rate_time_to_empty'),
             ('at_rate_ok_text', 'at_rate_ok_text'),
+            ('at_rate', 'at_rate'),
             ('rel_state_of_charge', 'rel_state_of_charge'),
             ('abs_state_of_charge', 'abs_state_of_charge'),
             ('run_time_to_empty', 'run_time_to_empty'),
@@ -106,8 +107,6 @@ def update_device_data(continuous=False):
             threads.append(thread)
             thread.start()
 
-        for thread in threads:
-            thread.join()
 
     def continuous_update():
         while not stop_continuous_update:
@@ -133,8 +132,9 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
         if result == 5120:
             result = 512
         messagebox.showerror("Error!", GetFormatedError(result))
-        return False
+        return True
     else:
+        messagebox.showinfo("Info!", "Connection established!")
         # Create threads for each data fetching operation
         threads = []
         data_points = [
@@ -145,21 +145,21 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
             ('design_capacity', 'design_capacity'),
             ('design_voltage', 'design_voltage'),
             ('manufacturer_date', 'manufacturer_date'),
-            ('serial_number', 'serial_number'),
-            ('manufacturer_name', 'manufacturer_name'),
-            ('device_name', 'device_name')
+            ('serial_number', 'serial_number')
+            # ('manufacturer_name', 'manufacturer_name'),
+            # ('device_name', 'device_name')
         ]
 
         for call_name, key in data_points:
             thread = threading.Thread(target=fetch_and_store_data, args=(call_name, key))
+            print(f"call name: {call_name}")
             threads.append(thread)
             thread.start()
 
         # Wait for all threads to complete
-        for thread in threads:
-            thread.join()
+        # for thread in threads:
+        #     thread.join()
         
-        messagebox.showinfo("Info!", "Connection established!")
         return True
 
 
@@ -243,34 +243,34 @@ def pcan_write_read(call_name):
         CANMsg.DATA[7] = int('00',16)
         result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)
         # result = 0
-        print(f"call name: {call_name}")
+        # print(f"call name: {call_name}")
         if result != PCAN_ERROR_OK:
-            messagebox.showerror("Error!", GetFormatedError(result))
+            messagebox.showerror(f"Error! {call_name}", GetFormatedError(result))
             return 0
         else:
             time.sleep(0.1)
-            read_result = retry_pcan_read()
+            read_result = retry_pcan_read(call_name)
             return read_result
 
 
-def retry_pcan_read(retries=5, delay=0.1):
+def retry_pcan_read(call_name, retries=1, delay=0.1):
     for _ in range(retries):
-        read_result = pcan_read()
-        if read_result != 0:
+        result_code, read_result = pcan_read(call_name)
+        if result_code == PCAN_ERROR_OK:
             return read_result
         time.sleep(delay)
     return 0
 
 
 #PCAN Read API Call
-def pcan_read():
+def pcan_read(call_name):
     result = m_objPCANBasic.Read(m_PcanHandle)
     # result = 1
     # print("can result 0 value",result[0])
     # print("can result 1 value",result[1])
     if result[0] != PCAN_ERROR_OK:
-        messagebox.showerror("Error!", GetFormatedError(result[0]))
-        return 250
+        # messagebox.showerror(f"Error!{call_name}", GetFormatedError(result[0]))
+        return result[0], -1
     else:
         args = result[1:]
         # print("args",args[0])
@@ -293,9 +293,9 @@ def pcan_read():
 
         display_value = convert_data(command_code, decimal_value)
 
-        print(f"Display value: {display_value}")
+        print(f"Display value {call_name}: {display_value}")
 
-        return display_value
+        return result[0], display_value
 
 
 def convert_data(command_code, decimal_value):
@@ -307,9 +307,9 @@ def convert_data(command_code, decimal_value):
     elif command_code == 0x06:  # AtRateTimeToEmpty: minutes unsigned
         return decimal_value
     elif command_code == 0x07:  # AtRateOK: Boolean
-        return "Yes" if decimal_value != 0 else "No"
+        return "Yes" if decimal_value != 0 else "No" 
     elif command_code == 0x08:  # Temperature: 0.1⁰K signed
-        return decimal_value / 10
+        return (decimal_value/1000)-273.15
     elif command_code == 0x09:  # Voltage: mV unsigned
         return decimal_value
     elif command_code == 0x0c:  # MaxError: Percent unsigned
@@ -384,8 +384,8 @@ def pcan_write_control(call_name):
         CANMsg.DATA[5] = int('02',16)
         CANMsg.DATA[6] = int('00',16)
         CANMsg.DATA[7] = int('00',16)
-        # result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)
-        result = 0
+        result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)
+        # result = 0
         print(f"call name: {call_name}")
         if result == PCAN_ERROR_OK:
             messagebox.showinfo("Success Message",f"{call_name}")
