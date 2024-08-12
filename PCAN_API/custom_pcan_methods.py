@@ -129,11 +129,11 @@ def update_device_data(continuous=False):
 
 def pcan_initialize(baudrate, hwtype, ioport, interrupt):
     result = m_objPCANBasic.Initialize(m_PcanHandle, baudrate, hwtype, ioport, interrupt)
-    if result == PCAN_ERROR_OK:
+    if result != PCAN_ERROR_OK:
         if result == 5120:
             result = 512
         messagebox.showerror("Error!", GetFormatedError(result))
-        return True
+        return False
     else:
         # Create threads for each data fetching operation
         threads = []
@@ -241,8 +241,8 @@ def pcan_write_read(call_name):
         CANMsg.DATA[5] = int('02',16)
         CANMsg.DATA[6] = int('00',16)
         CANMsg.DATA[7] = int('00',16)
-        # result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)
-        result = 0
+        result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)
+        # result = 0
         print(f"call name: {call_name}")
         if result != PCAN_ERROR_OK:
             messagebox.showerror("Error!", GetFormatedError(result))
@@ -264,12 +264,12 @@ def retry_pcan_read(retries=5, delay=0.1):
 
 #PCAN Read API Call
 def pcan_read():
-    # result = m_objPCANBasic.Read(m_PcanHandle)
-    result = 1
+    result = m_objPCANBasic.Read(m_PcanHandle)
+    # result = 1
     # print("can result 0 value",result[0])
     # print("can result 1 value",result[1])
-    if result != PCAN_ERROR_OK:
-        # messagebox.showerror("Error!", GetFormatedError(result))
+    if result[0] != PCAN_ERROR_OK:
+        messagebox.showerror("Error!", GetFormatedError(result[0]))
         return 250
     else:
         args = result[1:]

@@ -501,13 +501,12 @@ class MainWindow:
 
 
     def handle_can_battery_btn_click(self, event):
-        self.show_battery_info()
-        # if self.rs_connected:
-        #     messagebox.showerror("ERROR!", "RS232/RS422 already connected")
-        # elif not self.can_connected:
-        #     messagebox.showerror("ERROR!", "CAN not connected")
-        # else:
-        #     self.show_battery_info()
+        if self.rs_connected:
+            messagebox.showerror("ERROR!", "RS232/RS422 already connected")
+        elif not self.can_connected:
+            messagebox.showerror("ERROR!", "CAN not connected")
+        else:
+            self.show_battery_info()
 
 
     def start_logging():
