@@ -25,8 +25,8 @@ class SplashScreen(tk.Toplevel):
         self.geometry(f"{splash_width}x{splash_height}+{x_pos}+{y_pos}")
 
         # Define the base path for your images
-        base_path = os.path.join(os.path.dirname(__file__), "../asserts", "images")
-        base_path2 = os.path.join(os.path.dirname(__file__), "../asserts")
+        base_path = os.path.join(os.path.dirname(__file__), "../assets", "images")
+        base_path2 = os.path.join(os.path.dirname(__file__), "../assets")
 
         # Load and display the background image
     

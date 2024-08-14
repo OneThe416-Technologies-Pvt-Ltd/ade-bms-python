@@ -1,73 +1,45 @@
+# main.py
+
 import os
 import tkinter as tk
-# from tkinter import filedialog, PhotoImage
-from PIL import Image, ImageTk
-Image.CUBIC = Image.BICUBIC
 from tkinter import messagebox
-import ttkbootstrap as ttk
-from customtkinter import CTk, CTkFrame, CTkButton, CTkLabel, CTkEntry, CTkImage
+from PIL import Image, ImageTk
 from helpers.methods import load_and_resize_image, create_image_button
-from PCAN_API.custom_pcan_methods import pcan_write
 from gui.can_connect import CanConnection
+from gui.rs_connect import RSConnection
+from gui.can_battery_info import CanBatteryInfo  # Import the CanBatteryInfo class
+from gui.splash_screen import SplashScreen
 
 # Get the base directory of the script
 base_dir = os.path.dirname(__file__)
+
 
 class MainWindow:
     def __init__(self, master):
         self.master = master
         self.master.title("ADE BMS")
-        self.master.geometry("1000x600")
+        self.master.geometry("900x600")
         self.master.resizable(False, False)
 
-        # Set custom icon
         icon_path = os.path.join(base_dir, 'assets/logo/drdo_icon.ico')
         self.master.iconbitmap(icon_path)
 
         self.can_connected = False
         self.rs_connected = False
-        self.at_rate = 0
-        self.at_rate_time_to_full = 0
-        self.at_rate_time_to_empty = 0
-        self.at_rate_ok_text = ""
-        self.rel_state_of_charge = 0
-        self.abs_state_of_charge = 0
-        self.run_time_to_empty = 0
-        self.avg_time_to_empty = 0
-        self.avg_time_to_full = 0
-        self.max_error = 0
-        self.device_name = ""
-        self.serial_number = 0 
-        self.manufacture_date = 0
-        self.manufacturer_name = ""
-        self.battery_status = ""
-        self.cycle_count =0
-        self.design_capacity = 0
-        self.design_voltage = 0
-        self.temp = 0
-        self.current = 0
-        self.voltage = 0
-        self.avg_current = 0
-        self.charging_current = 0
-        self.remaining_capacity = 0
-        self.full_charge_capacity = 0
-        self.charging_voltage = 0
 
-        # Load background image
         self.background_image_path = os.path.join(base_dir, 'assets/images/bg_main1.png')
         self.bg_image = Image.open(self.background_image_path)
-        self.bg_image = self.bg_image.resize((1000, 600), Image.LANCZOS)
+        self.bg_image = self.bg_image.resize((900, 600), Image.LANCZOS)
         self.bg_photo = ImageTk.PhotoImage(self.bg_image)
-        self.canvas = tk.Canvas(self.master, width=1000, height=600)
+        self.canvas = tk.Canvas(self.master, width=900, height=600)
         self.canvas.pack(fill='both', expand=True)
         self.canvas.create_image(0, 0, image=self.bg_photo, anchor='nw')
 
-        # Define coordinates for buttons
         self.button_coords = {
-            'can': (720, 100, 800, 180),
-            'rs': (730, 220, 800, 340),
-            'can_battery': (870, 100, 950, 160),
-            'rs_battery': (880, 220, 960, 310)
+            'can': (570, 95, 800, 180),
+            'rs': (580, 220, 800, 340),
+            'can_battery': (690, 100, 950, 160),
+            'rs_battery': (700, 220, 960, 310)
         }
         self.colors = {
             'can': '#33B4B4',
@@ -76,16 +48,12 @@ class MainWindow:
             'rs_battery': '#33B4B4'
         }
 
-        self.image_refs = {}  # Store references to PhotoImage objects
-        self.canvas_items = {}  # Store references to canvas item IDs
+        self.image_refs = {}
+        self.canvas_items = {}
 
-        # Load and create buttons
-        self.images = {}
         self.create_buttons()
 
-        # Battery details content
-        self.battery_info_frame = None
-        self.create_battery_info_frame()
+        self.battery_info = None  # Initialize as None
 
     def create_buttons(self):
         images = {
@@ -96,7 +64,7 @@ class MainWindow:
         }
 
         sizes = {
-            'can': (80, 70),
+            'can': (65, 65),
             'rs': (80, 70),
             'can_battery': (100, 90),
             'rs_battery': (100, 90)
@@ -112,436 +80,25 @@ class MainWindow:
         for key, (x1, y1, x2, y2) in self.button_coords.items():
             image_tk = load_and_resize_image(images[key], sizes[key], border_width=15, border_color=self.colors.get(key.split('_')[0]))
             if image_tk:
-                self.image_refs[key] = image_tk  # Hold reference to the PhotoImage object
+                self.image_refs[key] = image_tk 
                 position = ((x2 + x1) // 2, (y2 + y1) // 2)
                 item_id = create_image_button(self.canvas, image_tk, position, handlers[key])
                 self.canvas_items[key] = item_id
 
-    def create_battery_info_frame(self):
-        self.battery_info_frame = CTkFrame(self.master, fg_color="#ffffff")
-        self.battery_info_frame.pack(fill="both", expand=True, padx=10, pady=10)
-
-        self.side_menu = CTkFrame(self.battery_info_frame, corner_radius=10, fg_color="#009688")
-        self.side_menu.pack(side="left", fill="y", padx=15, pady=10)
-
-        self.content_area = CTkFrame(self.battery_info_frame, corner_radius=10, fg_color="#33b4b4")
-        self.content_area.pack(side="right", fill="both", expand=True, padx=10, pady=10)
-
-        self.create_side_menu_options()
-
-        self.active_button = None
-        self.show_content("Dashboard")  # Show Dashboard by default
-
-    def create_side_menu_options(self):
-        self.buttons = []
-
-        # Home button
-        home_button = self.create_custom_button("Home", self.go_home)
-        self.buttons.append(("Home", home_button))
-        home_button.pack(pady=5, padx=5)
-
-        # Dashboard button
-        dashboard_button = self.create_custom_button("Dashboard", lambda: self.show_content("Dashboard"))
-        self.buttons.append(("Dashboard", dashboard_button))
-        dashboard_button.pack(pady=5, padx=5)
-
-        options = [
-            # ("Temperature", lambda: self.show_content("Temperature")),
-            ("Current", lambda: self.show_content("Current")),
-            ("Capacity", lambda: self.show_content("Capacity")),
-            ("Voltage", lambda: self.show_content("Voltage")),
-            ("Info", lambda: self.show_content("Info")),
-        ]
-        for text, command in options:
-            button = self.create_custom_button(text, command)
-            self.buttons.append((text, button))
-            button.pack(pady=5, padx=5)
-        # if self.can_connected:
-        #     device_name = "device name"
-        #     serial_number = pcan_write('serial_no') 
-        #     manufacture_date = 122022
-        #     manufacturer_name = "manufacturer_name"
-        #     battery_status = "Good"
-        #     cycle_count =20
-        #     design_capacity = 200
-        #     design_voltage = 200
-
-        fields = [
-            f"Device Name: {self.device_name}",
-            f"Serial Number: {self.serial_number}",
-            f"Manufacture Date: {self.manufacture_date}",
-            f"Manufacturer Name: {self.manufacturer_name}",
-            f"Battery Status: {self.battery_status}",
-            f"Cycle Count: {self.cycle_count}",
-            f"Design Capacity: {self.design_capacity}",
-            f"Design Voltage: {self.design_voltage}"
-        ]
-        for field in reversed(fields):
-            label = CTkLabel(self.side_menu, text=field, font=("Palatino Linotype", 12))
-            label.pack(side="bottom", pady=4, padx=4)
-
-
-    def create_initial_content(self):
-        self.content_frame = CTkFrame(self.content_area, corner_radius=10, fg_color="#ffffff")
-        self.content_frame.pack(fill="both", expand=True, padx=10, pady=10)
-
-        title_label = CTkLabel(
-            self.content_frame,
-            text="Other - Info",
-            font=("Palatino Linotype", 20, "bold"),
-            text_color="#333333"
-        )
-        title_label.pack(pady=20)
-
-        info_frame = CTkFrame(self.content_frame, corner_radius=10, fg_color="#f8f8f8", border_color="#d0d0d0", border_width=2)
-        info_frame.pack(padx=10, pady=10, anchor="n")
-
-        # at_rate = 100
-        # at_rate_time_to_full = 120
-        # at_rate_time_to_empty = 90
-        # at_rate_ok = 1
-        # at_rate_ok_text = "Yes" if at_rate_ok == 1 else "No"
-        # rel_state_of_charge = 80
-        # abs_state_of_charge = 75
-        # run_time_to_empty = 60
-        # avg_time_to_empty = 70
-        # avg_time_to_full = 50
-        # max_error = 20
-
-        # Update labels with variable
-        labels = [
-            f"At Rate: {self.at_rate} mA",
-            f"At Rate Time To Full: {self.at_rate_time_to_full} mins",
-            f"At Rate Time To Empty: {self.at_rate_time_to_empty} mins",
-            f"At Rate OK: {self.at_rate_ok_text}",
-            f"Rel State of Charge: {self.rel_state_of_charge} %",
-            f"Absolute State of Charge: {self.abs_state_of_charge} %",
-            f"Run Time To Empty: {self.run_time_to_empty} mins",
-            f"Avg Time To Empty: {self.avg_time_to_empty} mins",
-            f"Avg Time To Full: {self.avg_time_to_full} mins",
-            f"Max Error: {self.max_error} %"
-        ]
-
-        for label_text in labels:
-            label = CTkLabel(info_frame, text=label_text, font=("Palatino Linotype", 14), text_color="#333333")
-            label.pack(padx=10, pady=10, anchor="w")
-
-    def get_bootstyle(self, value):
-        if value < 20:
-            return "success"
-        elif value < 50:
-            return "info"
-        elif value < 80:
-            return "warning"
-        else:
-            return "danger"
-
-    def create_dashboard(self, parent_frame):
-        # temp = 50.5
-        # current = 50
-        # capacity = 70
-        # voltage = 240
-        meter_info = {
-            "Temperature": {"amountused": self.temp, "subtext": "Temperature", "textright": "°C", "bootstyle": "danger","stripethickness":0,"amounttotal":100},
-            "Current": {"amountused": self.current, "subtext": "Current", "textright": "mA", "bootstyle": "info","stripethickness":10,"amounttotal":100},
-            "Capacity": {"amountused": self.remaining_capacity, "subtext": "Capacity", "textright": "%", "bootstyle": "warning","stripethickness":8,"amounttotal":100},
-            "Voltage": {"amountused": self.voltage, "subtext": "Voltage", "textright": "V", "bootstyle": "dark","stripethickness":5,"amounttotal":300}
-        }
-
-        dashboard_frame = CTkFrame(parent_frame, corner_radius=10, fg_color="#ffffff", bg_color="#33b4b4")
-        dashboard_frame.pack(fill="both", expand=True, padx=10, pady=10)
-
-        # def download_data():
-        #     # Implement your download functionality here
-        #     file_path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text files", "*.txt"), ("All files", "*.*")])
-        #     if file_path:
-        #         with open(file_path, 'w') as file:
-        #             file.write("Download the data you want here")
-
-        image_path = os.path.join(os.path.dirname(__file__), "assets/images/download_icon.png")
-        if not os.path.isfile(image_path):
-            raise FileNotFoundError(f"Image file not found: {image_path}")
-
-        image = Image.open(image_path)
-        # Load the download icon image
-        download_icon = CTkImage(image)
-
-        # Create and place the download button in the top right corner
-        download_button = CTkButton(dashboard_frame, image=download_icon, fg_color="#ff6600", text="", width=30, height=30)
-        download_button.place(relx=1.0, rely=0.0, anchor="ne")
-        row, col = 0, 0
-        for idx, (name, config) in enumerate(meter_info.items()):
-            if idx % 2 == 0:
-                row += 1
-                col = 0
-            else:
-                col += 1
-
-            meter_frame = CTkFrame(dashboard_frame, corner_radius=10, fg_color="#ffffff", border_width=0, border_color="#f8f8f8")
-            meter_frame.grid(row=row, column=col, padx=60, pady=10)
-
-            title_label = CTkLabel(meter_frame, text=f"{name}", font=("Helvetica", 16, "bold"), text_color="#333333")
-            title_label.pack(pady=(10, 10))
-
-            bootstyle = self.get_bootstyle(config["amountused"])
-
-            meter = ttk.Meter(
-                master=meter_frame,
-                metersize=200,
-                amountused=config["amountused"],
-                meterthickness=10,
-                metertype="semi",
-                subtext=config["subtext"],
-                textright=config["textright"],
-                amounttotal=config["amounttotal"],
-                bootstyle=bootstyle,
-                stripethickness=config["stripethickness"],
-                subtextfont='-size 10'
-            )
-            meter.pack()
-
-    # def create_temperature_content(self, parent_frame):
-    #     temp = 70.6
-    #     content_frame = CTkFrame(self.content_area, corner_radius=10, fg_color="#ffffff")
-    #     content_frame.pack(fill="both", expand=True, padx=20, pady=10)
-
-    #     title_label = CTkLabel(content_frame, text="Temperature", font=("Helvetica", 16, "bold"), text_color="#333333")
-    #     title_label.pack(pady=(20, 10))
-
-    #     meter_frame = CTkFrame(content_frame, corner_radius=10, fg_color="#ffffff")  # Set fg_color to match the background
-    #     meter_frame.pack(padx=10, pady=10, anchor="n")
-
-    #     meter = ttk.Meter(
-    #         master=meter_frame,
-    #         metersize=200,
-    #         amountused=temp,
-    #         amounttotal=100,
-    #         meterthickness=10,
-    #         metertype="semi",
-    #         subtext="Temperature",
-    #         textright="°C",
-    #     )
-    #     meter.pack(pady=20)
-
-    def create_current_content(self, parent_frame):
-        # avg_current = 50.5
-        # current = 50
-        # charging_current = 70
-        meter_info = {
-            "Avg Current": {"amountused": self.avg_current, "subtext": "Avg Current", "textright": "°C", "bootstyle": "danger","stripethickness":0,"amounttotal":100},
-            "Current": {"amountused": self.current, "subtext": "Current", "textright": "mA", "bootstyle": "info","stripethickness":10,"amounttotal":100},
-            "Charging Current": {"amountused": self.charging_current, "subtext": "Charging Current", "textright": "%", "bootstyle": "warning","stripethickness":8,"amounttotal":100},
-        }
-
-        dashboard_frame = CTkFrame(parent_frame, corner_radius=10, fg_color="#ffffff", bg_color="#33b4b4")
-        dashboard_frame.pack(fill="both", expand=True, padx=10, pady=10)
-
-        row, col = 0, 0
-
-        for idx, (name, config) in enumerate(meter_info.items()):
-            if idx == 0:
-                row, col = 0, 0
-                padding_x = 30
-            elif idx == 1:
-                row, col = 0, 1 
-                padding_x = 30
-            elif idx == 2:
-                row, col = 1, 0
-                padding_x = 60
-
-            meter_frame = CTkFrame(dashboard_frame, corner_radius=10, fg_color="#ffffff", border_width=0, border_color="#d0d0d0")
-            meter_frame.grid(row=row, column=col, padx=padding_x, pady=10)
-
-            title_label = CTkLabel(meter_frame, text=f"{name}", font=("Helvetica", 16, "bold"), text_color="#333333")
-            title_label.pack(pady=(10, 10))
-
-            meter = ttk.Meter(
-                master=meter_frame,
-                metersize=200,
-                amountused=config["amountused"],
-                meterthickness=10,
-                metertype="semi",
-                subtext=config["subtext"],
-                textright=config["textright"],
-                amounttotal=config["amounttotal"],
-                bootstyle=config["bootstyle"],
-                stripethickness=config["stripethickness"],
-                subtextfont='-size 10'
-            )
-            meter.pack()
-
-    def create_capacity_content(self, parent_frame):
-        # remaing_capacity = 50.5
-        # full_charge_capacity = 50
-        # design_capacity = 70
-
-        meter_info = {
-            "Remaing Capacity": {"amountused": self.remaining_capacity, "subtext": "Remaing Capacity", "textright": "°C", "bootstyle": "danger","stripethickness":0,"amounttotal":100},
-            "Full Charge Capacity": {"amountused": self.full_charge_capacity, "subtext": "Full Charge Capacity", "textright": "mA", "bootstyle": "info","stripethickness":10,"amounttotal":100},
-            "Design Capacity": {"amountused": self.design_capacity, "subtext": "Design Capacity", "textright": "%", "bootstyle": "warning","stripethickness":8,"amounttotal":100},
-        }
-
-        dashboard_frame = CTkFrame(parent_frame, corner_radius=10, fg_color="#ffffff", bg_color="#33b4b4")
-        dashboard_frame.pack(fill="both", expand=True, padx=10, pady=10)
-
-        row, col = 0, 0
-
-        for idx, (name, config) in enumerate(meter_info.items()):
-            if idx == 0:
-                row, col = 0, 0
-                padding_x = 30
-            elif idx == 1:
-                row, col = 0, 1 
-                padding_x = 30
-            elif idx == 2:
-                row, col = 1, 0
-                padding_x = 60
-
-            meter_frame = CTkFrame(dashboard_frame, corner_radius=10, fg_color="#ffffff", border_width=0, border_color="#d0d0d0")
-            meter_frame.grid(row=row, column=col, padx=padding_x, pady=10)
-
-            title_label = CTkLabel(meter_frame, text=f"{name}", font=("Helvetica", 16, "bold"),text_color="#333333")
-            title_label.pack(pady=(10, 10))
-
-            meter = ttk.Meter(
-                master=meter_frame,
-                metersize=200,
-                amountused=config["amountused"],
-                meterthickness=10,
-                metertype="semi",
-                subtext=config["subtext"],
-                textright=config["textright"],
-                amounttotal=config["amounttotal"],
-                bootstyle=config["bootstyle"],
-                stripethickness=config["stripethickness"],
-                subtextfont='-size 10'
-            )
-            meter.pack()
-
-    def create_voltage_content(self, parent_frame):
-        # voltage = 50.5
-        # charging_voltage = 50
-        # design_voltage = 70
-
-        meter_info = {
-            "Voltage": {"amountused": self.voltage, "subtext": "Voltage", "textright": "°C", "bootstyle": "danger","stripethickness":0,"amounttotal":100},
-            "Charging Voltage": {"amountused": self.charging_voltage, "subtext": "Charging Voltage", "textright": "mA", "bootstyle": "info","stripethickness":10,"amounttotal":100},
-            "Design Voltage": {"amountused": self.design_voltage, "subtext": "Design Voltage", "textright": "%", "bootstyle": "warning","stripethickness":8,"amounttotal":100},
-        }
-
-        dashboard_frame = CTkFrame(parent_frame, corner_radius=10, fg_color="#ffffff", bg_color="#33b4b4")
-        dashboard_frame.pack(fill="both", expand=True, padx=10, pady=10)
-
-        row, col = 0, 0
-
-        for idx, (name, config) in enumerate(meter_info.items()):
-            if idx == 0:
-                row, col = 0, 0
-                padding_x = 30
-            elif idx == 1:
-                row, col = 0, 1 
-                padding_x = 30
-            elif idx == 2:
-                row, col = 1, 0
-                padding_x = 60
-
-            meter_frame = CTkFrame(dashboard_frame, corner_radius=10, fg_color="#ffffff", border_width=0, border_color="#d0d0d0")
-            meter_frame.grid(row=row, column=col, padx=padding_x, pady=10)
-
-            title_label = CTkLabel(meter_frame, text=f"{name}", font=("Helvetica", 16, "bold"),text_color="#333333")
-            title_label.pack(pady=(10, 10))
-
-            meter = ttk.Meter(
-                master=meter_frame,
-                metersize=200,
-                amountused=config["amountused"],
-                meterthickness=10,
-                metertype="semi",
-                subtext=config["subtext"],
-                textright=config["textright"],
-                amounttotal=config["amounttotal"],
-                bootstyle=config["bootstyle"],
-                stripethickness=config["stripethickness"],
-                subtextfont='-size 10'
-            )
-            meter.pack()
-
-    def show_content(self, content_name):
-        for widget in self.content_area.winfo_children():
-            widget.destroy()
-
-        for text, button in self.buttons:
-            if text == content_name:
-                button.configure(fg_color="#003f6b", hover_color="#001f3b")
-                self.active_button = button
-            else:
-                button.configure(fg_color="#007acc", hover_color="#005fa3")
-
-        if content_name == "Info":
-            self.create_initial_content()
-        elif content_name == "Dashboard":
-            self.create_dashboard(self.content_area)
-        elif content_name == "Temperature":
-            self.create_temperature_content(self.content_area)
-        elif content_name == "Current":
-           self.create_current_content(self.content_area)
-        elif content_name == "Capacity":
-           self.create_capacity_content(self.content_area)
-        elif content_name == "Voltage":
-            self.create_voltage_content(self.content_area)
-
-
-    def create_custom_button(self, text, command):
-        button = CTkButton(self.side_menu, text=text, command=lambda: self.on_button_click(text, command), corner_radius=10, fg_color="#007acc", hover_color="#005fa3")
-        return button
-
-    def on_button_click(self, text, command):
-        if self.active_button:
-            self.active_button.configure(fg_color="#007acc", hover_color="#005fa3")
-
-        for t, button in self.buttons:
-            if t == text:
-                button.configure(fg_color="#003f6b", hover_color="#001f3b")
-                self.active_button = button
-        command()
-
-    def show_battery_info(self, event=None):
+    def show_can_battery_info(self, event=None):
         self.canvas.pack_forget()
-        self.battery_info_frame.pack(fill="both", expand=True)
-        self.device_name = pcan_write('device_name')
-        self.serial_number = pcan_write('serial_no') 
-        self.manufacture_date = pcan_write('manufacturer_date')
-        self.manufacturer_name = pcan_write('manufacturer_name')
-        self.battery_status = pcan_write('battery_status')
-        self.cycle_count = pcan_write('cycle_count')
-        self.design_capacity = pcan_write('design_capacity')
-        self.design_voltage = pcan_write('desgin_voltage')
-        self.at_rate = pcan_write('at_rate')
-        self.at_rate_time_to_full = pcan_write('at_rate_time_to_full')
-        self.at_rate_time_to_empty = pcan_write('at_rate_time_to_empty')
-        self.at_rate_ok_text = pcan_write('at_rate_ok')
-        self.rel_state_of_charge = pcan_write('rel_state_of_charge')
-        self.abs_state_of_charge = pcan_write('absolute_state_of_charge')
-        self.run_time_to_empty = pcan_write('run_time_to_empty')
-        self.avg_time_to_empty = pcan_write('avg_time_to_empty')
-        self.avg_time_to_full = pcan_write('avg_time_to_full')
-        self.max_error = pcan_write('max_error')
-        self.temp = pcan_write('temperature')
-        self.current = pcan_write('current')
-        self.remaining_capacity = pcan_write('remaining_capacity')
-        self.voltage = pcan_write('voltage')
-        self.avg_current = pcan_write('avg_current')
-        self.charging_current = pcan_write('charging_current')
-        self.full_charge_capacity = pcan_write('full_charge_capacity')
-        self.charging_voltage = pcan_write('charging_voltage')
-        self.show_content("Dashboard")
+        if not self.battery_info:
+            self.battery_info = CanBatteryInfo(self.master, self)  # Pass the reference to the MainWindow
+        else:
+            self.battery_info.main_frame.pack(fill="both", expand=True)
+        
+        # Show the dashboard by default
+        self.battery_info.show_dashboard()
 
     def show_main_window(self):
-        self.battery_info_frame.pack_forget()
+        if self.battery_info:
+            self.battery_info.main_frame.pack_forget()
         self.canvas.pack(fill="both", expand=True)
-
-    def go_home(self):
-        self.show_main_window()
 
     def handle_can_btn_click(self, event):
         if self.rs_connected:
@@ -555,30 +112,26 @@ class MainWindow:
             can_window_width = 400
             can_window_height = 400
 
-            # Calculate the center position
             can_window_x = main_window_x + (main_window_width - can_window_width) // 2
             can_window_y = main_window_y + (main_window_height - can_window_height) // 2
 
-            # Create a Toplevel window for CAN connection settings
             can_window = tk.Toplevel(self.master)
             can_window.title("CAN Connection Settings")
             can_window.iconbitmap(os.path.join(base_dir, 'assets/logo/drdo_icon.ico'))
             can_window.geometry(f"{can_window_width}x{can_window_height}+{can_window_x}+{can_window_y}")
-            can_window.resizable(False, False)  # Disable maximize
+            can_window.resizable(False, False)
 
-            # Instantiate CanConnection class from can_connect.py
             can_connection = CanConnection(can_window)
             can_connection.pack(fill="both", expand=True)
 
             self.master.attributes("-disabled", True)
-            # Show the main window again when can_window is closed
             can_window.protocol("WM_DELETE_WINDOW", lambda: self.on_can_window_close(can_window, can_connection))
 
             can_window.grab_set()
 
+
     def update_colors(self):
         if self.can_connected:
-
             self.colors['can'] = 'green'
             self.colors['can_battery'] = 'green'
         else:
@@ -599,20 +152,18 @@ class MainWindow:
             'rs_battery': os.path.join(base_dir, 'assets/images/brenergy_battery_img.png')
         }
         sizes = {
-            'can': (80, 70),
+            'can': (70, 70),
             'rs': (80, 70),
             'can_battery': (100, 90),
             'rs_battery': (100, 90)
         }
 
-        # Update button images on the canvas
         for key in ['can', 'rs', 'can_battery', 'rs_battery']:
             if key in self.canvas_items:
                 image_path = images[key]
                 size = sizes[key]
                 border_color = self.colors[key]
 
-                # Load and resize image with updated color
                 image_tk = load_and_resize_image(image_path, size, border_width=15, border_color=border_color)
                 if image_tk:
                     self.image_refs[key] = image_tk
@@ -622,66 +173,55 @@ class MainWindow:
             else:
                 print(f"Key {key} not found in canvas_items")
 
+
     def on_can_window_close(self, window, can_connection):
         self.can_connected = can_connection.get_connection_status()
-        # if self.can_connected:
-        #     self.device_name = pcan_write('device_name')
-        #     self.serial_number = pcan_write('serial_no') 
-        #     self.manufacture_date = pcan_write('manufacturer_date')
-        #     self.manufacturer_name = pcan_write('manufacturer_name')
-        #     self.battery_status = pcan_write('battery_status')
-        #     self.cycle_count = pcan_write('cycle_count')
-        #     self.design_capacity = pcan_write('design_capacity')
-        #     self.design_voltage = pcan_write('desgin_voltage')
         self.update_colors()
-        window.grab_release()  # Release the grab set by can_window
-        window.destroy()  # Destroy the Toplevel window
-        self.master.attributes("-disabled", False)  # Re-enable the main window
-        self.master.lift()  # Bring the main window to the front
-        self.master.focus_force()  # Ensure focus returns to the main window
+        window.grab_release()
+        window.destroy()
+        self.master.attributes("-disabled", False)
+        self.master.lift()
+        self.master.focus_force()
+
 
     def handle_rs_btn_click(self, event):
         if self.can_connected:
             messagebox.showerror("ERROR!", "CAN already connected")
         else:
-            print("RS232 connect")
             main_window_x = self.master.winfo_rootx()
             main_window_y = self.master.winfo_rooty()
             main_window_width = self.master.winfo_width()
             main_window_height = self.master.winfo_height()
 
-            can_window_width = 400
-            can_window_height = 400
+            rs_window_width = 400
+            rs_window_height = 400
 
-            # Calculate the center position
-            can_window_x = main_window_x + (main_window_width - can_window_width) // 2
-            can_window_y = main_window_y + (main_window_height - can_window_height) // 2
+            rs_window_x = main_window_x + (main_window_width - rs_window_width) // 2
+            rs_window_y = main_window_y + (main_window_height - rs_window_height) // 2
 
-            # Create a Toplevel window for CAN connection settings
-            can_window = tk.Toplevel(self.master)
-            can_window.title("RS Connection Settings")
-            can_window.iconbitmap(os.path.join(base_dir, 'assets/logo/drdo_icon.ico'))
-            can_window.geometry(f"{can_window_width}x{can_window_height}+{can_window_x}+{can_window_y}")
-            can_window.resizable(False, False)  # Disable maximize
+            rs_window = tk.Toplevel(self.master)
+            rs_window.title("RS Connection Settings")
+            rs_window.iconbitmap(os.path.join(base_dir, 'assets/logo/drdo_icon.ico'))
+            rs_window.geometry(f"{rs_window_width}x{rs_window_height}+{rs_window_x}+{rs_window_y}")
+            rs_window.resizable(False, False)
 
-            # Instantiate CanConnection class from can_connect.py
-            rs_connection = CanConnection(can_window)
+            rs_connection = RSConnection(rs_window)
             rs_connection.pack(fill="both", expand=True)
 
             self.master.attributes("-disabled", True)
-            # Show the main window again when can_window is closed
-            can_window.protocol("WM_DELETE_WINDOW", lambda: self.on_rs_window_close(can_window, rs_connection))
+            rs_window.protocol("WM_DELETE_WINDOW", lambda: self.on_rs_window_close(rs_window, rs_connection))
 
-            can_window.grab_set()
+            rs_window.grab_set()
+
 
     def on_rs_window_close(self, window, rs_connection):
         self.rs_connected = rs_connection.get_connection_status()
         self.update_colors()
-        window.grab_release()  # Release the grab set by can_window
-        window.destroy()  # Destroy the Toplevel window
-        self.master.attributes("-disabled", False)  # Re-enable the main window
-        self.master.lift()  # Bring the main window to the front
-        # self.master.focus_force()
+        window.grab_release()
+        window.destroy()
+        self.master.attributes("-disabled", False)
+        self.master.lift()
+
 
     def handle_rs_battery_btn_click(self, event):
         if self.can_connected:
@@ -691,16 +231,31 @@ class MainWindow:
         else:
             print("RS232 Battery connect")
 
+
     def handle_can_battery_btn_click(self, event):
+        # self.show_can_battery_info()
         if self.rs_connected:
             messagebox.showerror("ERROR!", "RS232/RS422 already connected")
         elif not self.can_connected:
             messagebox.showerror("ERROR!", "CAN not connected")
         else:
-            self.show_battery_info()
-            
+            self.show_can_battery_info()
+
 
 if __name__ == "__main__":
+    # Create the root window
     root = tk.Tk()
+
+    # Hide the main window while the splash screen is displayed
+    root.withdraw()
+
+    # Create and show the splash screen
+    splash = SplashScreen(root)
+    splash.update()
+
+    # After the splash screen is closed, show the main window
+    root.after(5000, lambda: (splash.destroy(), root.deiconify()))
+
+    # Initialize and run the main application
     app = MainWindow(root)
     root.mainloop()

@@ -1,4 +1,5 @@
 #pcan_methods.py
+
 from PCAN_API.PCANBasic import *
 from tkinter import messagebox
 import time
@@ -11,7 +12,7 @@ rs_connected = False
 continuous_update_thread = None
 stop_continuous_update = False
 
-label_mapping = {
+name_mapping = {
             "device_name": "Device Name",
             "serial_number": "Serial No",
             "manufacturer_date": "Manufacturer Date",
@@ -23,7 +24,7 @@ label_mapping = {
             "at_rate_ok_text": "At Rate OK",
             "at_rate_time_to_full": "At Rate Time To Full",
             "at_rate_time_to_empty": "At Rate Time To Empty",
-            "at_rate_ok": "At Rate",
+            "at_rate": "At Rate",
             "rel_state_of_charge": "Rel State of Charge",
             "abs_state_of_charge": "Absolute State of Charge",
             "run_time_to_empty": "Run Time To Empty",
@@ -39,6 +40,35 @@ label_mapping = {
             "full_charge_capacity": "Full Charge Capacity",
             "charging_voltage": "Charging Voltage"
         }
+
+unit_mapping = {
+    "device_name": "string",
+    "serial_number": "number",
+    "manufacturer_date": "unsigned int",
+    "manufacturer_name": "string",
+    "battery_status": "bit flags",
+    "cycle_count": "Count",
+    "design_capacity": "mAh / 40",
+    "design_voltage": "mV",
+    "at_rate_ok_text": "yes/no",
+    "at_rate_time_to_full": "minutes",
+    "at_rate_time_to_empty": "minutes",
+    "at_rate":"mA / 40 ",
+    "rel_state_of_charge": "Percent",
+    "abs_state_of_charge": "Percent",
+    "run_time_to_empty": "minutes",
+    "avg_time_to_empty": "minutes",
+    "avg_time_to_full": "minutes",
+    "max_error": "Percent",
+    "temperature": "0.1°K",
+    "current": "mA / 40",
+    "remaining_capacity": "mAh / 40",
+    "voltage": "mV",
+    "avg_current": "mA / 40",
+    "charging_current": "mA / 40",
+    "full_charge_capacity": "mAh / 40",
+    "charging_voltage": "mV"
+}
 
 device_data = {
             'device_name': "",
@@ -59,7 +89,8 @@ device_data = {
             'charging_voltage': 0,
             'at_rate_time_to_full': 0,
             'at_rate_time_to_empty': 0,
-            'at_rate_ok_text': "Yes",
+            'at_rate_ok_text': "",
+            'at_rate':0,
             'rel_state_of_charge': 0,
             'abs_state_of_charge': 0,
             'run_time_to_empty': 0,
@@ -132,7 +163,7 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
         if result == 5120:
             result = 512
         messagebox.showerror("Error!", GetFormatedError(result))
-        return True
+        return False
     else:
         messagebox.showinfo("Info!", "Connection established!")
         # Create threads for each data fetching operation
@@ -152,7 +183,7 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
 
         for call_name, key in data_points:
             thread = threading.Thread(target=fetch_and_store_data, args=(call_name, key))
-            print(f"call name: {call_name}")
+            # print(f"call name: {call_name}")
             threads.append(thread)
             thread.start()
 
@@ -246,7 +277,7 @@ def pcan_write_read(call_name):
         # print(f"call name: {call_name}")
         if result != PCAN_ERROR_OK:
             messagebox.showerror(f"Error! {call_name}", GetFormatedError(result))
-            return 0
+            return -2
         else:
             time.sleep(0.1)
             read_result = retry_pcan_read(call_name)
@@ -259,7 +290,7 @@ def retry_pcan_read(call_name, retries=1, delay=0.1):
         if result_code == PCAN_ERROR_OK:
             return read_result
         time.sleep(delay)
-    return 0
+    return read_result
 
 
 #PCAN Read API Call
@@ -270,7 +301,7 @@ def pcan_read(call_name):
     # print("can result 1 value",result[1])
     if result[0] != PCAN_ERROR_OK:
         # messagebox.showerror(f"Error!{call_name}", GetFormatedError(result[0]))
-        return result[0], -1
+        return result[0], 25
     else:
         args = result[1:]
         # print("args",args[0])
@@ -386,11 +417,10 @@ def pcan_write_control(call_name):
         CANMsg.DATA[7] = int('00',16)
         result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)
         # result = 0
-        print(f"call name: {call_name}")
         if result == PCAN_ERROR_OK:
-            messagebox.showinfo("Success Message",f"{call_name}")
+            print(f"call name: {call_name}")
             return 0
         else:
-            messagebox.showerror("Error",f"{call_name}")
+            # messagebox.showerror("Error",f"{call_name}")
             return 0
 
