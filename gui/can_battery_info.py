@@ -332,8 +332,10 @@ class CanBatteryInfo:
             # Save the workbook after each update
             self.workbook.save(self.file_path)
 
+            self.log_interval = int(self.timer_value.get()) * 1000
+
             # Schedule the next log
-            self.master.after(5000, self.log_data)
+            self.master.after(self.log_interval, self.log_data)
     
     def stop_logging(self):
         # Stop logging process and update button states
