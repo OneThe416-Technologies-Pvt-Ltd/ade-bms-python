@@ -1,5 +1,4 @@
 # main.py
-
 import os
 import tkinter as tk
 from tkinter import messagebox
@@ -7,7 +6,7 @@ from PIL import Image, ImageTk
 from helpers.utils import load_and_resize_image, create_image_button
 from gui.can_connect import CanConnection
 from gui.rs_connect import RSConnection
-from gui.can_battery_info import CanBatteryInfo  # Import the CanBatteryInfo class
+from gui.can_battery_info import CanBatteryInfo
 from gui.splash_screen import SplashScreen
 
 # Get the base directory of the script
