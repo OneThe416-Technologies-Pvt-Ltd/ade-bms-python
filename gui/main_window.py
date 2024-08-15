@@ -3,9 +3,9 @@ import tkinter as tk
 from PIL import Image, ImageTk
 from tkinter import messagebox
 from gui.can_connect import CanConnection
-from PCAN_API.custom_pcan_methods import *
-from helpers.methods import load_and_resize_image, create_image_button
-from gui.batteryinfo import BatteryInfo
+from pcan_api.custom_pcan_methods import *
+from helpers.utils import load_and_resize_image, create_image_button
+from gui.can_battery_info import BatteryInfo
 
 class MainWindow:
     def __init__(self, master):

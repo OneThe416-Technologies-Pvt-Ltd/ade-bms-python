@@ -1,6 +1,6 @@
 import tkinter as tk
 import customtkinter as ctk
-from PCAN_API.custom_pcan_methods import *
+from pcan_api.custom_pcan_methods import *
 
 class CanConnection(tk.Frame):
     can_connected = False
@@ -124,7 +124,7 @@ class CanConnection(tk.Frame):
         selected_baudrate = self.m_BAUDRATES[self.cbbBaudrates.get()]
         selected_ioport = int(self.cbbIoPort.get(), 16)
         selected_interrupt = int(self.cbbInterrupt.get())
-        result =  pcan_initialize(selected_baudrate,selected_hwtype,selected_ioport,selected_interrupt)
+        result =  asyncio.run(pcan_initialize(selected_baudrate,selected_hwtype,selected_ioport,selected_interrupt))
         if result:
             CanConnection.can_connected = True
             self.update_widgets()

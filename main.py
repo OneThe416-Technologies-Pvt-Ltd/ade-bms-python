@@ -4,7 +4,7 @@ import os
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
-from helpers.methods import load_and_resize_image, create_image_button
+from helpers.utils import load_and_resize_image, create_image_button
 from gui.can_connect import CanConnection
 from gui.rs_connect import RSConnection
 from gui.can_battery_info import CanBatteryInfo  # Import the CanBatteryInfo class
@@ -12,7 +12,6 @@ from gui.splash_screen import SplashScreen
 
 # Get the base directory of the script
 base_dir = os.path.dirname(__file__)
-
 
 class MainWindow:
     def __init__(self, master):

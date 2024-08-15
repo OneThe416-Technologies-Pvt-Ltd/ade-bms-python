@@ -1,3 +1,5 @@
+#can_battery_info.py
+
 import tkinter as tk
 import os
 import ttkbootstrap as ttk
@@ -5,9 +7,10 @@ from ttkbootstrap.constants import *
 from PIL import Image, ImageTk
 Image.CUBIC = Image.BICUBIC
 import datetime
+import asyncio
 from tkinter import messagebox
 from openpyxl import Workbook
-from PCAN_API.custom_pcan_methods import device_data, unit_mapping, name_mapping, update_device_data, pcan_write_control
+from pcan_api.custom_pcan_methods import device_data, unit_mapping, name_mapping, update_device_data, pcan_write_control
 
 class CanBatteryInfo:
     def __init__(self, master, main_window=None):
@@ -173,17 +176,31 @@ class CanBatteryInfo:
             width=12, 
             command=self.auto_refresh  # Link the checkbox command to start/stop auto-refresh
         )
-        auto_refresh_checkbox.pack(side="left", padx=10)
+        auto_refresh_checkbox.pack(side="left", padx=5)
 
         # Buttons for Refresh, Start Logging, and Stop Logging with consistent style
-        self.refresh_button = ttk.Button(control_frame, text="Refresh", image=self.refresh_icon, compound="left", command=self.refresh_info, width=10, bootstyle="info")
-        self.refresh_button.pack(side="left", padx=10)
+        self.refresh_button = ttk.Button(control_frame, text="Refresh", image=self.refresh_icon, compound="left", command=self.refresh_info, width=8, bootstyle="info")
+        self.refresh_button.pack(side="left", padx=5)
 
-        self.start_logging_button = ttk.Button(control_frame, text="Start Logging", image=self.start_icon, compound="left", command=self.start_logging, width=12, bootstyle="success")
-        self.start_logging_button.pack(side="left", padx=10)
+        timer_value_label = ttk.Label(control_frame, text="Timer")
+        timer_value_label.pack(side="left", padx=5)
 
-        self.stop_logging_button = ttk.Button(control_frame, text="Stop Logging", image=self.stop_icon, compound="left", command=self.stop_logging, width=12, bootstyle="danger", state=tk.DISABLED)
-        self.stop_logging_button.pack(side="left", padx=10)
+        self.timer_value = tk.StringVar(value=5)
+        self.timer = ttk.Spinbox(
+            control_frame,
+            from_=1,
+            to=30,
+            width=5,
+            values=(1, 5, 10, 15, 20, 30),
+            textvariable=self.timer_value,
+            )
+        self.timer.pack(side="left", padx=5)
+
+        self.start_logging_button = ttk.Button(control_frame, text="Start Log", image=self.start_icon, compound="left", command=self.start_logging, bootstyle="success")
+        self.start_logging_button.pack(side="left", padx=5)
+
+        self.stop_logging_button = ttk.Button(control_frame, text="Stop Log", image=self.stop_icon, compound="left", command=self.stop_logging, bootstyle="danger", state=tk.DISABLED)
+        self.stop_logging_button.pack(side="left", padx=5)
 
         # Set button states based on whether logging is active
         if self.logging_active:
@@ -194,7 +211,7 @@ class CanBatteryInfo:
             self.stop_logging_button.config(state=tk.DISABLED)
 
         file_button = ttk.Button(control_frame, image=self.file_icon, compound="left", command=self.folder_open, bootstyle="success")
-        file_button.pack(side="left", padx=10)
+        file_button.pack(side="left", padx=5)
 
         # Frame to hold the Treeview and Scrollbar
         table_frame = ttk.Frame(self.content_frame)
@@ -247,7 +264,7 @@ class CanBatteryInfo:
             self.master.after(5000, self.auto_refresh)
 
     def refresh_info(self):
-        update_device_data(continuous=False)
+        asyncio.run(update_device_data())
         # Clear the existing table rows
         for item in self.info_table.get_children():
             self.info_table.delete(item)
@@ -290,7 +307,16 @@ class CanBatteryInfo:
     def log_data(self):
         if self.logging_active:
             # Update device data
-            self.refresh_info()
+            asyncio.run(update_device_data())
+
+            for item in self.info_table.get_children():
+                self.info_table.delete(item)
+
+            # Repopulate the table with updated data
+            for index, (key, value) in enumerate(device_data.items()):
+                name = name_mapping.get(key, key)
+                unit = unit_mapping.get(key, key)
+                self.info_table.insert('', 'end', values=(name, value, unit), tags=('evenrow' if index % 2 == 0 else 'oddrow'))
 
             # Get the current date and time
             current_datetime = datetime.datetime.now()

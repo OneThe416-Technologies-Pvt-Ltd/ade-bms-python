@@ -1,9 +1,9 @@
 #pcan_methods.py
 
-from PCAN_API.PCANBasic import *
+from pcan_api.pcan import *
 from tkinter import messagebox
 import time
-import threading
+import asyncio
 
 m_objPCANBasic = PCANBasic()
 m_PcanHandle = 81
@@ -100,64 +100,68 @@ device_data = {
         } 
 
 
-def fetch_and_store_data(call_name, key):
-    value = pcan_write_read(call_name)
+# async def fetch_and_store_data(call_name, key):
+#     value = await pcan_write_read(call_name)  # Assuming pcan_write_read is async
+#     device_data[key] = value
+
+async def update_device_data():
+    data_points = [
+        ('remaining_capacity', 'remaining_capacity'),
+        ('temperature', 'temperature'),
+        ('current', 'current'),
+        ('voltage', 'voltage'),
+        ('battery_status', 'battery_status'),
+        ('cycle_count', 'cycle_count'),
+        ('avg_current', 'avg_current'),
+        ('charging_current', 'charging_current'),
+        ('full_charge_capacity', 'full_charge_capacity'),
+        ('charging_voltage', 'charging_voltage'),
+        ('at_rate_time_to_full', 'at_rate_time_to_full'),
+        ('at_rate_time_to_empty', 'at_rate_time_to_empty'),
+        ('at_rate_ok_text', 'at_rate_ok_text'),
+        ('at_rate', 'at_rate'),
+        ('rel_state_of_charge', 'rel_state_of_charge'),
+        ('abs_state_of_charge', 'abs_state_of_charge'),
+        ('run_time_to_empty', 'run_time_to_empty'),
+        ('avg_time_to_empty', 'avg_time_to_empty'),
+        ('avg_time_to_full', 'avg_time_to_full'),
+        ('max_error', 'max_error')
+    ]
+
+    # Create a list of tasks to be run concurrently
+    tasks = []
+    for call_name, key in data_points:
+        task = asyncio.create_task(fetch_and_store_data(call_name, key))
+        tasks.append(task)
+
+    # Wait for all tasks to complete
+    await asyncio.gather(*tasks)
+
+async def fetch_and_store_data(call_name, key):
+    value = await asyncio.to_thread(pcan_write_read, call_name)  # Run in a separate thread
     device_data[key] = value
 
+async def process_data_points():
+    data_points = [
+        ('temperature', 'temperature'),
+        ('current', 'current'),
+        ('remaining_capacity', 'remaining_capacity'),
+        ('voltage', 'voltage'),
+        ('design_capacity', 'design_capacity'),
+        ('design_voltage', 'design_voltage'),
+        ('manufacturer_date', 'manufacturer_date'),
+        ('serial_number', 'serial_number')
+    ]
 
-def update_device_data(continuous=False):
-    global continuous_update_thread, stop_continuous_update
+    tasks = []
+    for call_name, key in data_points:
+        task = asyncio.create_task(fetch_and_store_data(call_name, key))
+        tasks.append(task)
 
-    def update_all_data():
-        data_points = [
-            ('remaining_capacity', 'remaining_capacity'),
-            ('temperature', 'temperature'),
-            ('current', 'current'),
-            ('voltage', 'voltage'),
-            ('battery_status', 'battery_status'),
-            ('cycle_count', 'cycle_count'),
-            ('avg_current', 'avg_current'),
-            ('charging_current', 'charging_current'),
-            ('full_charge_capacity', 'full_charge_capacity'),
-            ('charging_voltage', 'charging_voltage'),
-            ('at_rate_time_to_full', 'at_rate_time_to_full'),
-            ('at_rate_time_to_empty', 'at_rate_time_to_empty'),
-            ('at_rate_ok_text', 'at_rate_ok_text'),
-            ('at_rate', 'at_rate'),
-            ('rel_state_of_charge', 'rel_state_of_charge'),
-            ('abs_state_of_charge', 'abs_state_of_charge'),
-            ('run_time_to_empty', 'run_time_to_empty'),
-            ('avg_time_to_empty', 'avg_time_to_empty'),
-            ('avg_time_to_full', 'avg_time_to_full'),
-            ('max_error', 'max_error')
-        ]
+    # Wait for all tasks to complete
+    await asyncio.gather(*tasks)
 
-        threads = []
-        for call_name, key in data_points:
-            thread = threading.Thread(target=fetch_and_store_data, args=(call_name, key))
-            threads.append(thread)
-            thread.start()
-
-
-    def continuous_update():
-        while not stop_continuous_update:
-            update_all_data()
-            time.sleep(5)
-
-    if continuous:
-        # Start the continuous update in a new thread
-        stop_continuous_update = False
-        continuous_update_thread = threading.Thread(target=continuous_update)
-        continuous_update_thread.start()
-    else:
-        # Stop the continuous update if running
-        stop_continuous_update = True
-        if continuous_update_thread:
-            continuous_update_thread.join()
-        update_all_data()
-
-
-def pcan_initialize(baudrate, hwtype, ioport, interrupt):
+async def pcan_initialize(baudrate, hwtype, ioport, interrupt):
     result = m_objPCANBasic.Initialize(m_PcanHandle, baudrate, hwtype, ioport, interrupt)
     if result != PCAN_ERROR_OK:
         if result == 5120:
@@ -166,30 +170,7 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
         return False
     else:
         messagebox.showinfo("Info!", "Connection established!")
-        # Create threads for each data fetching operation
-        threads = []
-        data_points = [
-            ('temperature', 'temperature'),
-            ('current', 'current'),
-            ('remaining_capacity', 'remaining_capacity'),
-            ('voltage', 'voltage'),
-            ('design_capacity', 'design_capacity'),
-            ('design_voltage', 'design_voltage'),
-            ('manufacturer_date', 'manufacturer_date'),
-            ('serial_number', 'serial_number')
-            # ('manufacturer_name', 'manufacturer_name'),
-            # ('device_name', 'device_name')
-        ]
-
-        for call_name, key in data_points:
-            thread = threading.Thread(target=fetch_and_store_data, args=(call_name, key))
-            # print(f"call name: {call_name}")
-            threads.append(thread)
-            thread.start()
-
-        # Wait for all threads to complete
-        # for thread in threads:
-        #     thread.join()
+        await process_data_points()
         
         return True
 
