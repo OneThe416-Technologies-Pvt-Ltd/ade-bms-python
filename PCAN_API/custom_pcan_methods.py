@@ -107,6 +107,11 @@ device_data = {
 
 async def update_device_data():
     data_points = [
+        ('manufacturer_name', 'manufacturer_name'),
+        ('device_name', 'device_name'),
+        ('design_capacity', 'design_capacity'),
+        ('design_voltage', 'design_voltage'),
+        ('manufacturer_date', 'manufacturer_date'),
         ('remaining_capacity', 'remaining_capacity'),
         ('temperature', 'temperature'),
         ('current', 'current'),
@@ -147,6 +152,8 @@ async def fetch_and_store_data(call_name, key):
 async def process_data_points():
     data_points = [
         ('temperature', 'temperature'),
+        ('manufacturer_name', 'manufacturer_name'),
+        ('device_name', 'device_name'),
         ('current', 'current'),
         ('remaining_capacity', 'remaining_capacity'),
         ('voltage', 'voltage'),
@@ -162,10 +169,12 @@ async def process_data_points():
         tasks.append(task)
 
     # Wait for all tasks to complete
-    await asyncio.gather(*tasks)
+    # await asyncio.gather(*tasks)
 
+async def getdata():
+    await process_data_points()
 
-async def pcan_initialize(baudrate, hwtype, ioport, interrupt):
+def pcan_initialize(baudrate, hwtype, ioport, interrupt):
     result = m_objPCANBasic.Initialize(m_PcanHandle, baudrate, hwtype, ioport, interrupt)
     if result != PCAN_ERROR_OK:
         if result == 5120:
@@ -173,9 +182,8 @@ async def pcan_initialize(baudrate, hwtype, ioport, interrupt):
         messagebox.showerror("Error!", GetFormatedError(result))
         return False
     else:
-        messagebox.showinfo("Info!", "Connection established!")
-        await process_data_points()
-        
+        messagebox.showinfo("Info!", "Connection established!")        
+        # await process_data_points()
         return True
 
 
@@ -286,7 +294,7 @@ def pcan_read(call_name):
     # print("can result 1 value",result[1])
     if result[0] != PCAN_ERROR_OK:
         # messagebox.showerror(f"Error!{call_name}", GetFormatedError(result[0]))
-        return result[0], 25
+        return result[0], -1
     else:
         args = result[1:]
         # print("args",args[0])
@@ -298,8 +306,9 @@ def pcan_read(call_name):
         # print("theMsg.LEN",theMsg.LEN)
         for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN):
             newMsg.DATA[i] = theMsg.DATA[i]
+            print(f"Display value {call_name}: {theMsg.DATA[i]} byte {i}")
         
-        command_code = newMsg.DATA[2]
+        command_code = newMsg.DATA[4]
         first_byte = newMsg.DATA[0]
         second_byte = newMsg.DATA[1]
 
@@ -309,7 +318,7 @@ def pcan_read(call_name):
 
         display_value = convert_data(command_code, decimal_value)
 
-        print(f"Display value {call_name}: {display_value}")
+        # print(f"Display value {call_name}: {newMsg.DATA}")
 
         return result[0], display_value
 

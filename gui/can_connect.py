@@ -124,7 +124,7 @@ class CanConnection(tk.Frame):
         selected_baudrate = self.m_BAUDRATES[self.cbbBaudrates.get()]
         selected_ioport = int(self.cbbIoPort.get(), 16)
         selected_interrupt = int(self.cbbInterrupt.get())
-        result =  asyncio.run(pcan_initialize(selected_baudrate,selected_hwtype,selected_ioport,selected_interrupt))
+        result =  pcan_initialize(selected_baudrate,selected_hwtype,selected_ioport,selected_interrupt)
         if result:
             CanConnection.can_connected = True
             self.update_widgets()

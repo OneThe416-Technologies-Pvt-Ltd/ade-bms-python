@@ -10,7 +10,7 @@ import datetime
 import asyncio
 from tkinter import messagebox
 from openpyxl import Workbook
-from pcan_api.custom_pcan_methods import device_data, unit_mapping, name_mapping, update_device_data, pcan_write_control
+from pcan_api.custom_pcan_methods import device_data, unit_mapping, name_mapping, update_device_data, pcan_write_control, getdata
 
 class CanBatteryInfo:
     def __init__(self, master, main_window=None):
@@ -105,7 +105,7 @@ class CanBatteryInfo:
             bootstyle="info"
         )
         self.help_button.pack(fill="x", pady=5)
-
+        # asyncio.run(getdata())
         # Initially display the home content
         self.show_dashboard()
 
