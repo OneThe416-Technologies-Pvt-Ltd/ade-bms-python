@@ -1,5 +1,11 @@
 # main.py
 import os
+import sys
+
+if hasattr(sys, '_MEIPASS'):
+    os.environ['TCL_LIBRARY'] = os.path.join(sys._MEIPASS, 'tcl')
+    os.environ['TK_LIBRARY'] = os.path.join(sys._MEIPASS, 'tk')
+
 import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
@@ -243,6 +249,10 @@ class MainWindow:
 if __name__ == "__main__":
     # Create the root window
     root = tk.Tk()
+    icon_path = os.path.join(base_dir, 'assets/logo/drdo_icon.ico')
+    icon_image = Image.open(icon_path)
+    icon_photo = ImageTk.PhotoImage(icon_image)
+    root.iconphoto(False, icon_photo)
 
     # Hide the main window while the splash screen is displayed
     root.withdraw()

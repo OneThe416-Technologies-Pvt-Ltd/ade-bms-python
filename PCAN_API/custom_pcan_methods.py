@@ -7,6 +7,7 @@ import asyncio
 
 m_objPCANBasic = PCANBasic()
 m_PcanHandle = 81
+
 can_connected = False
 rs_connected = False
 continuous_update_thread = None
@@ -321,7 +322,13 @@ def convert_data(command_code, decimal_value):
     elif command_code == 0x07:  # AtRateOK: Boolean
         return "Yes" if decimal_value != 0 else "No" 
     elif command_code == 0x08:  # Temperature: 0.1⁰K signed
-        return (decimal_value/1000)-273.15
+        # Step 1: Convert four-digit value to three-digit value with one decimal place
+        temperature_k = decimal_value / 10.0  # Example: 2987 becomes 298.7
+
+        # Step 2: Convert from Kelvin to Celsius (with +1 Kelvin adjustment)
+        temperature_c = temperature_k - 272.15  # Subtract 272.15 instead of 273.15
+
+        return temperature_c
     elif command_code == 0x09:  # Voltage: mV unsigned
         return decimal_value
     elif command_code == 0x0c:  # MaxError: Percent unsigned

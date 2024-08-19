@@ -3,6 +3,7 @@ import tkinter as tk
 from PIL import Image, ImageTk
 import os
 
+base_dir = os.path.dirname(__file__)
 class SplashScreen(tk.Toplevel):
     def __init__(self, master=None):
         super().__init__(master)
@@ -24,14 +25,13 @@ class SplashScreen(tk.Toplevel):
         # Set the geometry of the splash screen window
         self.geometry(f"{splash_width}x{splash_height}+{x_pos}+{y_pos}")
 
-        # Define the base path for your images
-        base_path = os.path.join(os.path.dirname(__file__), "../assets", "images")
-        base_path2 = os.path.join(os.path.dirname(__file__), "../assets")
-
         # Load and display the background image
     
-        splash_image_path = os.path.join(base_path, "splash_bg.png")
-        self.background_image = ImageTk.PhotoImage(Image.open(splash_image_path))
+        # splash_image_path = os.path.join(base_dir, '../../assets/images/splash_bg.png')
+        # print("Splash Image Path:", splash_image_path)
+        # splash_image_path = os.path.abspath(splash_image_path)
+
+        self.background_image = ImageTk.PhotoImage(Image.open('assets/images/splash_bg.png'))
         self.canvas = tk.Canvas(self, width=splash_width, height=splash_height)
         self.canvas.pack(fill="both", expand=True)
         self.canvas.create_image(splash_width // 2, splash_height // 2, anchor="center", image=self.background_image)
@@ -47,8 +47,9 @@ class SplashScreen(tk.Toplevel):
             self.canvas.coords(text_width, splash_width // 2, splash_height // 2 - 20)
 
         # Load and display your logo at the bottom (adjust path accordingly)
-        logo_image_path = os.path.join(base_path2, "logo", "ade_logo.png")
-        self.logo_image = ImageTk.PhotoImage(Image.open(logo_image_path))
+        # logo_image_path = os.path.join(base_dir, '../assets/logo/ade_logo.png')
+        # logo_image_path = os.path.abspath(logo_image_path)
+        self.logo_image = ImageTk.PhotoImage(Image.open('assets/logo/ade_logo.png'))
         logo_width = self.logo_image.width()
         logo_height = self.logo_image.height()
         self.canvas.create_image(splash_width // 2, splash_height - logo_height // 2 - 20, anchor="center", image=self.logo_image)
@@ -61,7 +62,7 @@ class SplashScreen(tk.Toplevel):
     def run(self):
         self.mainloop()
 
-# Example usage
-if __name__ == "__main__":
-    splash_screen = SplashScreen()
-    splash_screen.run()
+# # Example usage
+# if __name__ == "__main__":
+#     splash_screen = SplashScreen()
+#     splash_screen.run()
