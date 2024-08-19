@@ -138,9 +138,11 @@ async def update_device_data():
     # Wait for all tasks to complete
     await asyncio.gather(*tasks)
 
+
 async def fetch_and_store_data(call_name, key):
     value = await asyncio.to_thread(pcan_write_read, call_name)  # Run in a separate thread
     device_data[key] = value
+
 
 async def process_data_points():
     data_points = [
@@ -161,6 +163,7 @@ async def process_data_points():
 
     # Wait for all tasks to complete
     await asyncio.gather(*tasks)
+
 
 async def pcan_initialize(baudrate, hwtype, ioport, interrupt):
     result = m_objPCANBasic.Initialize(m_PcanHandle, baudrate, hwtype, ioport, interrupt)
@@ -387,28 +390,63 @@ def pcan_write_control(call_name):
         CANMsg.LEN = int(8)
         CANMsg.MSGTYPE = PCAN_MESSAGE_EXTENDED
         CANMsg.DATA[0] = int('03',16)
-        CANMsg.DATA[1] = int('00',16)
-        if call_name == 'both_off':
-            CANMsg.DATA[2] = int('00',16)
-        elif call_name == 'charge_on':
-            CANMsg.DATA[2] = int('01',16)
-        elif call_name == 'discharge_on':
-            CANMsg.DATA[2] = int('02',16)
-        elif call_name == 'both_on':
-            CANMsg.DATA[2] = int('03',16)
-        else:
-            messagebox.showinfo("Error!", "Write operation not found!")     
-        CANMsg.DATA[3] = int('01',16)
-        CANMsg.DATA[4] = int('08',16)
-        CANMsg.DATA[5] = int('02',16)
-        CANMsg.DATA[6] = int('00',16)
+        CANMsg.DATA[1] = int('03',16)
+        CANMsg.DATA[2] = int('37',16)   
+        CANMsg.DATA[3] = int('30',16)
+        CANMsg.DATA[4] = int('39',16)
+        CANMsg.DATA[5] = int('33',16)
+        CANMsg.DATA[6] = int('39',16)
         CANMsg.DATA[7] = int('00',16)
         result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)
-        # result = 0
         if result == PCAN_ERROR_OK:
-            print(f"call name: {call_name}")
-            return 0
+            print("Enter Diag State : Success")
+            CANMsg = TPCANMsg()
+            CANMsg.ID = int('18EFC0D0',16)
+            CANMsg.LEN = int(8)
+            CANMsg.MSGTYPE = PCAN_MESSAGE_EXTENDED
+            CANMsg.DATA[0] = int('03',16)
+            CANMsg.DATA[1] = int('00',16)
+            if call_name == 'both_off':
+                CANMsg.DATA[2] = int('00',16)
+            elif call_name == 'charge_on':
+                CANMsg.DATA[2] = int('01',16)
+            elif call_name == 'discharge_on':
+                CANMsg.DATA[2] = int('02',16)
+            elif call_name == 'both_on':
+                CANMsg.DATA[2] = int('03',16)
+            else:
+                messagebox.showinfo("Error!", "Write operation not found!")     
+            CANMsg.DATA[3] = int('01',16)
+            CANMsg.DATA[4] = int('08',16)
+            CANMsg.DATA[5] = int('02',16)
+            CANMsg.DATA[6] = int('00',16)
+            CANMsg.DATA[7] = int('00',16)
+            result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)
+            if result == PCAN_ERROR_OK:
+                print("FET Control State : Success")
+                CANMsg = TPCANMsg()
+                CANMsg.ID = int('18EFC0D0',16)
+                CANMsg.LEN = int(8)
+                CANMsg.MSGTYPE = PCAN_MESSAGE_EXTENDED
+                CANMsg.DATA[0] = int('03',16)
+                CANMsg.DATA[1] = int('04',16)
+                CANMsg.DATA[2] = int('00',16)   
+                CANMsg.DATA[3] = int('00',16)
+                CANMsg.DATA[4] = int('00',16)
+                CANMsg.DATA[5] = int('00',16)
+                CANMsg.DATA[6] = int('00',16)
+                CANMsg.DATA[7] = int('00',16)
+                result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)
+                if result == PCAN_ERROR_OK:
+                    print("Exit the Diag State : Success")
+                    return 0
+                else:
+                    print("Exit the Diag State : Failed")
+                    return 0
+            else:
+                print("FET Control State : Failed")
+                return 0
         else:
-            # messagebox.showerror("Error",f"{call_name}")
+            print("Enter Diag State : Failed")
             return 0
 
