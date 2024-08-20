@@ -1250,3 +1250,32 @@ Display value manufacturer_date: 1 byte 5
 Display value manufacturer_date: 255 byte 6
 Display value manufacturer_date: 0 byte 7
 --------------------------------------------------------
+Command Code Not Found : 0xff
+Command Code Not Found : 0x6e
+Command Code Not Found : 0x63
+Command Code Not Found : 0x1
+Command Code Not Found : 0xff
+Command Code Not Found : 0x37
+Command Code Not Found : 0x48
+Device Name : [3, 2, 0, 1, 0, 33, 2, 255]
+Device Name string : !
+Command Code Not Found : 0xff
+Command Code Not Found : 0x6e
+Command Code Not Found : 0x63
+Command Code Not Found : 0x1
+Command Code Not Found : 0xff
+Command Code Not Found : 0x37
+Command Code Not Found : 0x48
+Device Name : [3, 2, 0, 1, 0, 33, 2, 255]
+Device Name string : !
+
+---------------------------------------------------------
+
+Command Code Not Found : 0xff
+Command Code Not Found : 0x6e
+Command Code Not Found : 0x63
+Command Code Not Found : 0x1
+Command Code Not Found : 0xff
+Device Name : ['0x3', '0x2', '0x0', '0x1', '0x0', '0x21', '0x2', '0xff']
+Command Code Not Found : 0x37
+Command Code Not Found : 0x48

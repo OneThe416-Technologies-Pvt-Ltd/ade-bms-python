@@ -259,8 +259,16 @@ class CanBatteryInfo:
 
     def auto_refresh(self):
         if self.auto_refresh_var.get():
-            self.refresh_info()  # Call the refresh function
-            # Schedule the next check in 5 seconds (5000 milliseconds)
+            asyncio.run(update_device_data())
+            # Clear the existing table rows
+            for item in self.info_table.get_children():
+                self.info_table.delete(item)
+    
+            # Repopulate the table with updated data
+            for index, (key, value) in enumerate(device_data.items()):
+                name = name_mapping.get(key, key)
+                unit = unit_mapping.get(key, key)
+                self.info_table.insert('', 'end', values=(name, value, unit), tags=('evenrow' if index % 2 == 0 else 'oddrow'))
             self.master.after(5000, self.auto_refresh)
 
     def refresh_info(self):
@@ -383,7 +391,7 @@ class CanBatteryInfo:
         temp_meter = ttk.Meter(
             master=temp_frame,
             metersize=200,
-            amountused=round(device_data['temperature'],1),
+            amountused=device_data['temperature'],
             meterthickness=10,
             metertype="semi",
             subtext="Temperature",
@@ -424,10 +432,11 @@ class CanBatteryInfo:
         capacity_frame.pack(side="left", fill="x", expand=True, padx=10)
         capacity_label = ttk.Label(capacity_frame, text="Capacity", font=("Helvetica", 16, "bold"))
         capacity_label.pack(pady=(10, 10))
+        amountused = (device_data['remaining_capacity'] / device_data['design_capacity']) * 100
         capacity_meter = ttk.Meter(
             master=capacity_frame,
             metersize=200,
-            amountused=round((device_data['remaining_capacity'] / device_data['designed_capacity']) * 100, 1),
+            amountused=round(amountused, 1),
             meterthickness=10,
             metertype="semi",
             subtext="Capacity",

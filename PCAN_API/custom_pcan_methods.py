@@ -183,6 +183,11 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
     else:
         messagebox.showinfo("Info!", "Connection established!") 
         pcan_write_read('serial_number')       
+        pcan_write_read('temperature')       
+        pcan_write_read('voltage')       
+        pcan_write_read('current')       
+        pcan_write_read('remaining_capacity')       
+        pcan_write_read('design_capacity')       
         return True
 
 
@@ -258,8 +263,13 @@ def pcan_write_read(call_name):
         elif call_name == 'device_name':
             CANMsg.DATA[2] = int('21',16)
         else:
-            messagebox.showinfo("Error!", "Write operation not found!")     
-        CANMsg.DATA[3] = int('01',16)
+            messagebox.showinfo("Error!", "Write operation not found!")   
+        if call_name == 'manufacturer_name':
+            CANMsg.DATA[3] = int('02',16)
+        elif call_name == 'device_name':
+            CANMsg.DATA[3] = int('02',16)
+        else:
+            CANMsg.DATA[3] = int('01',16)  
         CANMsg.DATA[4] = int('08',16)
         CANMsg.DATA[5] = int('02',16)
         CANMsg.DATA[6] = int('00',16)
@@ -311,7 +321,7 @@ def pcan_read(call_name):
         decimal_value = int(swapped_hex)
 
         # Convert the entire DATA array to a list of byte values
-        byte_values = [newMsg.DATA[i] for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
+        byte_values = [hex(newMsg.DATA[i]) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
 
         # Check if data[5] is 0x20 or 0x21
         if newMsg.DATA[5] == 0x20 or newMsg.DATA[5] == 0x21:
@@ -327,19 +337,19 @@ def pcan_read(call_name):
 def convert_data(command_code, decimal_value):
     # Conversion rules
     if command_code == 0x04:  # AtRate: mA / 40 unsigned
-        device_data['at_rate'] = decimal_value * 40
+        device_data['at_rate'] = decimal_value
     elif command_code == 0x05:  # AtRateTimeToFull: minutes unsigned
-        device_data['at_rate_time_to_full'] = decimal_value
+        device_data['at_rate_time_to_full'] = round((decimal_value / 1000),1)
     elif command_code == 0x06:  # AtRateTimeToEmpty: minutes unsigned
-        device_data['at_rate_time_to_empty'] = decimal_value
+        device_data['at_rate_time_to_empty'] = round((decimal_value / 1000),1)
     elif command_code == 0x07:  # AtRateOK: Boolean
         device_data['at_rate_ok_text'] = "Yes" if decimal_value != 0 else "No" 
     elif command_code == 0x08: # Temperature: Boolean
         temperature_k = decimal_value / 10.0
-        temperature_c = temperature_k - 272.15
-        device_data['temperature'] = temperature_c
+        temperature_c = temperature_k - 273.15
+        device_data['temperature'] = round(temperature_c,1)
     elif command_code == 0x09:  # Voltage: mV unsigned
-        device_data['voltage'] = decimal_value
+        device_data['voltage'] = round((decimal_value / 1000),1)
     elif command_code == 0x0a:  # Current: mA / 40 signed
         device_data['current'] = decimal_value
     elif command_code == 0x0b:  # Avg Current: mA / 40 signed
@@ -351,39 +361,43 @@ def convert_data(command_code, decimal_value):
     elif command_code == 0x0e:  # AbsoluteStateofCharge: Percent unsigned
         device_data['abs_state_of_charge'] = decimal_value
     elif command_code == 0x0f:  # RemainingCapacity: mAh / 40 unsigned
-        device_data['remaining_capacity'] = decimal_value * 40
+        device_data['remaining_capacity'] = decimal_value
     elif command_code == 0x10:  # FullChargeCapacity: mAh / 40 unsigned
-        device_data['full_charge_capacity'] = decimal_value * 40
+        device_data['full_charge_capacity'] = decimal_value
     elif command_code == 0x11:  # RunTimeToEmpty: minutes unsigned
-        device_data['run_time_to_empty'] = decimal_value
+        device_data['run_time_to_empty'] = round((decimal_value / 1000),1)
     elif command_code == 0x12:  # AvgTimeToEmpty: minutes unsigned
-        device_data['avg_time_to_empty'] = decimal_value
+        device_data['avg_time_to_empty'] = round((decimal_value / 1000),1)
     elif command_code == 0x13:  # AvgTimeToFull: minutes unsigned
-        device_data['avg_time_to_full'] = decimal_value
+        device_data['avg_time_to_full'] = round((decimal_value / 1000),1)
     elif command_code == 0x14:  # ChargingCurrent: mA / 40 unsigned
-        device_data['charging_current'] = decimal_value * 40
+        device_data['charging_current'] = decimal_value
     elif command_code == 0x15:  # ChargingVoltage: mV unsigned
-        device_data['charging_voltage'] = decimal_value
+        device_data['charging_voltage'] = round((decimal_value / 1000),1)
     elif command_code == 0x16:  # BatteryStatus: bit flags unsigned
-        device_data['battery_status'] = bin(decimal_value)
+        device_data['battery_status'] = hex(decimal_value)
     elif command_code == 0x17:  # CycleCount: Count unsigned
         device_data['cycle_count'] = decimal_value
     elif command_code == 0x18:  # DesignCapacity: mAh / 40 unsigned
-        device_data['design_capacity'] = decimal_value * 40
+        device_data['design_capacity'] = decimal_value
     elif command_code == 0x19:  # DesignVoltage: mV unsigned
-        device_data['design_voltage'] = decimal_value
+        device_data['design_voltage'] = round((decimal_value / 1000),1)
     elif command_code == 0x1b:  # ManufactureDate: unsigned int unsigned
         device_data['manufacturer_date'] = decimal_value
     elif command_code == 0x1c:  # SerialNumber: number unsigned
-        device_data['serial_number'] = 1744
+        device_data['serial_number'] = decimal_value
     elif command_code == 0x20:  # ManufacturerName: string
-        string_value = ''.join(chr(b) for b in decimal_value if 32 <= b <= 126)
-        device_data['manufacturer_name'] = string_value 
+        print(f"Manufacturer Name : {decimal_value}")
+        # string_value = ''.join(chr(b) for b in decimal_value if 32 <= b <= 126)
+        # print(f"Manufacturer Name string : {string_value}")
+        device_data['manufacturer_name'] = decimal_value 
     elif command_code == 0x21:  # DeviceName: string
-        string_value = ''.join(chr(b) for b in decimal_value if 32 <= b <= 126)
-        device_data['device_name'] = string_value 
+        print(f"Device Name : {decimal_value}")
+        # string_value = ''.join(chr(b) for b in decimal_value if 32 <= b <= 126)
+        # print(f"Device Name string : {string_value}")
+        device_data['device_name'] = decimal_value
     else:
-        print("Command Code Not Found : Field")
+        print(f"Command Code Not Found : {hex(command_code)}")
 
 
 def GetFormatedError(error):
