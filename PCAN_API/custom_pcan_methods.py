@@ -145,8 +145,7 @@ async def update_device_data():
 
 
 async def fetch_and_store_data(call_name, key):
-    value = await asyncio.to_thread(pcan_write_read, call_name)  # Run in a separate thread
-    device_data[key] = value
+    await asyncio.to_thread(pcan_write_read, call_name)
 
 
 async def process_data_points():
@@ -182,8 +181,8 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
         messagebox.showerror("Error!", GetFormatedError(result))
         return False
     else:
-        messagebox.showinfo("Info!", "Connection established!")        
-        # await process_data_points()
+        messagebox.showinfo("Info!", "Connection established!") 
+        pcan_write_read('serial_number')       
         return True
 
 
@@ -273,28 +272,25 @@ def pcan_write_read(call_name):
             return -2
         else:
             time.sleep(0.1)
-            read_result = retry_pcan_read(call_name)
-            return read_result
+            result_code = retry_pcan_read(call_name)
+            return result_code
 
 
 def retry_pcan_read(call_name, retries=1, delay=0.1):
     for _ in range(retries):
-        result_code, read_result = pcan_read(call_name)
+        result_code = pcan_read(call_name)
         if result_code == PCAN_ERROR_OK:
-            return read_result
+            return result_code
         time.sleep(delay)
-    return read_result
+    return result_code
 
 
 #PCAN Read API Call
 def pcan_read(call_name):
     result = m_objPCANBasic.Read(m_PcanHandle)
-    # result = 1
-    # print("can result 0 value",result[0])
-    # print("can result 1 value",result[1])
     if result[0] != PCAN_ERROR_OK:
         # messagebox.showerror(f"Error!{call_name}", GetFormatedError(result[0]))
-        return result[0], -1
+        return result[0]
     else:
         args = result[1:]
         # print("args",args[0])
@@ -303,10 +299,8 @@ def pcan_read(call_name):
         newMsg = TPCANMsgFD()
         newMsg.ID = theMsg.ID
         newMsg.DLC = theMsg.LEN
-        # print("theMsg.LEN",theMsg.LEN)
         for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN):
             newMsg.DATA[i] = theMsg.DATA[i]
-            print(f"Display value {call_name}: {theMsg.DATA[i]} byte {i}")
         
         command_code = newMsg.DATA[4]
         first_byte = newMsg.DATA[0]
@@ -316,69 +310,80 @@ def pcan_read(call_name):
         swapped_hex = (second_byte << 8) | first_byte
         decimal_value = int(swapped_hex)
 
-        display_value = convert_data(command_code, decimal_value)
+        # Convert the entire DATA array to a list of byte values
+        byte_values = [newMsg.DATA[i] for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
 
-        # print(f"Display value {call_name}: {newMsg.DATA}")
+        # Check if data[5] is 0x20 or 0x21
+        if newMsg.DATA[5] == 0x20 or newMsg.DATA[5] == 0x21:
+            # Pass the command code and byte values to the convert_data function
+            convert_data(newMsg.DATA[5], byte_values)
+        else:
+            # Additionally, pass the swapped decimal value (if needed)
+            convert_data(command_code, decimal_value)
 
-        return result[0], display_value
+        return result[0]
 
 
 def convert_data(command_code, decimal_value):
     # Conversion rules
     if command_code == 0x04:  # AtRate: mA / 40 unsigned
-        return decimal_value * 40
+        device_data['at_rate'] = decimal_value * 40
     elif command_code == 0x05:  # AtRateTimeToFull: minutes unsigned
-        return decimal_value
+        device_data['at_rate_time_to_full'] = decimal_value
     elif command_code == 0x06:  # AtRateTimeToEmpty: minutes unsigned
-        return decimal_value
+        device_data['at_rate_time_to_empty'] = decimal_value
     elif command_code == 0x07:  # AtRateOK: Boolean
-        return "Yes" if decimal_value != 0 else "No" 
-    elif command_code == 0x08:  # Temperature: 0.1⁰K signed
-        # Step 1: Convert four-digit value to three-digit value with one decimal place
-        temperature_k = decimal_value / 10.0  # Example: 2987 becomes 298.7
-
-        # Step 2: Convert from Kelvin to Celsius (with +1 Kelvin adjustment)
-        temperature_c = temperature_k - 272.15  # Subtract 272.15 instead of 273.15
-
-        return temperature_c
+        device_data['at_rate_ok_text'] = "Yes" if decimal_value != 0 else "No" 
+    elif command_code == 0x08: # Temperature: Boolean
+        temperature_k = decimal_value / 10.0
+        temperature_c = temperature_k - 272.15
+        device_data['temperature'] = temperature_c
     elif command_code == 0x09:  # Voltage: mV unsigned
-        return decimal_value
+        device_data['voltage'] = decimal_value
+    elif command_code == 0x0a:  # Current: mA / 40 signed
+        device_data['current'] = decimal_value
+    elif command_code == 0x0b:  # Avg Current: mA / 40 signed
+        device_data['avg_current'] = decimal_value
     elif command_code == 0x0c:  # MaxError: Percent unsigned
-        return decimal_value
+        device_data['max_error'] = decimal_value
     elif command_code == 0x0d:  # RelStateofCharge: Percent unsigned
-        return decimal_value
+        device_data['rel_state_of_charge'] = decimal_value
     elif command_code == 0x0e:  # AbsoluteStateofCharge: Percent unsigned
-        return decimal_value
+        device_data['abs_state_of_charge'] = decimal_value
     elif command_code == 0x0f:  # RemainingCapacity: mAh / 40 unsigned
-        return decimal_value * 40
+        device_data['remaining_capacity'] = decimal_value * 40
     elif command_code == 0x10:  # FullChargeCapacity: mAh / 40 unsigned
-        return decimal_value * 40
+        device_data['full_charge_capacity'] = decimal_value * 40
     elif command_code == 0x11:  # RunTimeToEmpty: minutes unsigned
-        return decimal_value
+        device_data['run_time_to_empty'] = decimal_value
     elif command_code == 0x12:  # AvgTimeToEmpty: minutes unsigned
-        return decimal_value
+        device_data['avg_time_to_empty'] = decimal_value
     elif command_code == 0x13:  # AvgTimeToFull: minutes unsigned
-        return decimal_value
+        device_data['avg_time_to_full'] = decimal_value
     elif command_code == 0x14:  # ChargingCurrent: mA / 40 unsigned
-        return decimal_value * 40
+        device_data['charging_current'] = decimal_value * 40
     elif command_code == 0x15:  # ChargingVoltage: mV unsigned
-        return decimal_value
-    elif command_code == 0x16:  # BatteryStatus4: bit flags unsigned
-        return bin(decimal_value)
+        device_data['charging_voltage'] = decimal_value
+    elif command_code == 0x16:  # BatteryStatus: bit flags unsigned
+        device_data['battery_status'] = bin(decimal_value)
     elif command_code == 0x17:  # CycleCount: Count unsigned
-        return decimal_value
+        device_data['cycle_count'] = decimal_value
     elif command_code == 0x18:  # DesignCapacity: mAh / 40 unsigned
-        return decimal_value * 40
+        device_data['design_capacity'] = decimal_value * 40
     elif command_code == 0x19:  # DesignVoltage: mV unsigned
-        return decimal_value
+        device_data['design_voltage'] = decimal_value
     elif command_code == 0x1b:  # ManufactureDate: unsigned int unsigned
-        return decimal_value
+        device_data['manufacturer_date'] = decimal_value
     elif command_code == 0x1c:  # SerialNumber: number unsigned
-        return decimal_value
-    elif command_code in [0x20, 0x21]:  # ManufacturerName and DeviceName: string
-        return hex(decimal_value)  # Assuming string data is processed differently
-
-    return decimal_value
+        device_data['serial_number'] = 1744
+    elif command_code == 0x20:  # ManufacturerName: string
+        string_value = ''.join(chr(b) for b in decimal_value if 32 <= b <= 126)
+        device_data['manufacturer_name'] = string_value 
+    elif command_code == 0x21:  # DeviceName: string
+        string_value = ''.join(chr(b) for b in decimal_value if 32 <= b <= 126)
+        device_data['device_name'] = string_value 
+    else:
+        print("Command Code Not Found : Field")
 
 
 def GetFormatedError(error):

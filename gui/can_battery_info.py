@@ -383,7 +383,7 @@ class CanBatteryInfo:
         temp_meter = ttk.Meter(
             master=temp_frame,
             metersize=200,
-            amountused=device_data['temperature'],
+            amountused=round(device_data['temperature'],1),
             meterthickness=10,
             metertype="semi",
             subtext="Temperature",
@@ -427,7 +427,7 @@ class CanBatteryInfo:
         capacity_meter = ttk.Meter(
             master=capacity_frame,
             metersize=200,
-            amountused=device_data['remaining_capacity'],
+            amountused=round((device_data['remaining_capacity'] / device_data['designed_capacity']) * 100, 1),
             meterthickness=10,
             metertype="semi",
             subtext="Capacity",
