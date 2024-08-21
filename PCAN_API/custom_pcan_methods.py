@@ -303,9 +303,7 @@ def pcan_read(call_name):
         return result[0]
     else:
         args = result[1:]
-        # print("args",args[0])
         theMsg = args[0]
-        # print("theMsg",theMsg)
         newMsg = TPCANMsgFD()
         newMsg.ID = theMsg.ID
         newMsg.DLC = theMsg.LEN
@@ -320,15 +318,25 @@ def pcan_read(call_name):
         swapped_hex = (second_byte << 8) | first_byte
         decimal_value = int(swapped_hex)
 
-        # Convert the entire DATA array to a list of byte values
+        # Convert the entire DATA array to a list of byte values in hex format
         byte_values = [hex(newMsg.DATA[i]) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
 
-        # Check if data[5] is 0x20 or 0x21
-        if newMsg.DATA[5] == 0x20 or newMsg.DATA[5] == 0x21:
-            # Pass the command code and byte values to the convert_data function
-            convert_data(newMsg.DATA[5], byte_values)
+        if newMsg.ID == 0x1CEBFFC0 and (newMsg.DATA[5] == 0x20 or newMsg.DATA[5] == 0x21):
+            combined_hex = ""
+            result = m_objPCANBasic.Read(m_PcanHandle)
+            if result[0] != PCAN_ERROR_OK:
+                return result[0]
+            else:
+                args = result[1:]
+                theMsg = args[0]
+                for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN):
+                    combined_hex += format(theMsg.DATA[i], '02X')
+            
+            ascii_string = ''.join(chr(int(combined_hex[i:i+2], 16)) for i in range(0, len(combined_hex), 2) if 32 <= int(combined_hex[i:i+2], 16) <= 126)
+            print(f"Combined ASCII String: {ascii_string}")
+
+            convert_data(newMsg.DATA[5], ascii_string)
         else:
-            # Additionally, pass the swapped decimal value (if needed)
             convert_data(command_code, decimal_value)
 
         return result[0]
