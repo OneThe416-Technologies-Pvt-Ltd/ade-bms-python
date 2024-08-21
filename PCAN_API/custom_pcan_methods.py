@@ -107,8 +107,7 @@ device_data = {
 
 async def update_device_data():
     data_points = [
-        ('manufacturer_name', 'manufacturer_name'),
-        ('device_name', 'device_name'),
+        ('serial_number', 'serial_number'),
         ('design_capacity', 'design_capacity'),
         ('design_voltage', 'design_voltage'),
         ('manufacturer_date', 'manufacturer_date'),
@@ -181,13 +180,20 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
         messagebox.showerror("Error!", GetFormatedError(result))
         return False
     else:
-        messagebox.showinfo("Info!", "Connection established!") 
-        pcan_write_read('serial_number')       
-        pcan_write_read('temperature')       
-        pcan_write_read('voltage')       
-        pcan_write_read('current')       
-        pcan_write_read('remaining_capacity')       
-        pcan_write_read('design_capacity')       
+        pcan_write_read('serial_number')
+        if device_data['serial_number'] != 0:
+            pcan_write_read('temperature')       
+            pcan_write_read('voltage')       
+            pcan_write_read('current')       
+            pcan_write_read('remaining_capacity')       
+            pcan_write_read('design_capacity')
+            pcan_write_read('device_name') 
+            pcan_write_read('serial_number')
+            pcan_write_read('manufacturer_name')
+            messagebox.showinfo("Info!", "Connection established!")
+        else:
+            messagebox.showinfo("Error!", "Disconnect and Connect again!")
+        
         return True
 
 
@@ -310,6 +316,10 @@ def pcan_read(call_name):
         for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN):
             newMsg.DATA[i] = theMsg.DATA[i]
         
+        if call_name == 'current':
+            current = [hex(theMsg.DATA[i]) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
+            print(f"current: {current}")
+        
         command_code = newMsg.DATA[4]
         first_byte = newMsg.DATA[0]
         second_byte = newMsg.DATA[1]
@@ -318,24 +328,56 @@ def pcan_read(call_name):
         swapped_hex = (second_byte << 8) | first_byte
         decimal_value = int(swapped_hex)
 
-        # Convert the entire DATA array to a list of byte values in hex format
-        byte_values = [hex(newMsg.DATA[i]) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
+        if newMsg.ID == 0x1CECFFC0 or newMsg.ID == 0x1CEBFFC0:
+            if newMsg.ID == 0x1CECFFC0:
+                hex_string1=''
+                hex_string2=''
+                result = m_objPCANBasic.Read(m_PcanHandle)
+                if result[0] != PCAN_ERROR_OK:
+                    return result[0]
+                else:
+                    args = result[1:]
+                    theMsg = args[0]
+                    byte_values1 = [hex(theMsg.DATA[i]) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
+                    hex_string1 = ''.join(format(int(h, 16), '02X') for h in byte_values1)
+                result = m_objPCANBasic.Read(m_PcanHandle)
+                if result[0] != PCAN_ERROR_OK:
+                    return result[0]
+                else:
+                    args = result[1:]
+                    theMsg2 = args[0]
+                    byte_values2 = [hex(theMsg2.DATA[i]) for i in range(8 if (theMsg2.LEN > 8) else theMsg2.LEN)]
+                    hex_string2 = ''.join(format(int(h, 16), '02X') for h in byte_values2)
+                ascii_string1 = ''.join(chr(b) for b in bytes.fromhex(hex_string1) if 32 <= b <= 126)
+                ascii_string2 = ''.join(chr(b) for b in bytes.fromhex(hex_string2) if 32 <= b <= 126)
 
-        if newMsg.ID == 0x1CEBFFC0 and (newMsg.DATA[5] == 0x20 or newMsg.DATA[5] == 0x21):
-            combined_hex = ""
-            result = m_objPCANBasic.Read(m_PcanHandle)
-            if result[0] != PCAN_ERROR_OK:
-                return result[0]
-            else:
-                args = result[1:]
-                theMsg = args[0]
-                for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN):
-                    combined_hex += format(theMsg.DATA[i], '02X')
-            
-            ascii_string = ''.join(chr(int(combined_hex[i:i+2], 16)) for i in range(0, len(combined_hex), 2) if 32 <= int(combined_hex[i:i+2], 16) <= 126)
-            print(f"Combined ASCII String: {ascii_string}")
-
-            convert_data(newMsg.DATA[5], ascii_string)
+                # Join the two ASCII strings
+                final_string = ascii_string1 + ascii_string2
+                if call_name == 'manufacturer_name':
+                    convert_data('manufacturer_name', final_string)
+                elif call_name == 'device_name':
+                    convert_data('device_name', final_string)
+            elif newMsg.ID == 0x1CEBFFC0:
+                hex_string1=''
+                hex_string2=''
+                result = m_objPCANBasic.Read(m_PcanHandle)
+                if result[0] != PCAN_ERROR_OK:
+                    return result[0]
+                else:
+                    args = result[1:]
+                    theMsg1 = args[0]
+                    byte_values1 = [hex(newMsg.DATA[i]) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
+                    hex_string1 = ''.join(format(int(h, 16), '02X') for h in byte_values1)
+                    byte_values2 = [hex(theMsg1.DATA[i]) for i in range(8 if (theMsg1.LEN > 8) else theMsg1.LEN)]
+                    hex_string2 = ''.join(format(int(h, 16), '02X') for h in byte_values2)
+                ascii_string1 = ''.join(chr(b) for b in bytes.fromhex(hex_string1) if 32 <= b <= 126)
+                ascii_string2 = ''.join(chr(b) for b in bytes.fromhex(hex_string2) if 32 <= b <= 126)
+                # Join the two ASCII strings
+                final_string = ascii_string1 + ascii_string2
+                if call_name == 'manufacturer_name':
+                    convert_data('manufacturer_name', final_string)
+                elif call_name == 'device_name':
+                    convert_data('device_name', final_string)
         else:
             convert_data(command_code, decimal_value)
 
@@ -394,15 +436,11 @@ def convert_data(command_code, decimal_value):
         device_data['manufacturer_date'] = decimal_value
     elif command_code == 0x1c:  # SerialNumber: number unsigned
         device_data['serial_number'] = decimal_value
-    elif command_code == 0x20:  # ManufacturerName: string
+    elif command_code == 'manufacturer_name':  # Manufacturer Name: string
         print(f"Manufacturer Name : {decimal_value}")
-        # string_value = ''.join(chr(b) for b in decimal_value if 32 <= b <= 126)
-        # print(f"Manufacturer Name string : {string_value}")
         device_data['manufacturer_name'] = decimal_value 
-    elif command_code == 0x21:  # DeviceName: string
+    elif command_code == 'device_name':  # DeviceName: string
         print(f"Device Name : {decimal_value}")
-        # string_value = ''.join(chr(b) for b in decimal_value if 32 <= b <= 126)
-        # print(f"Device Name string : {string_value}")
         device_data['device_name'] = decimal_value
     else:
         print(f"Command Code Not Found : {hex(command_code)}")
@@ -441,7 +479,10 @@ def pcan_write_control(call_name):
             CANMsg.LEN = int(8)
             CANMsg.MSGTYPE = PCAN_MESSAGE_EXTENDED
             CANMsg.DATA[0] = int('03',16)
-            CANMsg.DATA[1] = int('00',16)
+            if call_name == 'both_off':
+                CANMsg.DATA[1] = int('01',16)
+            else:
+                CANMsg.DATA[1] = int('00',16)
             if call_name == 'both_off':
                 CANMsg.DATA[2] = int('00',16)
             elif call_name == 'charge_on':
@@ -450,6 +491,8 @@ def pcan_write_control(call_name):
                 CANMsg.DATA[2] = int('02',16)
             elif call_name == 'both_on':
                 CANMsg.DATA[2] = int('03',16)
+            elif call_name == 'bms_reset':
+                CANMsg.DATA[2] = int('01',16)
             else:
                 messagebox.showinfo("Error!", "Write operation not found!")     
             CANMsg.DATA[3] = int('01',16)
@@ -457,6 +500,7 @@ def pcan_write_control(call_name):
             CANMsg.DATA[5] = int('02',16)
             CANMsg.DATA[6] = int('00',16)
             CANMsg.DATA[7] = int('00',16)
+            # m_objPCANBasic.Write(m_PcanHandle, CANMsg)
             result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)
             if result == PCAN_ERROR_OK:
                 print("FET Control State : Success")

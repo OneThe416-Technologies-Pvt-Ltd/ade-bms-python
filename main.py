@@ -10,6 +10,7 @@ import tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 from helpers.utils import load_and_resize_image, create_image_button
+from pcan_api.custom_pcan_methods import pcan_write_read
 from gui.can_connect import CanConnection
 from gui.rs_connect import RSConnection
 from gui.can_battery_info import CanBatteryInfo
@@ -60,26 +61,26 @@ class MainWindow:
         self.battery_info = None  # Initialize as None
         # Hexadecimal string
         # First hexadecimal string
-        hex_string1 = "014272656E2D5472"
+        # hex_string1 = "014272656E2D5472"
 
-        # Second hexadecimal string
-        hex_string2 = "026F6E6963730100"
+        # # Second hexadecimal string
+        # hex_string2 = "026F6E6963730100"
 
-        # Convert hex to bytes and filter out non-printable ASCII characters
-        ascii_string1 = ''.join(chr(b) for b in bytes.fromhex(hex_string1) if 32 <= b <= 126)
-        ascii_string2 = ''.join(chr(b) for b in bytes.fromhex(hex_string2) if 32 <= b <= 126)
+        # # Convert hex to bytes and filter out non-printable ASCII characters
+        # ascii_string1 = ''.join(chr(b) for b in bytes.fromhex(hex_string1) if 32 <= b <= 126)
+        # ascii_string2 = ''.join(chr(b) for b in bytes.fromhex(hex_string2) if 32 <= b <= 126)
 
-        # Join the two ASCII strings
-        final_string = ascii_string1 + ascii_string2
+        # # Join the two ASCII strings
+        # final_string = ascii_string1 + ascii_string2
 
-        print(final_string)
+        # print(final_string)
 
-        hex_list = ['0x3', '0x2', '0x0', '0x1', '0x0', '0x21', '0x2', '0xff']
+        # hex_list = ['0x3', '0x2', '0x0', '0x1', '0x0', '0x21', '0x2', '0xff']
 
-        # Convert the list of hex strings to a single hexadecimal string
-        hex_string = ''.join(format(int(h, 16), '02X') for h in hex_list)
+        # # Convert the list of hex strings to a single hexadecimal string
+        # hex_string = ''.join(format(int(h, 16), '02X') for h in hex_list)
         
-        print(hex_string)
+        # print(hex_string)
 
 
 
@@ -141,7 +142,7 @@ class MainWindow:
             can_window_height = 400
 
             can_window_x = main_window_x + (main_window_width - can_window_width) // 2
-            can_window_y = main_window_y + (main_window_height - can_window_height) // 2
+            can_window_y = main_window_y + (main_window_height - can_window_height) // 2 
 
             can_window = tk.Toplevel(self.master)
             can_window.title("CAN Connection Settings")

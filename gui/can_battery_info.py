@@ -10,7 +10,7 @@ import datetime
 import asyncio
 from tkinter import messagebox
 from openpyxl import Workbook
-from pcan_api.custom_pcan_methods import device_data, unit_mapping, name_mapping, update_device_data, pcan_write_control, getdata
+from pcan_api.custom_pcan_methods import device_data, unit_mapping, name_mapping, update_device_data, pcan_write_control, pcan_write_read
 
 class CanBatteryInfo:
     def __init__(self, master, main_window=None):
@@ -24,7 +24,7 @@ class CanBatteryInfo:
 
         # Calculate one-fourth of the main window width for the side menu
         self.side_menu_width_ratio = 0.20  # 20% for side menu
-        self.update_frame_sizes()  # Set initial sizes
+        self.update_frame_sizes()  # Set initial size
         self.auto_refresh_var = tk.BooleanVar()
         self.logging_active = False
         self.charge_fet_status = False
@@ -527,7 +527,7 @@ class CanBatteryInfo:
         bms_reset_label = ttk.Label(self.content_frame, text="BMS Reset", font=("Helvetica", 16, "bold"))
         bms_reset_label.pack(pady=(5, 5))
 
-        bms_reset_button = ttk.Button(self.content_frame, text="Reset", image=self.reset_icon, compound="left", command=self.stop_logging, width=12, bootstyle="danger")
+        bms_reset_button = ttk.Button(self.content_frame, text="Reset", image=self.reset_icon, compound="left", command=self.bmsreset, width=12, bootstyle="danger")
         bms_reset_button.pack(pady=(5, 5))
 
         # Pack the content_frame itself (if necessary, but typically this frame is already packed)
@@ -568,4 +568,6 @@ class CanBatteryInfo:
             # Update button styles
             button.config(bootstyle="success round-toggle" if var.get() else "danger round-toggle")
 
+    def bmsreset(self):
+        pcan_write_control('bms_reset')
 
