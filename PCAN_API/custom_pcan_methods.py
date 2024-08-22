@@ -16,6 +16,7 @@ stop_continuous_update = False
 name_mapping = {
             "device_name": "Device Name",
             "serial_number": "Serial No",
+            "firmware_version": "Firmware Version",
             "manufacturer_date": "Manufacturer Date",
             "manufacturer_name": "Manufacturer Name",
             "battery_status": "Battery Status",
@@ -44,6 +45,7 @@ name_mapping = {
 
 unit_mapping = {
     "device_name": "string",
+    "firmware_version": "string",
     "serial_number": "number",
     "manufacturer_date": "unsigned int",
     "manufacturer_name": "string",
@@ -76,14 +78,15 @@ device_data = {
             'serial_number': 0,
             'manufacturer_date': 0,
             'manufacturer_name': "",
+            'firmware_version': "",
+            'battery_status': "",
+            'cycle_count': 0,
             'design_capacity': 0,
             'design_voltage': 0,
             'remaining_capacity': 0,
             'temperature': 0,
             'current': 0,
             'voltage': 0,
-            'battery_status': "",
-            'cycle_count': 0,
             'avg_current': 0,
             'charging_current': 0,
             'full_charge_capacity': 0,
@@ -108,6 +111,7 @@ device_data = {
 async def update_device_data():
     data_points = [
         ('serial_number', 'serial_number'),
+        ('firmware_version', 'firmware_version'),
         ('design_capacity', 'design_capacity'),
         ('design_voltage', 'design_voltage'),
         ('manufacturer_date', 'manufacturer_date'),
@@ -178,11 +182,12 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
         if result == 5120:
             result = 512
         messagebox.showerror("Error!", GetFormatedError(result))
-        return False
+        return True
     else:
         pcan_write_read('serial_number')
         if device_data['serial_number'] != 0:
-            pcan_write_read('temperature')       
+            pcan_write_read('temperature')
+            pcan_write_read('firmware_version')       
             pcan_write_read('voltage')       
             pcan_write_read('current')       
             pcan_write_read('remaining_capacity')       
@@ -214,7 +219,10 @@ def pcan_write_read(call_name):
         CANMsg.ID = int('18EFC0D0',16)
         CANMsg.LEN = int(8)
         CANMsg.MSGTYPE = PCAN_MESSAGE_EXTENDED
-        CANMsg.DATA[0] = int('01',16)
+        if call_name == 'firmware_version':
+            CANMsg.DATA[0] = int('00',16)
+        else:
+            CANMsg.DATA[0] = int('01',16)
         CANMsg.DATA[1] = int('00',16)
         if call_name == 'serial_number':
             CANMsg.DATA[2] = int('1c',16)
@@ -268,6 +276,8 @@ def pcan_write_read(call_name):
             CANMsg.DATA[2] = int('20',16)
         elif call_name == 'device_name':
             CANMsg.DATA[2] = int('21',16)
+        elif call_name == 'firmware_version':
+            CANMsg.DATA[2] = int('00',16)
         else:
             messagebox.showinfo("Error!", "Write operation not found!")   
         if call_name == 'manufacturer_name':
@@ -281,8 +291,6 @@ def pcan_write_read(call_name):
         CANMsg.DATA[6] = int('00',16)
         CANMsg.DATA[7] = int('00',16)
         result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)
-        # result = 0
-        # print(f"call name: {call_name}")
         if result != PCAN_ERROR_OK:
             messagebox.showerror(f"Error! {call_name}", GetFormatedError(result))
             return -2
@@ -378,6 +386,17 @@ def pcan_read(call_name):
                     convert_data('manufacturer_name', final_string)
                 elif call_name == 'device_name':
                     convert_data('device_name', final_string)
+        elif call_name == 'firmware_version':
+            data_packet = [hex(newMsg.DATA[i]) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
+
+            # Extract version information
+            major_version = data_packet[0]
+            minor_version = data_packet[1]
+            patch_number = (data_packet[3] << 8) | data_packet[2]
+            build_number = (data_packet[5] << 8) | data_packet[4]
+
+            version_string = f"{major_version}.{minor_version}.{patch_number}.{build_number}"
+            convert_data('firmware_version', version_string)
         else:
             convert_data(command_code, decimal_value)
 
@@ -437,11 +456,11 @@ def convert_data(command_code, decimal_value):
     elif command_code == 0x1c:  # SerialNumber: number unsigned
         device_data['serial_number'] = decimal_value
     elif command_code == 'manufacturer_name':  # Manufacturer Name: string
-        print(f"Manufacturer Name : {decimal_value}")
         device_data['manufacturer_name'] = decimal_value 
     elif command_code == 'device_name':  # DeviceName: string
-        print(f"Device Name : {decimal_value}")
         device_data['device_name'] = decimal_value
+    elif command_code == 'firmware_version':  # Firmware Version: string
+        device_data['firmware_version'] = decimal_value
     else:
         print(f"Command Code Not Found : {hex(command_code)}")
 

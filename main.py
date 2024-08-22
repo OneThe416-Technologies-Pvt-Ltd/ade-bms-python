@@ -59,28 +59,16 @@ class MainWindow:
         self.create_buttons()
 
         self.battery_info = None  # Initialize as None
-        # Hexadecimal string
-        # First hexadecimal string
-        # hex_string1 = "014272656E2D5472"
 
-        # # Second hexadecimal string
-        # hex_string2 = "026F6E6963730100"
-
-        # # Convert hex to bytes and filter out non-printable ASCII characters
-        # ascii_string1 = ''.join(chr(b) for b in bytes.fromhex(hex_string1) if 32 <= b <= 126)
-        # ascii_string2 = ''.join(chr(b) for b in bytes.fromhex(hex_string2) if 32 <= b <= 126)
-
-        # # Join the two ASCII strings
-        # final_string = ascii_string1 + ascii_string2
-
-        # print(final_string)
-
-        # hex_list = ['0x3', '0x2', '0x0', '0x1', '0x0', '0x21', '0x2', '0xff']
-
-        # # Convert the list of hex strings to a single hexadecimal string
-        # hex_string = ''.join(format(int(h, 16), '02X') for h in hex_list)
-        
-        # print(hex_string)
+        # hex_string = "B1 56 01 00 1B 01 FF 00"
+        # hex_bytes = hex_string.split()
+        # # Extract the day, month, and year from the relevant bytes
+        # day = int(hex_bytes[1], 16)
+        # month = int(hex_bytes[0], 16)
+        # year = 2000 + int(hex_bytes[2], 16)  # Combine Byte 2 and 3, then convert to decimal
+        # # Create the date
+        # date_string = f"{month}/{day}/{year}"
+        # print(f"Date : {date_string}")
 
 
 

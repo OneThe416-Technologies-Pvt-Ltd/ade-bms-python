@@ -1281,3 +1281,18 @@ Command Code Not Found : 0x37
 Command Code Not Found : 0x48
 ------------------------------------------------------------------------
 serial_number
+________________________________________________________________________
+# Example data packet
+data_packet = [0x02, 0x01, 0x07, 0x00, 0x22, 0x00, 0xFF]
+
+# Extract version information
+major_version = data_packet[0]
+minor_version = data_packet[1]
+patch_number = (data_packet[3] << 8) | data_packet[2]
+build_number = (data_packet[5] << 8) | data_packet[4]
+
+# Construct the version string
+version_string = f"{major_version}.{minor_version}.{patch_number}.{build_number}"
+
+# Output the version
+print(f"Battery Version: {version_string}")

@@ -250,6 +250,7 @@ class CanBatteryInfo:
         # Set up the layout for the table
         self.info_table.pack(fill="both", expand=True)
 
+        # Insert data
         for index, (key, value) in enumerate(device_data.items()):
             name = name_mapping.get(key, key)
             unit = unit_mapping.get(key, key)
@@ -432,7 +433,15 @@ class CanBatteryInfo:
         capacity_frame.pack(side="left", fill="x", expand=True, padx=10)
         capacity_label = ttk.Label(capacity_frame, text="Capacity", font=("Helvetica", 16, "bold"))
         capacity_label.pack(pady=(10, 10))
-        amountused = (device_data['remaining_capacity'] / device_data['design_capacity']) * 100
+        # Calculate amountused, with a check to avoid division by zero
+        design_capacity = device_data.get('design_capacity', 0)
+        remaining_capacity = device_data.get('remaining_capacity', 0)
+
+        if design_capacity == 0:
+            amountused = 0
+        else:
+            amountused = (remaining_capacity / design_capacity) * 100
+
         capacity_meter = ttk.Meter(
             master=capacity_frame,
             metersize=200,
@@ -527,8 +536,14 @@ class CanBatteryInfo:
         bms_reset_label = ttk.Label(self.content_frame, text="BMS Reset", font=("Helvetica", 16, "bold"))
         bms_reset_label.pack(pady=(5, 5))
 
-        bms_reset_button = ttk.Button(self.content_frame, text="Reset", image=self.reset_icon, compound="left", command=self.bmsreset, width=12, bootstyle="danger")
-        bms_reset_button.pack(pady=(5, 5))
+        self.bms_reset_button = ttk.Button(self.content_frame, text="Reset", image=self.reset_icon, compound="left", command=self.bmsreset, width=12, bootstyle="danger")
+        self.bms_reset_button.pack(pady=(5, 5))
+
+        activate_heater_label = ttk.Label(self.content_frame, text="Activate Heater", font=("Helvetica", 16, "bold"))
+        activate_heater_label.pack(pady=(5, 5))
+
+        self.activate_heater_button = ttk.Button(self.content_frame, text="OFF", compound="left", command=self.activate_heater, width=12, bootstyle="danger")
+        self.activate_heater_button.pack(pady=(5, 5))
 
         # Pack the content_frame itself (if necessary, but typically this frame is already packed)
         self.content_frame.pack(fill="both", expand=True)
@@ -570,4 +585,10 @@ class CanBatteryInfo:
 
     def bmsreset(self):
         pcan_write_control('bms_reset')
+        
+    def activate_heater(self):
+        if self.activate_heater_button.cget('text') == "OFF":
+            self.activate_heater_button.configure(text="ON", bootstyle="success")
+        else:
+            self.activate_heater_button.configure(text="OFF", bootstyle="danger")
 
