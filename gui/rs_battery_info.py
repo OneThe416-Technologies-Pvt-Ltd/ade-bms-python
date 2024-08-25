@@ -12,14 +12,14 @@ from tkinter import messagebox
 from openpyxl import Workbook
 from pcan_api.custom_pcan_methods import *
 
-class CanBatteryInfo:
+class RSBatteryInfo:
     def __init__(self, master, main_window=None):
         self.master = master
         self.main_window = main_window
         self.selected_button = None  # Track the currently selected button
 
         # Set initial window size and update it
-        self.master.geometry("1200x600")
+        self.master.geometry("900x600")
         self.master.update_idletasks()  # Update the window to get accurate dimensions
 
         # Calculate one-fourth of the main window width for the side menu
@@ -45,7 +45,6 @@ class CanBatteryInfo:
 
         # Load and resize icons using Pillow
         self.disconnect_icon = self.load_icon("assets/images/disconnect_button.png")
-        self.loads_icon = self.load_icon("assets/images/load_icon.png")
         self.controls_icon = self.load_icon("assets/images/settings.png")
         self.info_icon = self.load_icon("assets/images/info.png")
         self.help_icon = self.load_icon("assets/images/help.png")
@@ -87,15 +86,6 @@ class CanBatteryInfo:
             bootstyle="info"
         )
         self.control_button.pack(fill="x", pady=5)
-        self.load_button = ttk.Button(
-            self.side_menu_frame,
-            text=" E-Load       ",
-            command=lambda: self.select_button(self.load_button, self.show_load),
-            image=self.loads_icon,
-            compound="left",  # Place the icon to the left of the text
-            bootstyle="info"
-        )
-        self.load_button.pack(fill="x", pady=2)
         self.help_button = ttk.Button(
             self.side_menu_frame,
             text=" Help            ",
@@ -394,7 +384,7 @@ class CanBatteryInfo:
 
         # Top row frame (for Temperature and Current meters)
         top_row_frame = ttk.Frame(self.content_frame)
-        top_row_frame.pack(fill="x", padx=10, pady=10)
+        top_row_frame.pack(fill="x", padx=5, pady=5)
 
         # Temperature Meter (Top Left)
         temp_frame = ttk.Frame(top_row_frame, padding=10)
@@ -438,7 +428,7 @@ class CanBatteryInfo:
 
         # Bottom row frame (for Capacity and Voltage meters)
         bottom_row_frame = ttk.Frame(self.content_frame)
-        bottom_row_frame.pack(fill="x", padx=10, pady=30)
+        bottom_row_frame.pack(fill="x", padx=5, pady=5)
 
         # Capacity Meter (Bottom Left)
         capacity_frame = ttk.Frame(bottom_row_frame, padding=10)
@@ -562,70 +552,6 @@ class CanBatteryInfo:
 
         # Highlight the control button in the side menu
         self.select_button(self.control_button)
-    
-    def show_load(self):
-        self.clear_content_frame()
-
-        label = ttk.Label(self.content_frame, text="Electronic Load", font=("Helvetica", 16))
-        label.pack(pady=20, anchor="center")
-        # self.reset_icon = self.load_icon("assets/images/reset.png")
-        
-        # bms_control_label = ttk.Label(self.content_frame, text="BMS Controls", font=("Helvetica", 16, "bold"))
-        # bms_control_label.pack(pady=(20, 5))
-
-        # # Create a frame for the first Checkbutton
-        # check_frame1 = ttk.Frame(self.content_frame)
-        # check_frame1.pack(pady=10, anchor="center")
-
-        # check_label1 = ttk.Label(check_frame1, text="Charge FET ON/OFF:", font=("Helvetica", 12), width=20, anchor="e")
-        # check_label1.pack(side="left", padx=10)
-
-        # self.check_var1 = tk.BooleanVar()
-        # self.check_var1.set(self.charge_fet_status)
-        # check_button1 = ttk.Checkbutton(
-        #     check_frame1,
-        #     variable=self.check_var1,
-        #     width=15,
-        #     bootstyle="success-round-toggle" if self.check_var1.get() else "danger-round-toggle",
-        #     command=lambda: self.toggle_button_style(self.check_var1, check_button1,'charge')
-        # )
-        # check_button1.pack(side="right", padx=10)
-
-        # # Create a frame for the second Checkbutton
-        # check_frame2 = ttk.Frame(self.content_frame)
-        # check_frame2.pack(pady=10, anchor="center")
-
-        # check_label2 = ttk.Label(check_frame2, text="Discharge FET ON/OFF:", font=("Helvetica", 12), width=20, anchor="e")
-        # check_label2.pack(side="left", padx=10)
-
-        # self.check_var2 = tk.BooleanVar()
-        # self.check_var2.set(self.discharge_fet_status)
-        # check_button2 = ttk.Checkbutton(
-        #     check_frame2,
-        #     variable=self.check_var2,
-        #     width=15,
-        #     bootstyle="success-round-toggle" if self.check_var2.get() else "danger-round-toggle",
-        #     command=lambda: self.toggle_button_style(self.check_var2, check_button2, 'discharge')
-        # )
-        # check_button2.pack(side="right",pady=20, padx=10)
-
-        # bms_reset_label = ttk.Label(self.content_frame, text="BMS Reset", font=("Helvetica", 16, "bold"))
-        # bms_reset_label.pack(pady=(5, 5))
-
-        # self.bms_reset_button = ttk.Button(self.content_frame, text="Reset", image=self.reset_icon, compound="left", command=self.bmsreset, width=12, bootstyle="danger")
-        # self.bms_reset_button.pack(pady=(5, 5))
-
-        # activate_heater_label = ttk.Label(self.content_frame, text="Activate Heater", font=("Helvetica", 16, "bold"))
-        # activate_heater_label.pack(pady=(5, 5))
-
-        # self.activate_heater_button = ttk.Button(self.content_frame, text="OFF", compound="left", command=self.activate_heater, width=12, bootstyle="danger")
-        # self.activate_heater_button.pack(pady=(5, 5))
-
-        # # Pack the content_frame itself (if necessary, but typically this frame is already packed)
-        # self.content_frame.pack(fill="both", expand=True)
-
-        # Highlight the control button in the side menu
-        self.select_button(self.load_button)
 
     def toggle_button_style(self, var, button, control_type):
             charge_on = self.check_var1.get()

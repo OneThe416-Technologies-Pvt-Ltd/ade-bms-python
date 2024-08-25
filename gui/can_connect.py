@@ -1,12 +1,14 @@
 import tkinter as tk
 import customtkinter as ctk
 from pcan_api.custom_pcan_methods import *
+from gui.batteryinfo import CanBatteryInfo
 
 class CanConnection(tk.Frame):
     can_connected = False
 
-    def __init__(self, parent):
-        super().__init__(parent)
+    def __init__(self, master, main_window=None):
+        super().__init__(master)
+        self.main_window = main_window
         # Initialize all the dictionaries for dropdown options
         self.m_NonPnPHandles = {
             'PCAN_ISABUS1': PCAN_TYPE_ISA, 'PCAN_ISABUS2': PCAN_TYPE_ISA_SJA, 'PCAN_ISABUS3': PCAN_TYPE_ISA_PHYTEC,
@@ -43,60 +45,67 @@ class CanConnection(tk.Frame):
         self.create_widgets()
 
     def create_widgets(self):
+        # RS232/RS422 heading label
+        tk.Label(self, text="CAN Connection", font=("Helvetica", 16, "bold")).grid(row=0, columnspan=2, pady=10)
+
+        # Separator line
+        separator = tk.Frame(self, height=2, bd=1, relief=tk.SUNKEN)
+        separator.grid(row=1, columnspan=2, sticky="we", padx=20, pady=(0, 10))
+
         # Label and dropdown for hardware type
-        tk.Label(self, text="Hardware Type:").grid(row=0, column=0, padx=20, sticky=tk.W)
+        tk.Label(self, text="Hardware Type:").grid(row=2, column=0, padx=20, sticky=tk.W)
         self.cbbHwType = ctk.CTkComboBox(self, values=list(self.m_HWTYPES.keys()))
         self.cbbHwType.set(list(self.m_HWTYPES.keys())[0])  # Set default value
-        self.cbbHwType.grid(row=0, column=1, padx=20, pady=5)
+        self.cbbHwType.grid(row=2, column=1, padx=20, pady=5)
 
         # Baudrate
-        tk.Label(self, text="Baudrate:").grid(row=1, column=0, padx=20, sticky=tk.W)
+        tk.Label(self, text="Baudrate:").grid(row=3, column=0, padx=20, sticky=tk.W)
         self.cbbBaudrates = ctk.CTkComboBox(self, values=list(self.m_BAUDRATES.keys()))
         self.cbbBaudrates.set(list(self.m_BAUDRATES.keys())[0])  # Set default value
-        self.cbbBaudrates.grid(row=1, column=1, padx=20, pady=5)
+        self.cbbBaudrates.grid(row=3, column=1, padx=20, pady=5)
 
         # I/O Port
-        tk.Label(self, text="I/O Port:").grid(row=2, column=0, padx=20, sticky=tk.W)
+        tk.Label(self, text="I/O Port:").grid(row=4, column=0, padx=20, sticky=tk.W)
         self.cbbIoPort = ctk.CTkComboBox(self, values=list(self.m_IOPORTS.keys()))
         self.cbbIoPort.set(list(self.m_IOPORTS.keys())[0])  # Set default value
-        self.cbbIoPort.grid(row=2, column=1, padx=20, pady=5)
+        self.cbbIoPort.grid(row=4, column=1, padx=20, pady=5)
 
         # Interrupt
-        tk.Label(self, text="Interrupt:").grid(row=3, column=0, padx=20, sticky=tk.W)
+        tk.Label(self, text="Interrupt:").grid(row=5, column=0, padx=20, sticky=tk.W)
         self.cbbInterrupt = ctk.CTkComboBox(self, values=list(self.m_INTERRUPTS.keys()))
         self.cbbInterrupt.set(list(self.m_INTERRUPTS.keys())[0])  # Set default value
-        self.cbbInterrupt.grid(row=3, column=1, padx=20, pady=5)
+        self.cbbInterrupt.grid(row=5, column=1, padx=20, pady=5)
 
         # Connect button
-        self.btnConnect = ctk.CTkButton(self, text="Connect", command=self.on_connect, fg_color= "green", hover_color='green')
-        self.btnConnect.grid(row=4, columnspan=2, pady=10)
+        self.btnConnect = ctk.CTkButton(self, text="Connect", command=self.on_connect, fg_color="green", hover_color='green')
+        self.btnConnect.grid(row=6, columnspan=2, pady=10)
 
-        # Disconnect button (initially disabled)
-        self.btnDisconnect = ctk.CTkButton(self, text="Disconnect", command=self.on_disconnect, fg_color= "red", hover_color='red', state=tk.DISABLED)
-        self.btnDisconnect.grid(row=5, columnspan=2, pady=10)
+        # # Disconnect button (initially disabled)
+        # self.btnDisconnect = ctk.CTkButton(self, text="Disconnect", command=self.on_disconnect, fg_color="red", hover_color='red', state=tk.DISABLED)
+        # self.btnDisconnect.grid(row=7, columnspan=2, pady=10)
 
         # Center the frame within parent (can_window)
-        self.grid_rowconfigure(6, weight=1)  # Ensure row 6 expands to center vertically
+        self.grid_rowconfigure(8, weight=1)  # Ensure row 8 expands to center vertically
         self.grid_columnconfigure(0, weight=1)  # Ensure column 0 expands to center horizontally
-        self.pack(expand=True, fill='both') 
+        self.pack(expand=True, fill='both')
 
-        self.update_widgets()
+        # self.update_widgets()
 
-    def update_widgets(self):
-        if CanConnection.can_connected:
-            self.btnConnect.configure(state=tk.DISABLED)
-            self.btnDisconnect.configure(state=tk.NORMAL)
-            self.cbbHwType.configure(state=tk.DISABLED)
-            self.cbbBaudrates.configure(state=tk.DISABLED)
-            self.cbbIoPort.configure(state=tk.DISABLED)
-            self.cbbInterrupt.configure(state=tk.DISABLED)
-        else:
-            self.btnConnect.configure(state=tk.NORMAL)
-            self.btnDisconnect.configure(state=tk.DISABLED)
-            self.cbbHwType.configure(state=tk.NORMAL)
-            self.cbbBaudrates.configure(state=tk.NORMAL)
-            self.cbbIoPort.configure(state=tk.NORMAL)
-            self.cbbInterrupt.configure(state=tk.NORMAL)
+    # def update_widgets(self):
+    #     if CanConnection.can_connected:
+    #         self.btnConnect.configure(state=tk.DISABLED)
+    #         self.btnDisconnect.configure(state=tk.NORMAL)
+    #         self.cbbHwType.configure(state=tk.DISABLED)
+    #         self.cbbBaudrates.configure(state=tk.DISABLED)
+    #         self.cbbIoPort.configure(state=tk.DISABLED)
+    #         self.cbbInterrupt.configure(state=tk.DISABLED)
+    #     else:
+    #         self.btnConnect.configure(state=tk.NORMAL)
+    #         self.btnDisconnect.configure(state=tk.DISABLED)
+    #         self.cbbHwType.configure(state=tk.NORMAL)
+    #         self.cbbBaudrates.configure(state=tk.NORMAL)
+    #         self.cbbIoPort.configure(state=tk.NORMAL)
+    #         self.cbbInterrupt.configure(state=tk.NORMAL)
 
     def on_baudrate_selected(self, event):
         selected_baudrate = self.cbbBaudrates.get()
@@ -126,18 +135,23 @@ class CanConnection(tk.Frame):
         selected_interrupt = int(self.cbbInterrupt.get())
         result =  pcan_initialize(selected_baudrate,selected_hwtype,selected_ioport,selected_interrupt)
         if result:
-            CanConnection.can_connected = True
-            self.update_widgets()
+            # Set CAN connection status
+            # CanConnection.can_connected = True
+            # self.update_widgets()
+            
+            # Navigate to Battery Info tab/frame
+            if self.main_window:
+                self.main_window.show_can_battery_info()
 
-    def on_disconnect(self):
-        pcan_uninitialize()
-        # Perform disconnection logic here (example: print disconnect message)
-        print("Disconnecting...")
-        CanConnection.can_connected = False
-        self.update_widgets()
+    # def on_disconnect(self):
+    #     pcan_uninitialize()
+    #     # Perform disconnection logic here (example: print disconnect message)
+    #     print("Disconnecting...")
+    #     CanConnection.can_connected = False
+    #     self.update_widgets()
 
-    def get_connection_status(self):
-        return CanConnection.can_connected   
+    # def get_connection_status(self):
+    #     return CanConnection.can_connected   
 
 if __name__ == "__main__":
     root = tk.Tk()
