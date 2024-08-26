@@ -61,7 +61,7 @@ class CanConnection(tk.Frame):
         # Baudrate
         tk.Label(self, text="Baudrate:").grid(row=3, column=0, padx=20, sticky=tk.W)
         self.cbbBaudrates = ctk.CTkComboBox(self, values=list(self.m_BAUDRATES.keys()))
-        self.cbbBaudrates.set(list(self.m_BAUDRATES.keys())[0])  # Set default value
+        self.cbbBaudrates.set(list(self.m_BAUDRATES.keys())[3])  # Set default value
         self.cbbBaudrates.grid(row=3, column=1, padx=20, pady=5)
 
         # I/O Port

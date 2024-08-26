@@ -163,7 +163,10 @@ class CanBatteryInfo:
             widget.destroy()
 
     def on_disconnect(self):
+        pcan_write_control('both_off')
+        time.sleep(2)
         pcan_uninitialize()
+        time.sleep(2)
         self.main_frame.pack_forget()
         self.main_window.show_main_window()
         # Perform disconnection logic here (example: print disconnect message)
@@ -404,25 +407,26 @@ class CanBatteryInfo:
         top_row_frame = ttk.Frame(self.content_frame)
         top_row_frame.pack(fill="x", padx=10, pady=10)
 
-        # Temperature Meter (Top Left)
-        temp_frame = ttk.Frame(top_row_frame, padding=10)
-        temp_frame.pack(side="left", fill="x", expand=True, padx=10)
-        temp_label = ttk.Label(temp_frame, text="Temperature", font=("Helvetica", 16, "bold"))
-        temp_label.pack(pady=(5, 5))
-        temp_meter = ttk.Meter(
-            master=temp_frame,
+        # Voltage Meter (Bottom Right)
+        voltage_frame = ttk.Frame(top_row_frame, padding=10)
+        voltage_frame.pack(side="left", fill="x", expand=True, padx=10)
+        voltage_label = ttk.Label(voltage_frame, text="Voltage", font=("Helvetica", 16, "bold"))
+        voltage_label.pack(pady=(10, 10))
+        voltage_meter = ttk.Meter(
+            master=voltage_frame,
             metersize=200,
-            amountused=device_data['temperature'],
+            amountused=device_data['voltage'],
             meterthickness=10,
             metertype="semi",
-            subtext="Temperature",
-            textright="°C",
-            amounttotal=100,
-            bootstyle="danger",
-            stripethickness=0,
+            subtext="Voltage",
+            textright="V",
+            amounttotal=300,
+            bootstyle="dark",
+            stripethickness=5,
             subtextfont='-size 10'
         )
-        temp_meter.pack()
+        voltage_meter.pack()
+
 
         # Current Meter (Top Right)
         current_frame = ttk.Frame(top_row_frame, padding=10)
@@ -454,13 +458,13 @@ class CanBatteryInfo:
         capacity_label = ttk.Label(capacity_frame, text="Capacity", font=("Helvetica", 16, "bold"))
         capacity_label.pack(pady=(10, 10))
         # Calculate amountused, with a check to avoid division by zero
-        design_capacity = device_data.get('design_capacity', 0)
+        full_charge_capacity = device_data.get('full_charge_capacity', 0)
         remaining_capacity = device_data.get('remaining_capacity', 0)
 
-        if design_capacity == 0:
+        if full_charge_capacity == 0:
             amountused = 0
         else:
-            amountused = (remaining_capacity / design_capacity) * 100
+            amountused = (remaining_capacity / full_charge_capacity) * 100
 
         capacity_meter = ttk.Meter(
             master=capacity_frame,
@@ -477,25 +481,25 @@ class CanBatteryInfo:
         )
         capacity_meter.pack()
 
-        # Voltage Meter (Bottom Right)
-        voltage_frame = ttk.Frame(bottom_row_frame, padding=10)
-        voltage_frame.pack(side="left", fill="x", expand=True, padx=10)
-        voltage_label = ttk.Label(voltage_frame, text="Voltage", font=("Helvetica", 16, "bold"))
-        voltage_label.pack(pady=(10, 10))
-        voltage_meter = ttk.Meter(
-            master=voltage_frame,
+        # Temperature Meter (Top Left)
+        temp_frame = ttk.Frame(bottom_row_frame, padding=10)
+        temp_frame.pack(side="left", fill="x", expand=True, padx=10)
+        temp_label = ttk.Label(temp_frame, text="Temperature", font=("Helvetica", 16, "bold"))
+        temp_label.pack(pady=(5, 5))
+        temp_meter = ttk.Meter(
+            master=temp_frame,
             metersize=200,
-            amountused=device_data['voltage'],
+            amountused=device_data['temperature'],
             meterthickness=10,
             metertype="semi",
-            subtext="Voltage",
-            textright="V",
-            amounttotal=300,
-            bootstyle="dark",
-            stripethickness=5,
+            subtext="Temperature",
+            textright="°C",
+            amounttotal=100,
+            bootstyle="danger",
+            stripethickness=0,
             subtextfont='-size 10'
         )
-        voltage_meter.pack()
+        temp_meter.pack()
 
         # Pack the content_frame itself (if necessary, but typically this frame is already packed)
         self.content_frame.pack(fill="both", expand=True)

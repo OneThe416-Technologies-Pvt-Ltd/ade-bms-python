@@ -111,7 +111,7 @@ device_data = {
 async def update_device_data():
     data_points = [
         ('serial_number', 'serial_number'),
-        ('firmware_version', 'firmware_version'),
+        # ('firmware_version', 'firmware_version'),
         ('design_capacity', 'design_capacity'),
         ('design_voltage', 'design_voltage'),
         ('manufacturer_date', 'manufacturer_date'),
@@ -182,22 +182,33 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
         if result == 5120:
             result = 512
         messagebox.showerror("Error!", GetFormatedError(result))
-        return True
+        return False
     else:
         pcan_write_read('serial_number')
         if device_data['serial_number'] != 0:
             pcan_write_read('temperature')
-            pcan_write_read('firmware_version')       
+            # pcan_write_read('firmware_version')       
             pcan_write_read('voltage')       
             pcan_write_read('current')       
             pcan_write_read('remaining_capacity')       
-            pcan_write_read('design_capacity')
+            pcan_write_read('full_charge_capacity')
             pcan_write_read('device_name') 
             pcan_write_read('serial_number')
             pcan_write_read('manufacturer_name')
             messagebox.showinfo("Info!", "Connection established!")
         else:
-            messagebox.showinfo("Error!", "Disconnect and Connect again!")
+           pcan_write_read('serial_number')
+           if device_data['serial_number'] != 0:
+               pcan_write_read('temperature')
+               # pcan_write_read('firmware_version')       
+               pcan_write_read('voltage')       
+               pcan_write_read('current')       
+               pcan_write_read('remaining_capacity')       
+               pcan_write_read('full_charge_capacity')
+               pcan_write_read('device_name') 
+               pcan_write_read('serial_number')
+               pcan_write_read('manufacturer_name')
+               messagebox.showinfo("Info!", "Connection established!")
         
         return True
 
@@ -420,9 +431,23 @@ def convert_data(command_code, decimal_value):
     elif command_code == 0x09:  # Voltage: mV unsigned
         device_data['voltage'] = round((decimal_value / 1000),1)
     elif command_code == 0x0a:  # Current: mA / 40 signed
-        device_data['current'] = decimal_value
+        if decimal_value == 0:
+            device_data['current'] = decimal_value
+        else:
+            if decimal_value > 32767:
+                decimal_value -= 65536
+            currentmA = decimal_value*40
+            currentA = currentmA / 1000
+            device_data['current'] = currentA
     elif command_code == 0x0b:  # Avg Current: mA / 40 signed
-        device_data['avg_current'] = decimal_value
+        if decimal_value == 0:
+            device_data['avg_current'] = decimal_value
+        else:
+            if decimal_value > 32767:
+                decimal_value -= 65536
+            currentmA = decimal_value*40
+            currentA = currentmA / 1000
+            device_data['avg_current'] = currentA
     elif command_code == 0x0c:  # MaxError: Percent unsigned
         device_data['max_error'] = decimal_value
     elif command_code == 0x0d:  # RelStateofCharge: Percent unsigned
@@ -434,13 +459,20 @@ def convert_data(command_code, decimal_value):
     elif command_code == 0x10:  # FullChargeCapacity: mAh / 40 unsigned
         device_data['full_charge_capacity'] = decimal_value
     elif command_code == 0x11:  # RunTimeToEmpty: minutes unsigned
-        device_data['run_time_to_empty'] = round((decimal_value / 1000),1)
+        device_data['run_time_to_empty'] = round((decimal_value / 10),1)
     elif command_code == 0x12:  # AvgTimeToEmpty: minutes unsigned
-        device_data['avg_time_to_empty'] = round((decimal_value / 1000),1)
+        device_data['avg_time_to_empty'] = round((decimal_value / 10),1)
     elif command_code == 0x13:  # AvgTimeToFull: minutes unsigned
         device_data['avg_time_to_full'] = round((decimal_value / 1000),1)
     elif command_code == 0x14:  # ChargingCurrent: mA / 40 unsigned
-        device_data['charging_current'] = decimal_value
+        if decimal_value == 0:
+            device_data['charging_current'] = decimal_value
+        else:
+            if decimal_value > 32767:
+                decimal_value -= 65536
+            currentmA = decimal_value*40
+            currentA = currentmA / 1000
+            device_data['charging_current'] = currentA
     elif command_code == 0x15:  # ChargingVoltage: mV unsigned
         device_data['charging_voltage'] = round((decimal_value / 1000),1)
     elif command_code == 0x16:  # BatteryStatus: bit flags unsigned
