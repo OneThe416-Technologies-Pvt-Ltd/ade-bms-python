@@ -7,6 +7,7 @@ from ttkbootstrap.constants import *
 from PIL import Image, ImageTk
 Image.CUBIC = Image.BICUBIC
 import datetime
+import threading
 import asyncio
 from tkinter import messagebox
 from openpyxl import Workbook
@@ -18,9 +19,7 @@ class CanBatteryInfo:
         self.main_window = main_window
         self.selected_button = None  # Track the currently selected button
 
-        # Set initial window size and update it
-        self.master.geometry("1200x600")
-        self.master.update_idletasks()  # Update the window to get accurate dimensions
+        self.center_window(1200, 600)  # Center the window with specified dimensions
 
         # Calculate one-fourth of the main window width for the side menu
         self.side_menu_width_ratio = 0.20  # 20% for side menu
@@ -120,6 +119,15 @@ class CanBatteryInfo:
 
         # Bind the window resize event to adjust frame sizes dynamically
         self.master.bind('<Configure>', self.on_window_resize)
+
+    def center_window(self, width, height):
+            """Centers the window on the screen."""
+            screen_width = self.master.winfo_screenwidth()
+            screen_height = self.master.winfo_screenheight()
+            center_x = int(screen_width / 2 - width / 2)
+            center_y = int(screen_height / 2 - height / 2)
+            self.master.geometry(f'{width}x{height}+{center_x}+{center_y}')
+            self.master.update_idletasks()
 
     def load_icon(self, path, size=(24, 24)):
         icon = Image.open(path)
@@ -658,6 +666,26 @@ class CanBatteryInfo:
 
             # Update button styles
             button.config(bootstyle="success round-toggle" if var.get() else "danger round-toggle")
+            # Show alert message
+            if control_type == 'charge':
+                action = "Charging" if charge_on else "Charging turned off"
+            else:
+                action = "Discharging" if discharge_on else "Discharging turned off"
+
+            messagebox.showinfo("Action", f"{action} function activated. Please wait for 10 seconds.")
+
+            # Disable the button for 10 seconds
+            button.config(state=tk.DISABLED)
+
+            def reenable_button():
+                # Wait for 10 seconds
+                threading.Thread(target=lambda: (time.sleep(10), button.config(state=tk.NORMAL))).start()
+
+            # Update button styles
+            button.config(bootstyle="success round-toggle" if var.get() else "danger round-toggle")
+
+            # Start the re-enable process
+            reenable_button()
 
     def bmsreset(self):
         pcan_write_control('bms_reset')
