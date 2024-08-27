@@ -1319,30 +1319,8 @@ Traceback (most recent call last):
     patch_number = (data_packet[3] << 8) | data_packet[2]
                     ~~~~~~~~~~~~~~~^^~~
 TypeError: unsupported operand type(s) for <<: 'str' and 'int'
-Disconnecting...
-Exception in Tkinter callback
-Traceback (most recent call last):
-  File "C:\Users\adebm\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1968, in __call__
-    return self.func(*args)
-           ^^^^^^^^^^^^^^^^
-  File "C:\Users\adebm\AppData\Local\Programs\Python\Python312\Lib\site-packages\customtkinter\windows\widgets\ctk_button.py", line 554, in _clicked     
-    self._command()
-  File "d:\Ade\ade-bms-python\gui\can_connect.py", line 136, in on_connect
-    result =  pcan_initialize(selected_baudrate,selected_hwtype,selected_ioport,selected_interrupt)
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "d:\Ade\ade-bms-python\pcan_api\custom_pcan_methods.py", line 190, in pcan_initialize
-    pcan_write_read('firmware_version')
-  File "d:\Ade\ade-bms-python\pcan_api\custom_pcan_methods.py", line 299, in pcan_write_read
-    result_code = retry_pcan_read(call_name)
-                  ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "d:\Ade\ade-bms-python\pcan_api\custom_pcan_methods.py", line 305, in retry_pcan_read
-    result_code = pcan_read(call_name)
-                  ^^^^^^^^^^^^^^^^^^^^
-  File "d:\Ade\ade-bms-python\pcan_api\custom_pcan_methods.py", line 395, in pcan_read
-    patch_number = (data_packet[3] << 8) | data_packet[2]
-                    ~~~~~~~~~~~~~~~^^~~
-TypeError: unsupported operand type(s) for <<: 'str' and 'int'
-firmware_version calculation issue
+-----------
+fixed
 -------------------------------------
 Exception has occurred: TclError
 invalid command name ".!frame.!frame2.!frame8.!checkbutton"
@@ -1372,9 +1350,9 @@ _tkinter.TclError: invalid command name ".!frame.!frame2.!frame12.!checkbutton"
 -----------------------------------------------------------------------------
 
 
-1) dashboard gauges: charging current, voltage, current,capacity,temperature
-2) dashboard labels: device name, serial number, manufature name, cycle count, charging/discharging battery_status
-3) if serial number is not read properly disconnect and connect automatically
-4) when we close or disconnect the battery turn off all the controls that curently turned on
+1) dashboard gauges: charging current, voltage, current,capacity,temperature [Done]
+2) dashboard labels: device name, serial number, manufature name, cycle count, charging/discharging battery_status [Done]
+3) if serial number is not read properly disconnect and connect automatically [Done]
+4) when we close or disconnect the battery turn off all the controls that curently turned on  [Done]
 5) when refresh or disconnect set device_data to default
 6) 

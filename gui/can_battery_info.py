@@ -29,6 +29,9 @@ class CanBatteryInfo:
         self.charge_fet_status = False
         self.discharge_fet_status = False
 
+        self.style = ttk.Style()
+        self.configure_styles()
+
 
         # Create the main container frame
         self.main_frame = ttk.Frame(self.master)
@@ -77,15 +80,15 @@ class CanBatteryInfo:
             bootstyle="info"
         )
         self.info_button.pack(fill="x", pady=5)
-        self.control_button = ttk.Button(
-            self.side_menu_frame,
-            text=" Controls      ",
-            command=lambda: self.select_button(self.control_button, self.show_controls),
-            image=self.controls_icon,
-            compound="left",  # Place the icon to the left of the text
-            bootstyle="info"
-        )
-        self.control_button.pack(fill="x", pady=5)
+        # self.control_button = ttk.Button(
+        #     self.side_menu_frame,
+        #     text=" Controls      ",
+        #     command=lambda: self.select_button(self.control_button, self.show_controls),
+        #     image=self.controls_icon,
+        #     compound="left",  # Place the icon to the left of the text
+        #     bootstyle="info"
+        # )
+        # self.control_button.pack(fill="x", pady=5)
         self.load_button = ttk.Button(
             self.side_menu_frame,
             text=" E-Load       ",
@@ -104,21 +107,28 @@ class CanBatteryInfo:
             bootstyle="info"
         )
         self.help_button.pack(fill="x", pady=5)
-        self.disconnect_button =  ttk.Button(
-            self.side_menu_frame,
-            text=" Disconnect         ",
-            command=lambda: self.select_button(self.disconnect_button, self.on_disconnect),
-            image=self.disconnect_icon,
-            compound="left",  # Place the icon to the left of the text
-            bootstyle="danger",
-        )
-        self.disconnect_button.pack(side="bottom", fill="x", pady=5)
+        # self.disconnect_button =  ttk.Button(
+        #     self.side_menu_frame,
+        #     text=" Disconnect         ",
+        #     command=lambda: self.select_button(self.disconnect_button, self.on_disconnect),
+        #     image=self.disconnect_icon,
+        #     compound="left",  # Place the icon to the left of the text
+        #     bootstyle="danger",
+        # )
+        # self.disconnect_button.pack(side="bottom", fill="x", pady=5)
         # asyncio.run(getdata())
         # Initially display the home content
         self.show_dashboard()
 
         # Bind the window resize event to adjust frame sizes dynamically
         self.master.bind('<Configure>', self.on_window_resize)
+
+    def configure_styles(self):
+            # Configure custom styles
+            self.style.configure("Custom.Treeview", font=("Helvetica", 12), rowheight=25, background="#f0f0f0", fieldbackground="black")
+            self.style.configure("Custom.Treeview.Heading", font=("Helvetica", 14, "bold"), background="#333", foreground="black", padding=5)
+            self.style.map("Custom.Treeview", background=[("selected", "#0078d7")], foreground=[("selected", "white")])
+
 
     def center_window(self, width, height):
             """Centers the window on the screen."""
@@ -145,17 +155,18 @@ class CanBatteryInfo:
         self.content_frame.place(x=self.side_menu_width, y=0, width=self.content_frame_width, relheight=1.0)
 
     def select_button(self, button, command=None):
-        # Reset the previous selected button
-        if self.selected_button:
+        # Check if the previously selected button still exists
+        if self.selected_button and self.selected_button.winfo_exists():
             self.selected_button.config(bootstyle="info")
 
-        # Highlight the selected button
+        # Highlight the new selected button
         button.config(bootstyle="primary")
         self.selected_button = button
 
-        # Execute the button's command
+        # Execute the button's command if provided
         if command:
             command()
+
 
     def clear_content_frame(self):
         # Clear the content frame before displaying new content
@@ -176,11 +187,23 @@ class CanBatteryInfo:
     def show_info(self):
         self.clear_content_frame()
 
-        # Title label for the Info Page
-        # label = ttk.Label(self.content_frame, text="Battery Info", font=("Helvetica", 16))
-        # label.pack(pady=20)
-        bms_control_label = ttk.Label(self.content_frame, text="Battery Info", font=("Helvetica", 16, "bold"))
-        bms_control_label.pack(pady=(5, 5))
+        top_frame = ttk.Frame(self.content_frame)
+        top_frame.pack(fill='x', pady=10, padx=10)
+        
+        # Place an empty label on the left to push the disconnect button to the right
+        empty_label = ttk.Label(top_frame)
+        empty_label.pack(side='left', fill='x', expand=True)
+        
+        # Now pack the disconnect button on the right
+        self.disconnect_button = ttk.Button(
+            top_frame,
+            text="Disconnect",
+            command=lambda: self.select_button(self.disconnect_button, self.on_disconnect),
+            image=self.disconnect_icon,
+            compound="left",  # Place the icon to the left of the text
+            bootstyle="danger",
+        )
+        self.disconnect_button.pack(side='right')
 
         self.refresh_icon = self.load_icon("assets/images/refresh.png")
         self.start_icon = self.load_icon("assets/images/start.png")
@@ -217,7 +240,7 @@ class CanBatteryInfo:
             values=(1, 5, 10, 15, 20, 30),
             textvariable=self.timer_value,
             )
-        self.timer.pack(side="left", padx=5)
+        self.timer.pack(side="left", padx=10)
 
         self.start_logging_button = ttk.Button(control_frame, text="Start Log", image=self.start_icon, compound="left", command=self.start_logging, bootstyle="success")
         self.start_logging_button.pack(side="left", padx=5)
@@ -236,13 +259,31 @@ class CanBatteryInfo:
         file_button = ttk.Button(control_frame, image=self.file_icon, compound="left", command=self.folder_open, bootstyle="success")
         file_button.pack(side="left", padx=5)
 
+        # Adding a label and dropdown for battery selection
+        battery_label = ttk.Label(control_frame, text="Battery's:", font=("Helvetica", 10))
+        battery_label.pack(side="left", padx=5)
+
+        self.battery_selection_var = tk.StringVar()
+        battery_dropdown = ttk.Combobox(
+            control_frame, 
+            textvariable=self.battery_selection_var, 
+            state="readonly", 
+            values=["Battery 1", "Battery 2", "Battery 3"], 
+            width=15
+        )
+        battery_dropdown.pack(side="left", padx=5)
+
+        save_button = ttk.Button(control_frame, text="Save", bootstyle="primary")
+        save_button.pack(side="left", padx=5)
+
         # Frame to hold the Treeview and Scrollbar
         table_frame = ttk.Frame(self.content_frame)
-        table_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        table_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         # Create a vertical scrollbar
         scrollbar = ttk.Scrollbar(table_frame, orient="vertical")
         scrollbar.pack(side="right", fill="y")
+
 
         # Table for showing labels, values, and units
         columns = ('Name', 'Value', 'Units')
@@ -262,8 +303,8 @@ class CanBatteryInfo:
 
         # Apply custom style for the Treeview with black heading text
         style = ttk.Style()
-        style.configure("Custom.Treeview.Heading", font=("Helvetica", 16, "bold"), background="#e6e6e6", padding=5)
-        style.configure("Custom.Treeview", rowheight=30, font=("Helvetica", 14), background="#f0f0f0", fieldbackground="#ffffff")
+        style.configure("Custom.Treeview.Heading", font=("Helvetica", 14, "bold"), background="#e6e6e6", padding=5)
+        style.configure("Custom.Treeview", rowheight=30, font=("Helvetica", 12), background="#f0f0f0", fieldbackground="#ffffff")
 
         # Simulate borders by adding padding and using contrasting background colors
         style.configure("Custom.Treeview", padding=(1, 1), borderwidth=1, relief="solid")
@@ -278,6 +319,50 @@ class CanBatteryInfo:
             name = name_mapping.get(key, key)
             unit = unit_mapping.get(key, key)
             self.info_table.insert('', 'end', values=(name, value, unit), tags=('evenrow' if index % 2 == 0 else 'oddrow'))
+
+        # Add the new control button row below the table
+        control_frame = ttk.Frame(self.content_frame)
+        control_frame.pack(fill="x", padx=20, pady=10)
+
+        label = ttk.Label(control_frame, text="Controls", font=("Helvetica", 16))
+        label.pack(pady=20, anchor="center")
+
+        self.reset_icon = self.load_icon("assets/images/reset.png")
+        self.activate_icon = self.load_icon("assets/images/activate.png")
+
+        check_label1 = ttk.Label(control_frame, text="Charging On/Off:", font=("Helvetica", 12), width=20, anchor="e")
+        check_label1.pack(side="left", padx=5)
+
+        self.check_var1 = tk.BooleanVar()
+        self.check_var1.set(self.charge_fet_status)
+        check_button1 = ttk.Checkbutton(
+            control_frame,
+            variable=self.check_var1,
+            width=10,
+            bootstyle="success-round-toggle" if self.check_var1.get() else "danger-round-toggle",
+            command=lambda: self.toggle_button_style(self.check_var1, check_button1,'charge')
+        )
+        check_button1.pack(side="left", padx=5)
+
+        check_label2 = ttk.Label(control_frame, text="Discharging On/Off:", font=("Helvetica", 12), width=20, anchor="e")
+        check_label2.pack(side="left", padx=5)
+
+        self.check_var2 = tk.BooleanVar()
+        self.check_var2.set(self.discharge_fet_status)
+        check_button2 = ttk.Checkbutton(
+            control_frame,
+            variable=self.check_var2,
+            width=10,
+            bootstyle="success-round-toggle" if self.check_var2.get() else "danger-round-toggle",
+            command=lambda: self.toggle_button_style(self.check_var2, check_button2, 'discharge')
+        )
+        check_button2.pack(side="left", padx=5)
+
+        self.bms_reset_button = ttk.Button(control_frame, text="Reset", image=self.reset_icon, compound="left", command=self.bmsreset, width=12, bootstyle="danger")
+        self.bms_reset_button.pack(side="left", padx=5)
+
+        self.activate_heater_button = ttk.Button(control_frame, text="Activate Heater",image=self.activate_icon, compound="left", command=self.activate_heater, width=14, bootstyle="danger")
+        self.activate_heater_button.pack(side="left", padx=5)
 
         self.select_button(self.info_button)
 
@@ -400,16 +485,55 @@ class CanBatteryInfo:
         else:
             return "danger"
     
+    def get_voltage_style(voltage):
+        if voltage < 20:
+            return "danger"
+        elif 20 <= voltage < 50:
+            return "warning"
+        elif 50 <= voltage < 80:
+            return "info"
+        else:
+            return "success"
+    
     def show_dashboard(self):
         self.clear_content_frame()
 
-        # Top row frame (for Temperature and Current meters)
-        top_row_frame = ttk.Frame(self.content_frame)
-        top_row_frame.pack(fill="x", padx=10, pady=10)
+        # Create a Frame to hold all the labels in a row
+        info_frame = ttk.Frame(self.content_frame)
+        info_frame.pack(pady=10, padx=20, fill="x")
 
-        # Voltage Meter (Bottom Right)
-        voltage_frame = ttk.Frame(top_row_frame, padding=10)
-        voltage_frame.pack(side="left", fill="x", expand=True, padx=10)
+        # Device Name
+        ttk.Label(info_frame, text="Device Name:", font=("Helvetica", 12, "bold")).pack(side="left", padx=5)
+        self.device_name_label = ttk.Label(info_frame, text=device_data.get('device_name', 'N/A'), font=("Helvetica", 10))
+        self.device_name_label.pack(side="left", padx=10)
+
+        # Serial Number
+        ttk.Label(info_frame, text="Serial Number:", font=("Helvetica", 12, "bold")).pack(side="left", padx=5)
+        self.serial_number_label = ttk.Label(info_frame, text=device_data.get('serial_number', 'N/A'), font=("Helvetica", 10))
+        self.serial_number_label.pack(side="left", padx=10)
+
+        # Manufacturer Name
+        ttk.Label(info_frame, text="Manufacturer:", font=("Helvetica", 12, "bold")).pack(side="left", padx=5)
+        self.manufacturer_label = ttk.Label(info_frame, text=device_data.get('manufacturer_name', 'N/A'), font=("Helvetica", 10))
+        self.manufacturer_label.pack(side="left", padx=10)
+
+        # Cycle Count
+        ttk.Label(info_frame, text="Cycle Count:", font=("Helvetica", 12, "bold")).pack(side="left", padx=5)
+        self.cycle_count_label = ttk.Label(info_frame, text=device_data.get('cycle_count', 'N/A'), font=("Helvetica", 10))
+        self.cycle_count_label.pack(side="left", padx=10)
+
+        # Battery Status
+        ttk.Label(info_frame, text="Charging Battery Status:", font=("Helvetica", 12, "bold")).pack(side="left", padx=5)
+        self.battery_status_label = ttk.Label(info_frame, text=device_data.get('charging_battery_status', 'Idle'), font=("Helvetica", 10))
+        self.battery_status_label.pack(side="left", padx=10)
+
+        # Create a single frame to hold all meters and use relative positioning
+        meters_frame = ttk.Frame(self.content_frame)
+        meters_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Voltage Meter (Top Left)
+        voltage_frame = ttk.Frame(meters_frame)
+        voltage_frame.place(relx=0.2, rely=0.3, anchor='center')
         voltage_label = ttk.Label(voltage_frame, text="Voltage", font=("Helvetica", 16, "bold"))
         voltage_label.pack(pady=(10, 10))
         voltage_meter = ttk.Meter(
@@ -420,19 +544,18 @@ class CanBatteryInfo:
             metertype="semi",
             subtext="Voltage",
             textright="V",
-            amounttotal=300,
+            amounttotal=100,
             bootstyle="dark",
             stripethickness=5,
             subtextfont='-size 10'
         )
         voltage_meter.pack()
 
-
         # Current Meter (Top Right)
-        current_frame = ttk.Frame(top_row_frame, padding=10)
-        current_frame.pack(side="left", fill="x", expand=True, padx=10)
+        current_frame = ttk.Frame(meters_frame)
+        current_frame.place(relx=0.8, rely=0.3, anchor='center')
         current_label = ttk.Label(current_frame, text="Current", font=("Helvetica", 16, "bold"))
-        current_label.pack(pady=(5, 5))
+        current_label.pack(pady=(10, 10))
         current_meter = ttk.Meter(
             master=current_frame,
             metersize=200,
@@ -440,7 +563,7 @@ class CanBatteryInfo:
             meterthickness=10,
             metertype="semi",
             subtext="Current",
-            textright="mA",
+            textright="A",
             amounttotal=100,
             bootstyle="info",
             stripethickness=10,
@@ -448,28 +571,38 @@ class CanBatteryInfo:
         )
         current_meter.pack()
 
-        # Bottom row frame (for Capacity and Voltage meters)
-        bottom_row_frame = ttk.Frame(self.content_frame)
-        bottom_row_frame.pack(fill="x", padx=10, pady=30)
+        # Center Widget (Center of the frame)
+        center_frame = ttk.Frame(meters_frame)
+        center_frame.place(relx=0.5, rely=0.5, anchor='center')
+        center_label = ttk.Label(center_frame, text="Charging Current", font=("Helvetica", 16, "bold"))
+        center_label.pack(pady=(10, 10))
+        center_meter = ttk.Meter(
+            master=center_frame,
+            metersize=200,
+            amountused=device_data['charging_current'],
+            meterthickness=10,
+            metertype="semi",
+            subtext="Gauge",
+            textright="%",
+            amounttotal=100,
+            bootstyle="success",
+            stripethickness=10,
+            subtextfont='-size 10'
+        )
+        center_meter.pack()
 
         # Capacity Meter (Bottom Left)
-        capacity_frame = ttk.Frame(bottom_row_frame, padding=10)
-        capacity_frame.pack(side="left", fill="x", expand=True, padx=10)
+        capacity_frame = ttk.Frame(meters_frame)
+        capacity_frame.place(relx=0.2, rely=0.8, anchor='center')
         capacity_label = ttk.Label(capacity_frame, text="Capacity", font=("Helvetica", 16, "bold"))
         capacity_label.pack(pady=(10, 10))
-        # Calculate amountused, with a check to avoid division by zero
         full_charge_capacity = device_data.get('full_charge_capacity', 0)
         remaining_capacity = device_data.get('remaining_capacity', 0)
-
-        if full_charge_capacity == 0:
-            amountused = 0
-        else:
-            amountused = (remaining_capacity / full_charge_capacity) * 100
-
+        amountused = (remaining_capacity / full_charge_capacity) * 100 if full_charge_capacity else 0
         capacity_meter = ttk.Meter(
             master=capacity_frame,
             metersize=200,
-            amountused=round(amountused, 1),
+            amountused=round(amountused,1),
             meterthickness=10,
             metertype="semi",
             subtext="Capacity",
@@ -481,11 +614,11 @@ class CanBatteryInfo:
         )
         capacity_meter.pack()
 
-        # Temperature Meter (Top Left)
-        temp_frame = ttk.Frame(bottom_row_frame, padding=10)
-        temp_frame.pack(side="left", fill="x", expand=True, padx=10)
+        # Temperature Meter (Bottom Right)
+        temp_frame = ttk.Frame(meters_frame)
+        temp_frame.place(relx=0.8, rely=0.8, anchor='center')
         temp_label = ttk.Label(temp_frame, text="Temperature", font=("Helvetica", 16, "bold"))
-        temp_label.pack(pady=(5, 5))
+        temp_label.pack(pady=(10, 10))
         temp_meter = ttk.Meter(
             master=temp_frame,
             metersize=200,
@@ -501,7 +634,7 @@ class CanBatteryInfo:
         )
         temp_meter.pack()
 
-        # Pack the content_frame itself (if necessary, but typically this frame is already packed)
+        # Pack the content_frame itself
         self.content_frame.pack(fill="both", expand=True)
         self.select_button(self.dashboard_button)
 
@@ -682,14 +815,18 @@ class CanBatteryInfo:
             button.config(state=tk.DISABLED)
 
             def reenable_button():
-                # Wait for 10 seconds
-                threading.Thread(target=lambda: (time.sleep(10), button.config(state=tk.NORMAL))).start()
-
-            # Update button styles
-            button.config(bootstyle="success round-toggle" if var.get() else "danger round-toggle")
-
-            # Start the re-enable process
-            reenable_button()
+                # Wait for 10 seconds in a separate thread
+                def wait_and_enable():
+                    time.sleep(10)
+                    try:
+                        # Ensure the widget is still valid
+                        if button.winfo_exists():
+                            button.config(state=tk.NORMAL)
+                    except tk.TclError:
+                        # The button no longer exists, so just pass
+                        pass
+                    
+                threading.Thread(target=wait_and_enable).start()
 
     def bmsreset(self):
         pcan_write_control('bms_reset')

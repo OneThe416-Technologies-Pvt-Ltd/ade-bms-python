@@ -51,25 +51,25 @@ unit_mapping = {
     "manufacturer_name": "string",
     "battery_status": "bit flags",
     "cycle_count": "Count",
-    "design_capacity": "mAh / 40",
+    "design_capacity": "Ah",
     "design_voltage": "mV",
-    "at_rate_ok_text": "yes/no",
+    "at_rate_ok_text": "Yes/No",
     "at_rate_time_to_full": "minutes",
     "at_rate_time_to_empty": "minutes",
-    "at_rate":"mA / 40 ",
+    "at_rate":"A",
     "rel_state_of_charge": "Percent",
     "abs_state_of_charge": "Percent",
     "run_time_to_empty": "minutes",
     "avg_time_to_empty": "minutes",
     "avg_time_to_full": "minutes",
     "max_error": "Percent",
-    "temperature": "0.1°K",
-    "current": "mA / 40",
-    "remaining_capacity": "mAh / 40",
+    "temperature": "°C",
+    "current": "A",
+    "remaining_capacity": "Ah",
     "voltage": "mV",
-    "avg_current": "mA / 40",
-    "charging_current": "mA / 40",
-    "full_charge_capacity": "mAh / 40",
+    "avg_current": "A",
+    "charging_current": "A",
+    "full_charge_capacity": "Ah",
     "charging_voltage": "mV"
 }
 
@@ -95,6 +95,7 @@ device_data = {
             'at_rate_time_to_empty': 0,
             'at_rate_ok_text': "",
             'at_rate':0,
+            'charging_battery_status':"Idle",
             'rel_state_of_charge': 0,
             'abs_state_of_charge': 0,
             'run_time_to_empty': 0,
@@ -182,7 +183,7 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
         if result == 5120:
             result = 512
         messagebox.showerror("Error!", GetFormatedError(result))
-        return False
+        return True
     else:
         pcan_write_read('serial_number')
         if device_data['serial_number'] != 0:
@@ -220,6 +221,7 @@ def pcan_uninitialize():
             messagebox.showerror("Error!", GetFormatedError(result))
             return False
         else:
+            reset_device_data_to_default()
             messagebox.showinfo("Info!", "Connection Disconnect!")
             return True
 
@@ -398,7 +400,7 @@ def pcan_read(call_name):
                 elif call_name == 'device_name':
                     convert_data('device_name', final_string)
         elif call_name == 'firmware_version':
-            data_packet = [hex(newMsg.DATA[i]) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
+            data_packet = [int(hex(newMsg.DATA[i]), 16) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
 
             # Extract version information
             major_version = data_packet[0]
@@ -417,7 +419,7 @@ def pcan_read(call_name):
 def convert_data(command_code, decimal_value):
     # Conversion rules
     if command_code == 0x04:  # AtRate: mA / 40 unsigned
-        device_data['at_rate'] = decimal_value
+        device_data['at_rate'] = (decimal_value*40)/1000
     elif command_code == 0x05:  # AtRateTimeToFull: minutes unsigned
         device_data['at_rate_time_to_full'] = round((decimal_value / 1000),1)
     elif command_code == 0x06:  # AtRateTimeToEmpty: minutes unsigned
@@ -433,12 +435,19 @@ def convert_data(command_code, decimal_value):
     elif command_code == 0x0a:  # Current: mA / 40 signed
         if decimal_value == 0:
             device_data['current'] = decimal_value
+            device_data['charging_battery_status'] = "Idle"
         else:
             if decimal_value > 32767:
                 decimal_value -= 65536
             currentmA = decimal_value*40
             currentA = currentmA / 1000
-            device_data['current'] = currentA
+            if currentA > 0:
+                device_data['charging_battery_status'] = "Charging"
+            elif currentA < 0:
+                device_data['charging_battery_status'] = "Discharging"
+            else:
+                device_data['charging_battery_status'] = "Idle"
+            device_data['current'] = abs(currentA)
     elif command_code == 0x0b:  # Avg Current: mA / 40 signed
         if decimal_value == 0:
             device_data['avg_current'] = decimal_value
@@ -455,9 +464,9 @@ def convert_data(command_code, decimal_value):
     elif command_code == 0x0e:  # AbsoluteStateofCharge: Percent unsigned
         device_data['abs_state_of_charge'] = decimal_value
     elif command_code == 0x0f:  # RemainingCapacity: mAh / 40 unsigned
-        device_data['remaining_capacity'] = decimal_value
+        device_data['remaining_capacity'] = (decimal_value*40)/1000
     elif command_code == 0x10:  # FullChargeCapacity: mAh / 40 unsigned
-        device_data['full_charge_capacity'] = decimal_value
+        device_data['full_charge_capacity'] = (decimal_value*40)/1000
     elif command_code == 0x11:  # RunTimeToEmpty: minutes unsigned
         device_data['run_time_to_empty'] = round((decimal_value / 10),1)
     elif command_code == 0x12:  # AvgTimeToEmpty: minutes unsigned
@@ -480,7 +489,7 @@ def convert_data(command_code, decimal_value):
     elif command_code == 0x17:  # CycleCount: Count unsigned
         device_data['cycle_count'] = decimal_value
     elif command_code == 0x18:  # DesignCapacity: mAh / 40 unsigned
-        device_data['design_capacity'] = decimal_value
+        device_data['design_capacity'] = (decimal_value*40)/1000
     elif command_code == 0x19:  # DesignVoltage: mV unsigned
         device_data['design_voltage'] = round((decimal_value / 1000),1)
     elif command_code == 0x1b:  # ManufactureDate: unsigned int unsigned
@@ -581,3 +590,36 @@ def pcan_write_control(call_name):
             print("Enter Diag State : Failed")
             return 0
 
+
+def reset_device_data_to_default():
+    global device_data
+    device_data = {
+        'device_name': "",
+        'serial_number': 0,
+        'manufacturer_date': 0,
+        'manufacturer_name': "",
+        'firmware_version': "",
+        'battery_status': "",
+        'charging_battery_status':"Idle",
+        'cycle_count': 0,
+        'design_capacity': 0,
+        'design_voltage': 0,
+        'remaining_capacity': 0,
+        'temperature': 0,
+        'current': 0,
+        'voltage': 0,
+        'avg_current': 0,
+        'charging_current': 0,
+        'full_charge_capacity': 0,
+        'charging_voltage': 0,
+        'at_rate_time_to_full': 0,
+        'at_rate_time_to_empty': 0,
+        'at_rate_ok_text': "",
+        'at_rate': 0,
+        'rel_state_of_charge': 0,
+        'abs_state_of_charge': 0,
+        'run_time_to_empty': 0,
+        'avg_time_to_empty': 0,
+        'avg_time_to_full': 0,
+        'max_error': 0
+    }
