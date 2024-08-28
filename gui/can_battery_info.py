@@ -212,8 +212,8 @@ class CanBatteryInfo:
             amountused=device_data['charging_current'],
             meterthickness=10,
             metertype="semi",
-            subtext="Gauge",
-            textright="%",
+            subtext="Current",
+            textright="A",
             amounttotal=100,
             bootstyle=self.get_gauge_style(device_data['charging_current'], "charging_current"),
             stripethickness=10,
@@ -460,9 +460,8 @@ class CanBatteryInfo:
 
     def on_disconnect(self):
         pcan_write_control('both_off')
-        time.sleep(2)
+        time.sleep(1)
         pcan_uninitialize()
-        time.sleep(2)
         self.main_frame.pack_forget()
         self.main_window.show_main_window()
         # Perform disconnection logic here (example: print disconnect message)
@@ -637,12 +636,10 @@ class CanBatteryInfo:
         # status_frame.pack(fill="x", padx=20, pady=10)
 
         # # Create a labeled frame to contain the battery status
-        status_frame = ttk.Labelframe(self.content_frame, text="Battery Status", bootstyle="primary")
-        status_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        self.status_frame = ttk.Labelframe(self.content_frame, text="Battery Status", bootstyle="primary")
+        self.status_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        self.display_status_labels(status_frame, battery_status_flags)
-
-        
+        self.display_status_labels(self.status_frame, battery_status_flags)
 
         self.select_button(self.info_button)
 
@@ -692,8 +689,8 @@ class CanBatteryInfo:
             bootstyle = "inverse-success" if flag_value == 1 else "inverse-danger"
         
         # Create and place the label
-        label = ttk.Label(frame, text=f"{label_text}: {status_text}", bootstyle=bootstyle, width=35)
-        label.grid(row=row, column=column, padx=5, pady=5, sticky="nsew")
+        self.battery_status_label = ttk.Label(frame, text=f"{label_text}: {status_text}", bootstyle=bootstyle, width=35)
+        self.battery_status_label.grid(row=row, column=column, padx=5, pady=5, sticky="nsew")
     
     def create_error_code_label(self, frame, error_code, row, column):
         # Determine the bootstyle and text based on the error code
@@ -708,8 +705,8 @@ class CanBatteryInfo:
             7: ("Unknown Error", "danger"),
         }
         error_text, bootstyle = error_texts.get(error_code, ("Unknown", "danger"))
-        label = ttk.Label(frame, text=f"Error Code: {error_text}", bootstyle=f"inverse-{bootstyle}", width=40)
-        label.grid(row=row, column=column, padx=5, pady=2, sticky="w")
+        self.battery_status_label = ttk.Label(frame, text=f"Error Code: {error_text}", bootstyle=f"inverse-{bootstyle}", width=40)
+        self.battery_status_label.grid(row=row, column=column, padx=5, pady=2, sticky="w")
 
     def auto_refresh(self):
         if self.auto_refresh_var.get():
@@ -723,6 +720,7 @@ class CanBatteryInfo:
                 name = name_mapping.get(key, key)
                 unit = unit_mapping.get(key, key)
                 self.info_table.insert('', 'end', values=(name, value, unit), tags=('evenrow' if index % 2 == 0 else 'oddrow'))
+            self.display_status_labels(self.status_frame, battery_status_flags)
             self.master.after(5000, self.auto_refresh)
 
     def refresh_info(self):
@@ -736,6 +734,7 @@ class CanBatteryInfo:
             name = name_mapping.get(key, key)
             unit = unit_mapping.get(key, key)
             self.info_table.insert('', 'end', values=(name, value, unit), tags=('evenrow' if index % 2 == 0 else 'oddrow'))
+        self.display_status_labels(self.status_frame, battery_status_flags)
     
     def start_logging(self):
         self.logging_active = True
@@ -750,7 +749,7 @@ class CanBatteryInfo:
 
         # Create a timestamped file name
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_name = f"CAN_Connector_Log_{timestamp}.xlsx"
+        file_name = f"CAN_Connector_Log_{device_data['charging_battery_status']}_{timestamp}.xlsx"
         self.file_path = os.path.join(folder_path, file_name)
 
         # Create a new Excel workbook and worksheet
@@ -803,8 +802,8 @@ class CanBatteryInfo:
         # Stop logging process and update button states
         self.logging_active = False
         # Disable the Stop Logging button and enable the Start Logging button
-        self.stop_logging_button.config(state=tk.DISABLED)
-        self.start_logging_button.config(state=tk.NORMAL)
+        self.stop_logging_button.configure(state=tk.DISABLED)
+        self.start_logging_button.configure(state=tk.NORMAL)
 
         self.logging_active = False  # Stop the logging loop
         if hasattr(self, 'workbook'):

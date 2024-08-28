@@ -1,1353 +1,3 @@
-Exception in Tkinter callback
-Traceback (most recent call last):
-  File "C:\Users\adebm\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1968, in __call__
-    return self.func(*args)
-           ^^^^^^^^^^^^^^^^
-  File "C:\Users\adebm\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 862, in callit
-    func(*args)
-  File "d:\Ade\ade-bms-python\gui\can_battery_info.py", line 312, in log_data
-    for item in self.info_table.get_children():
-                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\adebm\AppData\Local\Programs\Python\Python312\Lib\tkinter\ttk.py", line 1195, in get_children
-    self.tk.call(self._w, "children", item or '') or ())
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-_tkinter.TclError: invalid command name ".!frame.!frame2.!frame6.!treeview"
-Disconnecting..
-----------------------------------------------------------------------------------------------------------------------------------
-Display value manufacturer_name: 175 byte 0
-Display value manufacturer_name: 11 byte 1
-Display value temperature: 0 byte 0
-Display value current: 165 byte 0
-Display value manufacturer_name: 1 byte 2
-Display value temperature: 0 byte 1
-Display value voltage: 177 byte 0
-Display value device_name: 219 byte 0
-Display value device_name: 104 byte 1
-Display value device_name: 1 byte 2
-Display value device_name: 0 byte 3
-Display value device_name: 9 byte 4
-Display value temperature: 1 byte 2
-Display value design_capacity: 197 byte 0
-Display value design_capacity: 5 byte 1
-Display value device_name: 1 byte 5
-Display value temperature: 0 byte 3
-Display value remaining_capacity: 112 byte 0
-Display value design_capacity: 1 byte 2
-Display value device_name: 255 byte 6
-Display value device_name: 0 byte 7
-Display value remaining_capacity: 98 byte 1
-Display value design_capacity: 0 byte 3
-Display value manufacturer_name: 0 byte 3
-Display value device_name: <pcan_api.pcan.c_ubyte_Array_64 object at 0x00000207AB13DF50>
-Display value remaining_capacity: 1 byte 2
-Display value design_capacity: 28 byte 4
-Display value design_capacity: 1 byte 5
-Display value voltage: 86 byte 1
-Display value temperature: 10 byte 4
-Display value manufacturer_name: 8 byte 4
-Display value remaining_capacity: 0 byte 3
-Display value current: 10 byte 1
-Display value design_capacity: 255 byte 6
-Display value design_capacity: 0 byte 7
-Display value design_capacity: <pcan_api.pcan.c_ubyte_Array_64 object at 0x00000207AB13D7D0>
-Display value manufacturer_name: 1 byte 5
-Display value voltage: 1 byte 2
-Display value current: 1 byte 2
-Display value manufacturer_name: 255 byte 6
-Display value voltage: 0 byte 3
-Display value current: 0 byte 3
-Display value manufacturer_name: 0 byte 7
-Display value voltage: 27 byte 4
-Display value current: 24 byte 4
-Display value manufacturer_name: <pcan_api.pcan.c_ubyte_Array_64 object at 0x00000207AB13DA50>
-Display value voltage: 1 byte 5
-Display value voltage: 255 byte 6
-Display value remaining_capacity: 25 byte 4
-Display value current: 1 byte 5
-Display value temperature: 1 byte 5
-Display value voltage: 0 byte 7
-Display value remaining_capacity: 1 byte 5
-Display value remaining_capacity: 1 byte 5
-Display value current: 255 byte 6
-Display value temperature: 255 byte 6
-Display value temperature: 0 byte 7
-Display value remaining_capacity: 255 byte 6
-Display value voltage: <pcan_api.pcan.c_ubyte_Array_64 object at 0x00000207AB13D750>
-Display value current: 0 byte 7
-Display value current: <pcan_api.pcan.c_ubyte_Array_64 object at 0x00000207AB13D950>
-Display value remaining_capacity: 0 byte 7
-Display value temperature: <pcan_api.pcan.c_ubyte_Array_64 object at 0x00000207AB13DDD0>
-Display value remaining_capacity: <pcan_api.pcan.c_ubyte_Array_64 object at 0x00000207AB13D850>
-PS D:\Ade\ade-bms-python> & C:/Users/adebm/AppData/Local/Programs/Python/Python312/python.exe d:/Ade/ade-bms-python/main.py
-Display value temperature: 175 byte 0
-Display value temperature: 11 byte 1       
-Display value temperature: 1 byte 2        
-Display value device_name: 0 byte 0        
-Display value temperature: 0 byte 3        
-Display value temperature: 8 byte 4        
-Display value current: 219 byte 0
-Display value device_name: 0 byte 1        
-Display value manufacturer_name: 208 byte 0
-Display value temperature: 1 byte 5        
-Display value current: 104 byte 1
-Display value device_name: 1 byte 2        
-Display value manufacturer_name: 6 byte 1  
-Display value temperature: 255 byte 6
-Display value device_name: 0 byte 3
-Display value device_name: 10 byte 4
-Display value device_name: 1 byte 5
-Display value device_name: 255 byte 6
-Display value remaining_capacity: 165 byte 0
-Display value voltage: 112 byte 0
-Display value current: 1 byte 2
-Display value design_voltage: 197 byte 0
-Display value design_capacity: 177 byte 0
-Display value design_capacity: 86 byte 1
-Display value design_capacity: 1 byte 2
-Display value device_name: 0 byte 7
-Display value remaining_capacity: 10 byte 1
-Display value voltage: 98 byte 1
-Display value voltage: 1 byte 2
-Display value design_voltage: 5 byte 1
-Display value design_voltage: 1 byte 2
-Display value design_capacity: 0 byte 3
-Display value design_capacity: 27 byte 4
-Display value design_capacity: 1 byte 5
-Display value design_voltage: 0 byte 3
-Display value design_voltage: 28 byte 4
-Display value design_voltage: 1 byte 5
-Display value design_capacity: 255 byte 6
-Display value design_capacity: 0 byte 7
-Display value current: 0 byte 3
-Display value design_voltage: 255 byte 6
-Display value temperature: 0 byte 7
-Display value remaining_capacity: 1 byte 2
-Display value remaining_capacity: 0 byte 3
-Display value voltage: 0 byte 3
-Display value design_voltage: 0 byte 7
-Display value remaining_capacity: 24 byte 4
-Display value remaining_capacity: 1 byte 5
-Display value current: 9 byte 4
-Display value current: 1 byte 5
-Display value voltage: 25 byte 4
-Display value voltage: 1 byte 5
-Display value remaining_capacity: 255 byte 6
-Display value remaining_capacity: 0 byte 7
-Display value manufacturer_name: 1 byte 2
-Display value current: 255 byte 6
-Display value manufacturer_name: 0 byte 3
-Display value manufacturer_name: 15 byte 4
-Display value manufacturer_name: 1 byte 5
-Display value manufacturer_name: 255 byte 6
-Display value manufacturer_name: 0 byte 7
-Display value voltage: 255 byte 6
-Display value current: 0 byte 7
-Display value voltage: 0 byte 7
-------------------------------------------
-Display value charging_current: 1 byte 2
-Display value charging_current: 0 byte 3
-Display value charging_current: 20 byte 4
-Display value charging_current: 1 byte 5
-Display value charging_current: 255 byte 6
-Display value charging_current: 0 byte 7
-Display value full_charge_capacity: 42 byte 0
-Display value full_charge_capacity: 10 byte 1
-Display value full_charge_capacity: 1 byte 2
-Display value full_charge_capacity: 0 byte 3
-Display value full_charge_capacity: 16 byte 4
-Display value full_charge_capacity: 1 byte 5
-Display value full_charge_capacity: 255 byte 6
-Display value full_charge_capacity: 0 byte 7
-Display value charging_voltage: 0 byte 0
-Display value charging_voltage: 0 byte 1
-Display value charging_voltage: 1 byte 2
-Display value charging_voltage: 0 byte 3
-Display value charging_voltage: 21 byte 4
-Display value charging_voltage: 1 byte 5
-Display value at_rate_time_to_full: 255 byte 0
-Display value at_rate_time_to_full: 255 byte 1
-Display value at_rate_time_to_empty: 255 byte 0
-Display value at_rate_ok_text: 1 byte 0
-Display value charging_voltage: 255 byte 6
-Display value at_rate_time_to_full: 1 byte 2
-Display value at_rate_ok_text: 0 byte 1
-Display value charging_voltage: 0 byte 7
-Display value at_rate_time_to_full: 0 byte 3
-Display value at_rate_ok_text: 1 byte 2
-Display value at_rate_time_to_empty: 255 byte 1
-Display value at_rate_time_to_empty: 1 byte 2
-Display value at_rate_ok_text: 0 byte 3
-Display value abs_state_of_charge: 64 byte 0
-Display value at_rate_time_to_full: 5 byte 4
-Display value at_rate_time_to_full: 1 byte 5
-Display value rel_state_of_charge: 68 byte 0
-Display value abs_state_of_charge: 0 byte 1
-Display value at_rate_time_to_empty: 0 byte 3
-Display value run_time_to_empty: 255 byte 0
-Display value at_rate: 0 byte 0
-Display value at_rate_ok_text: 7 byte 4
-Display value at_rate_time_to_empty: 6 byte 4
-Display value run_time_to_empty: 255 byte 1
-Display value abs_state_of_charge: 1 byte 2
-Display value at_rate_time_to_full: 255 byte 6
-Display value rel_state_of_charge: 0 byte 1
-Display value at_rate: 0 byte 1
-Display value at_rate_ok_text: 1 byte 5
-Display value at_rate_time_to_empty: 1 byte 5
-Display value run_time_to_empty: 1 byte 2
-Display value run_time_to_empty: 0 byte 3
-Display value at_rate_ok_text: 255 byte 6
-Display value at_rate_ok_text: 0 byte 7
-Display value at_rate_time_to_full: 0 byte 7
-Display value run_time_to_empty: 17 byte 4
-Display value abs_state_of_charge: 0 byte 3
-Display value abs_state_of_charge: 14 byte 4
-Display value run_time_to_empty: 1 byte 5
-Display value run_time_to_empty: 255 byte 6
-Display value abs_state_of_charge: 1 byte 5
-Display value abs_state_of_charge: 255 byte 6
-Display value run_time_to_empty: 0 byte 7
-Display value at_rate: 1 byte 2
-Display value abs_state_of_charge: 0 byte 7
-Display value rel_state_of_charge: 1 byte 2
-Display value at_rate_time_to_empty: 255 byte 6
-Display value at_rate_time_to_empty: 0 byte 7
-Display value at_rate: 0 byte 3
-Display value at_rate: 4 byte 4
-Display value at_rate: 1 byte 5
-Display value rel_state_of_charge: 0 byte 3
-Display value at_rate: 255 byte 6
-Display value rel_state_of_charge: 13 byte 4
-Display value rel_state_of_charge: 1 byte 5
-Display value at_rate: 0 byte 7
-Display value rel_state_of_charge: 255 byte 6
-Display value rel_state_of_charge: 0 byte 7
-Display value avg_time_to_empty: 255 byte 0
-Display value avg_time_to_empty: 255 byte 1
-Display value avg_time_to_empty: 1 byte 2
-Display value avg_time_to_empty: 0 byte 3
-Display value avg_time_to_empty: 18 byte 4
-Display value avg_time_to_empty: 1 byte 5
-Display value avg_time_to_full: 255 byte 0
-Display value avg_time_to_empty: 255 byte 6
-Display value avg_time_to_full: 255 byte 1
-Display value avg_time_to_full: 1 byte 2
-Display value avg_time_to_empty: 0 byte 7
-Display value avg_time_to_full: 0 byte 3
-Display value avg_time_to_full: 19 byte 4
-Display value avg_time_to_full: 1 byte 5
-Display value avg_time_to_full: 255 byte 6
-Display value avg_time_to_full: 0 byte 7
-Display value max_error: 2 byte 0
-Display value max_error: 0 byte 1
-Display value max_error: 1 byte 2
-Display value max_error: 0 byte 3
-Display value max_error: 12 byte 4
-Display value max_error: 1 byte 5
-Display value max_error: 255 byte 6
-Display value max_error: 0 byte 7
-Display value manufacturer_name: 165 byte 0
-Display value manufacturer_name: 10 byte 1
-Display value device_name: 112 byte 0
-Display value device_name: 98 byte 1
-Display value design_capacity: 177 byte 0
-Display value device_name: 1 byte 2
-Display value device_name: 0 byte 3
-Display value manufacturer_name: 1 byte 2
-Display value design_voltage: 208 byte 0
-Display value design_capacity: 86 byte 1
-Display value manufacturer_name: 0 byte 3
-Display value remaining_capacity: 0 byte 0
-Display value manufacturer_date: 175 byte 0
-Display value manufacturer_date: 11 byte 1
-Display value design_voltage: 6 byte 1
-Display value remaining_capacity: 0 byte 1
-Display value current: 199 byte 0
-Display value device_name: 25 byte 4
-Display value temperature: 218 byte 0
-Display value design_capacity: 1 byte 2
-Display value remaining_capacity: 1 byte 2
-Display value battery_status: 0 byte 0
-Display value manufacturer_date: 1 byte 2
-Display value design_voltage: 1 byte 2
-Display value voltage: 4 byte 0
-Display value manufacturer_name: 24 byte 4
-Display value current: 72 byte 1
-Display value device_name: 1 byte 5
-Display value device_name: 255 byte 6
-Display value design_capacity: 0 byte 3
-Display value remaining_capacity: 0 byte 3
-Display value battery_status: 0 byte 1
-Display value manufacturer_date: 0 byte 3
-Display value temperature: 104 byte 1
-Display value voltage: 0 byte 1
-Display value manufacturer_name: 1 byte 5
-Display value current: 1 byte 2
-Display value current: 0 byte 3
-Display value device_name: 0 byte 7
-Display value temperature: 1 byte 2
-Display value temperature: 0 byte 3
-Display value manufacturer_name: 255 byte 6
-Display value manufacturer_name: 0 byte 7
-Display value current: 22 byte 4
-Display value design_capacity: 27 byte 4
-Display value voltage: 1 byte 2
-Display value battery_status: 1 byte 2
-Display value design_voltage: 0 byte 3
-Display value current: 1 byte 5
-Display value current: 255 byte 6
-Display value current: 0 byte 7
-Display value battery_status: 0 byte 3
-Display value design_voltage: 15 byte 4
-Display value temperature: 9 byte 4
-Display value manufacturer_date: 8 byte 4
-Display value battery_status: 11 byte 4
-Display value design_voltage: 1 byte 5
-Display value temperature: 1 byte 5
-Display value temperature: 255 byte 6
-Display value battery_status: 1 byte 5
-Display value design_voltage: 255 byte 6
-Display value design_voltage: 0 byte 7
-Display value temperature: 0 byte 7
-Display value battery_status: 255 byte 6
-Display value remaining_capacity: 10 byte 4
-Display value design_capacity: 1 byte 5
-Display value battery_status: 0 byte 7
-Display value remaining_capacity: 1 byte 5
-Display value design_capacity: 255 byte 6
-Display value voltage: 0 byte 3
-Display value manufacturer_date: 1 byte 5
-Display value manufacturer_date: 255 byte 6
-Display value design_capacity: 0 byte 7
-Display value voltage: 23 byte 4
-Display value remaining_capacity: 255 byte 6
-Display value voltage: 1 byte 5
-Display value remaining_capacity: 0 byte 7
-Display value voltage: 255 byte 6
-Display value manufacturer_date: 0 byte 7
-Display value voltage: 0 byte 7
-Display value charging_current: 0 byte 0
-Display value charging_current: 0 byte 1
-Display value charging_current: 1 byte 2
-Display value charging_current: 0 byte 3
-Display value charging_current: 20 byte 4
-Display value charging_current: 1 byte 5
-Display value charging_current: 255 byte 6
-Display value charging_current: 0 byte 7
-Display value full_charge_capacity: 42 byte 0
-Display value charging_voltage: 0 byte 0
-Display value charging_voltage: 0 byte 1
-Display value at_rate_time_to_full: 255 byte 0
-Display value full_charge_capacity: 10 byte 1
-Display value at_rate_time_to_empty: 255 byte 0
-Display value at_rate_time_to_empty: 255 byte 1
-Display value at_rate_time_to_full: 255 byte 1
-Display value charging_voltage: 1 byte 2
-Display value at_rate_time_to_empty: 1 byte 2
-Display value at_rate_time_to_empty: 0 byte 3
-Display value charging_voltage: 0 byte 3
-Display value at_rate: 0 byte 0
-Display value at_rate: 0 byte 1
-Display value at_rate: 1 byte 2
-Display value full_charge_capacity: 1 byte 2
-Display value full_charge_capacity: 0 byte 3
-Display value full_charge_capacity: 16 byte 4
-Display value at_rate: 0 byte 3
-Display value abs_state_of_charge: 64 byte 0
-Display value at_rate_time_to_full: 1 byte 2
-Display value charging_voltage: 21 byte 4
-Display value full_charge_capacity: 1 byte 5
-Display value at_rate: 4 byte 4
-Display value abs_state_of_charge: 0 byte 1
-Display value at_rate_time_to_full: 0 byte 3
-Display value charging_voltage: 1 byte 5
-Display value full_charge_capacity: 255 byte 6
-Display value at_rate: 1 byte 5
-Display value at_rate: 255 byte 6
-Display value at_rate: 0 byte 7
-Display value charging_voltage: 255 byte 6
-Display value full_charge_capacity: 0 byte 7
-Display value at_rate_ok_text: 1 byte 0
-Display value abs_state_of_charge: 1 byte 2
-Display value at_rate_time_to_full: 6 byte 4
-Display value charging_voltage: 0 byte 7
-Display value at_rate_time_to_empty: 5 byte 4
-Display value rel_state_of_charge: 68 byte 0
-Display value run_time_to_empty: 255 byte 0
-Display value abs_state_of_charge: 0 byte 3
-Display value at_rate_time_to_full: 1 byte 5
-Display value at_rate_ok_text: 0 byte 1
-Display value at_rate_time_to_empty: 1 byte 5
-Display value rel_state_of_charge: 0 byte 1
-Display value at_rate_time_to_full: 255 byte 6
-Display value at_rate_ok_text: 1 byte 2
-Display value at_rate_time_to_empty: 255 byte 6
-Display value run_time_to_empty: 255 byte 1
-Display value abs_state_of_charge: 14 byte 4
-Display value rel_state_of_charge: 1 byte 2
-Display value run_time_to_empty: 1 byte 2
-Display value at_rate_time_to_full: 0 byte 7
-Display value at_rate_time_to_empty: 0 byte 7
-Display value at_rate_ok_text: 0 byte 3
-Display value at_rate_ok_text: 7 byte 4
-Display value at_rate_ok_text: 1 byte 5
-Display value at_rate_ok_text: 255 byte 6
-Display value run_time_to_empty: 0 byte 3
-Display value abs_state_of_charge: 1 byte 5
-Display value rel_state_of_charge: 0 byte 3
-Display value at_rate_ok_text: 0 byte 7
-Display value run_time_to_empty: 17 byte 4
-Display value abs_state_of_charge: 255 byte 6
-Display value run_time_to_empty: 1 byte 5
-Display value abs_state_of_charge: 0 byte 7
-Display value run_time_to_empty: 255 byte 6
-Display value run_time_to_empty: 0 byte 7
-Display value rel_state_of_charge: 13 byte 4
-Display value rel_state_of_charge: 1 byte 5
-Display value rel_state_of_charge: 255 byte 6
-Display value rel_state_of_charge: 0 byte 7
-Display value avg_time_to_empty: 255 byte 0
-Display value avg_time_to_empty: 255 byte 1
-Display value avg_time_to_empty: 1 byte 2
-Display value avg_time_to_empty: 0 byte 3
-Display value avg_time_to_full: 255 byte 0
-Display value avg_time_to_full: 255 byte 1
-Display value avg_time_to_full: 1 byte 2
-Display value avg_time_to_empty: 18 byte 4
-Display value avg_time_to_empty: 1 byte 5
-Display value avg_time_to_full: 0 byte 3
-Display value avg_time_to_empty: 255 byte 6
-Display value avg_time_to_empty: 0 byte 7
-Display value avg_time_to_full: 19 byte 4
-Display value avg_time_to_full: 1 byte 5
-Display value avg_time_to_full: 255 byte 6
-Display value avg_time_to_full: 0 byte 7
-Display value max_error: 2 byte 0
-Display value max_error: 0 byte 1
-Display value max_error: 1 byte 2
-Display value max_error: 0 byte 3
-Display value max_error: 12 byte 4
-Display value max_error: 1 byte 5
-Display value max_error: 255 byte 6
-Display value max_error: 0 byte 7
-Display value manufacturer_name: 165 byte 0
-Display value manufacturer_name: 10 byte 1
-Display value manufacturer_name: 1 byte 2
-Display value device_name: 112 byte 0
-Display value manufacturer_name: 0 byte 3
-Display value device_name: 98 byte 1
-Display value device_name: 1 byte 2
-Display value device_name: 0 byte 3
-Display value manufacturer_name: 24 byte 4
-Display value remaining_capacity: 0 byte 0
-Display value design_voltage: 208 byte 0
-Display value design_voltage: 6 byte 1
-Display value manufacturer_name: 1 byte 5
-Display value remaining_capacity: 0 byte 1
-Display value device_name: 25 byte 4
-Display value current: 199 byte 0
-Display value manufacturer_date: 175 byte 0
-Display value manufacturer_date: 11 byte 1
-Display value remaining_capacity: 1 byte 2
-Display value battery_status: 0 byte 0
-Display value design_voltage: 1 byte 2
-Display value manufacturer_name: 255 byte 6
-Display value temperature: 217 byte 0
-Display value design_capacity: 177 byte 0
-Display value design_capacity: 86 byte 1
-Display value design_capacity: 1 byte 2
-Display value voltage: 4 byte 0
-Display value manufacturer_date: 1 byte 2
-Display value remaining_capacity: 0 byte 3
-Display value remaining_capacity: 10 byte 4
-Display value current: 72 byte 1
-Display value manufacturer_name: 0 byte 7
-Display value temperature: 104 byte 1
-Display value device_name: 1 byte 5
-Display value device_name: 255 byte 6
-Display value device_name: 0 byte 7
-Display value voltage: 0 byte 1
-Display value voltage: 1 byte 2
-Display value remaining_capacity: 1 byte 5
-Display value remaining_capacity: 255 byte 6
-Display value manufacturer_date: 0 byte 3
-Display value temperature: 1 byte 2
-Display value battery_status: 0 byte 1
-Display value design_capacity: 0 byte 3
-Display value design_voltage: 0 byte 3
-Display value voltage: 0 byte 3
-Display value current: 1 byte 2
-Display value remaining_capacity: 0 byte 7
-Display value manufacturer_date: 8 byte 4
-Display value manufacturer_date: 1 byte 5
-Display value manufacturer_date: 255 byte 6
-Display value manufacturer_date: 0 byte 7
-Display value temperature: 0 byte 3
-Display value current: 0 byte 3
-Display value design_voltage: 15 byte 4
-Display value voltage: 23 byte 4
-Display value battery_status: 1 byte 2
-Display value design_capacity: 27 byte 4
-Display value temperature: 9 byte 4
-Display value temperature: 1 byte 5
-Display value temperature: 255 byte 6
-Display value voltage: 1 byte 5
-Display value current: 22 byte 4
-Display value design_voltage: 1 byte 5
-Display value battery_status: 0 byte 3
-Display value design_capacity: 1 byte 5
-Display value design_capacity: 255 byte 6
-Display value voltage: 255 byte 6
-Display value current: 1 byte 5
-Display value temperature: 0 byte 7
-Display value battery_status: 11 byte 4
-Display value design_voltage: 255 byte 6
-Display value design_capacity: 0 byte 7
-Display value battery_status: 1 byte 5
-Display value design_voltage: 0 byte 7
-Display value current: 255 byte 6
-Display value current: 0 byte 7
-Display value voltage: 0 byte 7
-Display value battery_status: 255 byte 6
-Display value battery_status: 0 byte 7
-Display value charging_current: 0 byte 0
-Display value charging_current: 0 byte 1
-Display value charging_current: 1 byte 2
-Display value charging_current: 0 byte 3
-Display value full_charge_capacity: 42 byte 0
-Display value full_charge_capacity: 10 byte 1
-Display value charging_current: 20 byte 4
-Display value charging_current: 1 byte 5
-Display value charging_current: 255 byte 6
-Display value full_charge_capacity: 1 byte 2
-Display value charging_current: 0 byte 7
-Display value full_charge_capacity: 0 byte 3
-Display value full_charge_capacity: 16 byte 4
-Display value full_charge_capacity: 1 byte 5
-Display value charging_voltage: 0 byte 0
-Display value charging_voltage: 0 byte 1
-Display value full_charge_capacity: 255 byte 6
-Display value charging_voltage: 1 byte 2
-Display value full_charge_capacity: 0 byte 7
-Display value charging_voltage: 0 byte 3
-Display value at_rate_time_to_full: 255 byte 0
-Display value charging_voltage: 21 byte 4
-Display value charging_voltage: 1 byte 5
-Display value at_rate_time_to_full: 255 byte 1
-Display value at_rate_time_to_full: 1 byte 2
-Display value charging_voltage: 255 byte 6
-Display value charging_voltage: 0 byte 7
-Display value at_rate_time_to_full: 0 byte 3
-Display value at_rate_time_to_full: 5 byte 4
-Display value at_rate_time_to_full: 1 byte 5
-Display value at_rate_time_to_full: 255 byte 6
-Display value at_rate_time_to_full: 0 byte 7
-Display value at_rate_time_to_empty: 255 byte 0
-Display value at_rate_time_to_empty: 255 byte 1
-Display value at_rate_time_to_empty: 1 byte 2
-Display value at_rate_ok_text: 1 byte 0
-Display value at_rate_time_to_empty: 0 byte 3
-Display value at_rate_ok_text: 0 byte 1
-Display value at_rate_time_to_empty: 6 byte 4
-Display value at_rate_ok_text: 1 byte 2
-Display value at_rate_ok_text: 0 byte 3
-Display value at_rate: 0 byte 0
-Display value at_rate: 0 byte 1
-Display value at_rate: 1 byte 2
-Display value rel_state_of_charge: 68 byte 0
-Display value at_rate_ok_text: 7 byte 4
-Display value abs_state_of_charge: 64 byte 0
-Display value at_rate: 0 byte 3
-Display value run_time_to_empty: 255 byte 0
-Display value at_rate_time_to_empty: 1 byte 5
-Display value at_rate: 4 byte 4
-Display value run_time_to_empty: 255 byte 1
-Display value at_rate_time_to_empty: 255 byte 6
-Display value at_rate_ok_text: 1 byte 5
-Display value at_rate_ok_text: 255 byte 6
-Display value at_rate_ok_text: 0 byte 7
-Display value at_rate: 1 byte 5
-Display value run_time_to_empty: 1 byte 2
-Display value at_rate_time_to_empty: 0 byte 7
-Display value at_rate: 255 byte 6
-Display value run_time_to_empty: 0 byte 3
-Display value rel_state_of_charge: 0 byte 1
-Display value rel_state_of_charge: 1 byte 2
-Display value rel_state_of_charge: 0 byte 3
-Display value abs_state_of_charge: 0 byte 1
-Display value run_time_to_empty: 17 byte 4
-Display value at_rate: 0 byte 7
-Display value rel_state_of_charge: 13 byte 4
-Display value rel_state_of_charge: 1 byte 5
-Display value rel_state_of_charge: 255 byte 6
-Display value abs_state_of_charge: 1 byte 2
-Display value rel_state_of_charge: 0 byte 7
-Display value abs_state_of_charge: 0 byte 3
-Display value abs_state_of_charge: 14 byte 4
-Display value run_time_to_empty: 1 byte 5
-Display value run_time_to_empty: 255 byte 6
-Display value run_time_to_empty: 0 byte 7
-Display value abs_state_of_charge: 1 byte 5
-Display value abs_state_of_charge: 255 byte 6
-Display value abs_state_of_charge: 0 byte 7
-Display value avg_time_to_empty: 255 byte 0
-Display value avg_time_to_full: 255 byte 0
-Display value avg_time_to_empty: 255 byte 1
-Display value avg_time_to_empty: 1 byte 2
-Display value avg_time_to_empty: 0 byte 3
-Display value avg_time_to_full: 255 byte 1
-Display value avg_time_to_empty: 18 byte 4
-Display value avg_time_to_full: 1 byte 2
-Display value avg_time_to_empty: 1 byte 5
-Display value avg_time_to_empty: 255 byte 6
-Display value avg_time_to_full: 0 byte 3
-Display value avg_time_to_empty: 0 byte 7
-Display value avg_time_to_full: 19 byte 4
-Display value avg_time_to_full: 1 byte 5
-Display value avg_time_to_full: 255 byte 6
-Display value avg_time_to_full: 0 byte 7
-Display value max_error: 2 byte 0
-Display value max_error: 0 byte 1
-Display value max_error: 1 byte 2
-Display value max_error: 0 byte 3
-Display value max_error: 12 byte 4
-Display value max_error: 1 byte 5
-Display value max_error: 255 byte 6
-Display value max_error: 0 byte 7
-Display value manufacturer_name: 165 byte 0
-Display value device_name: 112 byte 0
-Display value manufacturer_name: 10 byte 1
-Display value device_name: 98 byte 1
-Display value device_name: 1 byte 2
-Display value device_name: 0 byte 3
-Display value device_name: 25 byte 4
-Display value device_name: 1 byte 5
-Display value manufacturer_name: 1 byte 2
-Display value manufacturer_name: 0 byte 3
-Display value device_name: 255 byte 6
-Display value manufacturer_date: 175 byte 0
-Display value manufacturer_date: 11 byte 1
-Display value manufacturer_date: 1 byte 2
-Display value device_name: 0 byte 7
-Display value manufacturer_name: 24 byte 4
-Display value temperature: 218 byte 0
-Display value current: 199 byte 0
-Display value design_voltage: 208 byte 0
-Display value design_capacity: 177 byte 0
-Display value remaining_capacity: 0 byte 0
-Display value remaining_capacity: 0 byte 1
-Display value current: 72 byte 1
-Display value current: 1 byte 2
-Display value current: 0 byte 3
-Display value design_capacity: 86 byte 1
-Display value design_capacity: 1 byte 2
-Display value voltage: 4 byte 0
-Display value manufacturer_name: 1 byte 5
-Display value battery_status: 0 byte 0
-Display value battery_status: 0 byte 1
-Display value design_capacity: 0 byte 3
-Display value voltage: 0 byte 1
-Display value voltage: 1 byte 2
-Display value manufacturer_name: 255 byte 6
-Display value manufacturer_date: 0 byte 3
-Display value design_voltage: 6 byte 1
-Display value voltage: 0 byte 3
-Display value remaining_capacity: 1 byte 2
-Display value battery_status: 1 byte 2
-Display value design_capacity: 27 byte 4
-Display value current: 22 byte 4
-Display value manufacturer_name: 0 byte 7
-Display value remaining_capacity: 0 byte 3
-Display value battery_status: 0 byte 3
-Display value design_capacity: 1 byte 5
-Display value current: 1 byte 5
-Display value current: 255 byte 6
-Display value design_voltage: 1 byte 2
-Display value design_capacity: 255 byte 6
-Display value remaining_capacity: 10 byte 4
-Display value current: 0 byte 7
-Display value design_voltage: 0 byte 3
-Display value temperature: 104 byte 1
-Display value manufacturer_date: 8 byte 4
-Display value battery_status: 11 byte 4
-Display value design_voltage: 15 byte 4
-Display value design_capacity: 0 byte 7
-Display value remaining_capacity: 1 byte 5
-Display value voltage: 23 byte 4
-Display value temperature: 1 byte 2
-Display value remaining_capacity: 255 byte 6
-Display value voltage: 1 byte 5
-Display value manufacturer_date: 1 byte 5
-Display value battery_status: 1 byte 5
-Display value design_voltage: 1 byte 5
-Display value temperature: 0 byte 3
-Display value remaining_capacity: 0 byte 7
-Display value voltage: 255 byte 6
-Display value voltage: 0 byte 7
-Display value battery_status: 255 byte 6
-Display value battery_status: 0 byte 7
-Display value design_voltage: 255 byte 6
-Display value manufacturer_date: 255 byte 6
-Display value design_voltage: 0 byte 7
-Display value manufacturer_date: 0 byte 7
-Display value temperature: 9 byte 4
-Display value temperature: 1 byte 5
-Display value temperature: 255 byte 6
-Display value temperature: 0 byte 7
-Display value charging_current: 0 byte 0
-Display value charging_current: 0 byte 1
-Display value charging_current: 1 byte 2
-Display value charging_current: 0 byte 3
-Display value charging_current: 20 byte 4
-Display value charging_current: 1 byte 5
-Display value charging_current: 255 byte 6
-Display value charging_current: 0 byte 7
-Display value full_charge_capacity: 42 byte 0
-Display value full_charge_capacity: 10 byte 1
-Display value full_charge_capacity: 1 byte 2
-Display value full_charge_capacity: 0 byte 3
-Display value full_charge_capacity: 16 byte 4
-Display value full_charge_capacity: 1 byte 5
-Display value full_charge_capacity: 255 byte 6
-Display value full_charge_capacity: 0 byte 7
-Display value charging_voltage: 0 byte 0
-Display value charging_voltage: 0 byte 1
-Display value charging_voltage: 1 byte 2
-Display value charging_voltage: 0 byte 3
-Display value charging_voltage: 21 byte 4
-Display value charging_voltage: 1 byte 5
-Display value charging_voltage: 255 byte 6
-Display value at_rate_time_to_full: 255 byte 0
-Display value charging_voltage: 0 byte 7
-Display value at_rate_time_to_full: 255 byte 1
-Display value at_rate_time_to_full: 1 byte 2
-Display value at_rate_time_to_full: 0 byte 3
-Display value at_rate_time_to_full: 5 byte 4
-Display value at_rate_time_to_full: 1 byte 5
-Display value at_rate_time_to_empty: 255 byte 0
-Display value at_rate_time_to_full: 255 byte 6
-Display value at_rate_time_to_empty: 255 byte 1
-Display value at_rate_time_to_full: 0 byte 7
-Display value at_rate_time_to_empty: 1 byte 2
-Display value at_rate: 0 byte 0
-Display value at_rate_time_to_empty: 0 byte 3
-Display value abs_state_of_charge: 64 byte 0
-Display value at_rate: 0 byte 1
-Display value at_rate_time_to_empty: 6 byte 4
-Display value abs_state_of_charge: 0 byte 1
-Display value run_time_to_empty: 255 byte 0
-Display value at_rate_ok_text: 1 byte 0
-Display value rel_state_of_charge: 68 byte 0
-Display value at_rate: 1 byte 2
-Display value at_rate: 0 byte 3
-Display value abs_state_of_charge: 1 byte 2
-Display value run_time_to_empty: 255 byte 1
-Display value run_time_to_empty: 1 byte 2
-Display value rel_state_of_charge: 0 byte 1
-Display value at_rate_ok_text: 0 byte 1
-Display value at_rate_time_to_empty: 1 byte 5
-Display value at_rate_time_to_empty: 255 byte 6
-Display value at_rate_time_to_empty: 0 byte 7
-Display value run_time_to_empty: 0 byte 3
-Display value abs_state_of_charge: 0 byte 3
-Display value at_rate: 4 byte 4
-Display value run_time_to_empty: 17 byte 4
-Display value abs_state_of_charge: 14 byte 4
-Display value abs_state_of_charge: 1 byte 5
-Display value run_time_to_empty: 1 byte 5
-Display value run_time_to_empty: 255 byte 6
-Display value run_time_to_empty: 0 byte 7
-Display value at_rate_ok_text: 1 byte 2
-Display value rel_state_of_charge: 1 byte 2
-Display value at_rate: 1 byte 5
-Display value at_rate: 255 byte 6
-Display value at_rate_ok_text: 0 byte 3
-Display value abs_state_of_charge: 255 byte 6
-Display value rel_state_of_charge: 0 byte 3
-Display value at_rate: 0 byte 7
-Display value at_rate_ok_text: 7 byte 4
-Display value abs_state_of_charge: 0 byte 7
-Display value at_rate_ok_text: 1 byte 5
-Display value rel_state_of_charge: 13 byte 4
-Display value rel_state_of_charge: 1 byte 5
-Display value at_rate_ok_text: 255 byte 6
-Display value rel_state_of_charge: 255 byte 6
-Display value at_rate_ok_text: 0 byte 7
-Display value rel_state_of_charge: 0 byte 7
-Display value avg_time_to_empty: 255 byte 0
-Display value avg_time_to_empty: 255 byte 1
-Display value avg_time_to_empty: 1 byte 2
-Display value avg_time_to_empty: 0 byte 3
-Display value avg_time_to_empty: 18 byte 4
-Display value avg_time_to_empty: 1 byte 5
-Display value avg_time_to_full: 255 byte 0
-Display value avg_time_to_empty: 255 byte 6
-Display value avg_time_to_full: 255 byte 1
-Display value avg_time_to_full: 1 byte 2
-Display value avg_time_to_full: 0 byte 3
-Display value avg_time_to_full: 19 byte 4
-Display value avg_time_to_full: 1 byte 5
-Display value avg_time_to_full: 255 byte 6
-Display value avg_time_to_empty: 0 byte 7
-Display value avg_time_to_full: 0 byte 7
-Display value max_error: 2 byte 0
-Display value max_error: 0 byte 1
-Display value max_error: 1 byte 2
-Display value max_error: 0 byte 3
-Display value max_error: 12 byte 4
-Display value max_error: 1 byte 5
-Display value max_error: 255 byte 6
-Display value max_error: 0 byte 7
-Display value manufacturer_name: 165 byte 0
-Display value manufacturer_name: 10 byte 1
-Display value manufacturer_name: 1 byte 2
-Display value manufacturer_name: 0 byte 3
-Display value manufacturer_name: 24 byte 4
-Display value manufacturer_name: 1 byte 5
-Display value device_name: 112 byte 0
-Display value design_voltage: 208 byte 0
-Display value remaining_capacity: 0 byte 0
-Display value current: 199 byte 0
-Display value manufacturer_date: 175 byte 0
-Display value design_capacity: 177 byte 0
-Display value design_voltage: 6 byte 1
-Display value design_voltage: 1 byte 2
-Display value design_voltage: 0 byte 3
-Display value design_voltage: 15 byte 4
-Display value design_voltage: 1 byte 5
-Display value temperature: 217 byte 0
-Display value temperature: 104 byte 1
-Display value battery_status: 0 byte 0
-Display value manufacturer_date: 11 byte 1
-Display value voltage: 4 byte 0
-Display value remaining_capacity: 0 byte 1
-Display value manufacturer_name: 255 byte 6
-Display value device_name: 98 byte 1
-Display value design_capacity: 86 byte 1
-Display value design_capacity: 1 byte 2
-Display value design_capacity: 0 byte 3
-Display value temperature: 1 byte 2
-Display value battery_status: 0 byte 1
-Display value manufacturer_date: 1 byte 2
-Display value manufacturer_date: 0 byte 3
-Display value remaining_capacity: 1 byte 2
-Display value manufacturer_name: 0 byte 7
-Display value device_name: 1 byte 2
-Display value design_voltage: 255 byte 6
-Display value voltage: 0 byte 1
-Display value design_capacity: 27 byte 4
-Display value temperature: 0 byte 3
-Display value temperature: 9 byte 4
-Display value design_voltage: 0 byte 7
-Display value voltage: 1 byte 2
-Display value design_capacity: 1 byte 5
-Display value device_name: 0 byte 3
-Display value device_name: 25 byte 4
-Display value device_name: 1 byte 5
-Display value device_name: 255 byte 6
-Display value current: 72 byte 1
-Display value temperature: 1 byte 5
-Display value voltage: 0 byte 3
-Display value design_capacity: 255 byte 6
-Display value manufacturer_date: 8 byte 4
-Display value remaining_capacity: 0 byte 3
-Display value battery_status: 1 byte 2
-Display value device_name: 0 byte 7
-Display value current: 1 byte 2
-Display value current: 0 byte 3
-Display value current: 22 byte 4
-Display value design_capacity: 0 byte 7
-Display value remaining_capacity: 10 byte 4
-Display value remaining_capacity: 1 byte 5
-Display value remaining_capacity: 255 byte 6
-Display value temperature: 255 byte 6
-Display value battery_status: 0 byte 3
-Display value battery_status: 11 byte 4
-Display value voltage: 23 byte 4
-Display value manufacturer_date: 1 byte 5
-Display value current: 1 byte 5
-Display value current: 255 byte 6
-Display value current: 0 byte 7
-Display value remaining_capacity: 0 byte 7
-Display value temperature: 0 byte 7
-Display value manufacturer_date: 255 byte 6
-Display value voltage: 1 byte 5
-Display value manufacturer_date: 0 byte 7
-Display value voltage: 255 byte 6
-Display value battery_status: 1 byte 5
-Display value voltage: 0 byte 7
-Display value battery_status: 255 byte 6
-Display value battery_status: 0 byte 7
-Display value charging_current: 0 byte 0
-Display value charging_current: 0 byte 1
-Display value charging_current: 1 byte 2
-Display value charging_current: 0 byte 3
-Display value full_charge_capacity: 42 byte 0
-Display value charging_current: 20 byte 4
-Display value full_charge_capacity: 10 byte 1
-Display value charging_current: 1 byte 5
-Display value full_charge_capacity: 1 byte 2
-Display value charging_current: 255 byte 6
-Display value full_charge_capacity: 0 byte 3
-Display value full_charge_capacity: 16 byte 4
-Display value full_charge_capacity: 1 byte 5
-Display value full_charge_capacity: 255 byte 6
-Display value charging_current: 0 byte 7
-Display value full_charge_capacity: 0 byte 7
-Display value charging_voltage: 0 byte 0
-Display value charging_voltage: 0 byte 1
-Display value charging_voltage: 1 byte 2
-Display value charging_voltage: 0 byte 3
-Display value at_rate_time_to_full: 255 byte 0
-Display value at_rate_time_to_full: 255 byte 1
-Display value charging_voltage: 21 byte 4
-Display value at_rate_time_to_full: 1 byte 2
-Display value at_rate_time_to_full: 0 byte 3
-Display value at_rate_time_to_full: 5 byte 4
-Display value charging_voltage: 1 byte 5
-Display value charging_voltage: 255 byte 6
-Display value at_rate_time_to_full: 1 byte 5
-Display value charging_voltage: 0 byte 7
-Display value at_rate_time_to_full: 255 byte 6
-Display value at_rate_time_to_full: 0 byte 7
-Display value at_rate_time_to_empty: 255 byte 0
-Display value at_rate_time_to_empty: 255 byte 1
-Display value at_rate_time_to_empty: 1 byte 2
-Display value at_rate_ok_text: 1 byte 0
-Display value at_rate_ok_text: 0 byte 1
-Display value at_rate_time_to_empty: 0 byte 3
-Display value at_rate_ok_text: 1 byte 2
-Display value at_rate_time_to_empty: 6 byte 4
-Display value at_rate_ok_text: 0 byte 3
-Display value at_rate_time_to_empty: 1 byte 5
-Display value at_rate_time_to_empty: 255 byte 6
-Display value at_rate: 0 byte 0
-Display value at_rate: 0 byte 1
-Display value at_rate_time_to_empty: 0 byte 7
-Display value run_time_to_empty: 255 byte 0
-Display value at_rate_ok_text: 7 byte 4
-Display value abs_state_of_charge: 64 byte 0
-Display value run_time_to_empty: 255 byte 1
-Display value at_rate_ok_text: 1 byte 5
-Display value abs_state_of_charge: 0 byte 1
-Display value run_time_to_empty: 1 byte 2
-Display value at_rate_ok_text: 255 byte 6
-Display value abs_state_of_charge: 1 byte 2
-Display value run_time_to_empty: 0 byte 3
-Display value at_rate_ok_text: 0 byte 7
-Display value abs_state_of_charge: 0 byte 3
-Display value run_time_to_empty: 17 byte 4
-Display value at_rate: 1 byte 2
-Display value rel_state_of_charge: 68 byte 0
-Display value abs_state_of_charge: 14 byte 4
-Display value run_time_to_empty: 1 byte 5
-Display value at_rate: 0 byte 3
-Display value rel_state_of_charge: 0 byte 1
-Display value abs_state_of_charge: 1 byte 5
-Display value run_time_to_empty: 255 byte 6
-Display value at_rate: 4 byte 4
-Display value rel_state_of_charge: 1 byte 2
-Display value abs_state_of_charge: 255 byte 6
-Display value run_time_to_empty: 0 byte 7
-Display value at_rate: 1 byte 5
-Display value rel_state_of_charge: 0 byte 3
-Display value at_rate: 255 byte 6
-Display value rel_state_of_charge: 13 byte 4
-Display value at_rate: 0 byte 7
-Display value rel_state_of_charge: 1 byte 5
-Display value abs_state_of_charge: 0 byte 7
-Display value rel_state_of_charge: 255 byte 6
-Display value rel_state_of_charge: 0 byte 7
-Display value avg_time_to_empty: 255 byte 0
-Display value avg_time_to_empty: 255 byte 1
-Display value avg_time_to_full: 255 byte 0
-Display value avg_time_to_empty: 1 byte 2
-Display value avg_time_to_full: 255 byte 1
-Display value avg_time_to_empty: 0 byte 3
-Display value avg_time_to_full: 1 byte 2
-Display value avg_time_to_empty: 18 byte 4
-Display value avg_time_to_full: 0 byte 3
-Display value avg_time_to_empty: 1 byte 5
-Display value avg_time_to_full: 19 byte 4
-Display value avg_time_to_empty: 255 byte 6
-Display value avg_time_to_empty: 0 byte 7
-Display value avg_time_to_full: 1 byte 5
-Display value avg_time_to_full: 255 byte 6
-Display value avg_time_to_full: 0 byte 7
-Display value max_error: 2 byte 0
-Display value max_error: 0 byte 1
-Display value max_error: 1 byte 2
-Display value max_error: 0 byte 3
-Display value max_error: 12 byte 4
-Display value max_error: 1 byte 5
-Display value max_error: 255 byte 6
-Display value max_error: 0 byte 7
-Disconnecting...
-Disconnecting...
-Display value device_name: 165 byte 0
-Display value device_name: 10 byte 1
-Display value manufacturer_name: 112 byte 0
-Display value manufacturer_date: 208 byte 0
-Display value device_name: 1 byte 2
-Display value device_name: 0 byte 3
-Display value design_capacity: 175 byte 0
-Display value current: 199 byte 0
-Display value design_voltage: 177 byte 0
-Display value manufacturer_name: 98 byte 1
-Display value battery_status: 0 byte 0
-Display value temperature: 219 byte 0
-Display value manufacturer_date: 6 byte 1
-Display value voltage: 4 byte 0
-Display value voltage: 0 byte 1
-Display value device_name: 24 byte 4
-Display value device_name: 1 byte 5
-Display value current: 72 byte 1
-Display value design_voltage: 86 byte 1
-Display value design_voltage: 1 byte 2
-Display value design_voltage: 0 byte 3
-Display value design_voltage: 27 byte 4
-Display value manufacturer_date: 1 byte 2
-Display value manufacturer_name: 1 byte 2
-Display value remaining_capacity: 0 byte 0
-Display value temperature: 104 byte 1
-Display value temperature: 1 byte 2
-Display value current: 1 byte 2
-Display value current: 0 byte 3
-Display value current: 22 byte 4
-Display value device_name: 255 byte 6
-Display value design_capacity: 11 byte 1
-Display value manufacturer_date: 0 byte 3
-Display value voltage: 1 byte 2
-Display value voltage: 0 byte 3
-Display value design_voltage: 1 byte 5
-Display value temperature: 0 byte 3
-Display value manufacturer_name: 0 byte 3
-Display value battery_status: 0 byte 1
-Display value remaining_capacity: 0 byte 1
-Display value remaining_capacity: 1 byte 2
-Display value remaining_capacity: 0 byte 3
-Display value manufacturer_date: 15 byte 4
-Display value current: 1 byte 5
-Display value voltage: 23 byte 4
-Display value device_name: 0 byte 7
-Display value design_capacity: 1 byte 2
-Display value manufacturer_name: 25 byte 4
-Display value battery_status: 1 byte 2
-Display value design_voltage: 255 byte 6
-Display value temperature: 9 byte 4
-Display value design_capacity: 0 byte 3
-Display value design_capacity: 8 byte 4
-Display value design_capacity: 1 byte 5
-Display value design_voltage: 0 byte 7
-Display value temperature: 1 byte 5
-Display value current: 255 byte 6
-Display value voltage: 1 byte 5
-Display value design_capacity: 255 byte 6
-Display value manufacturer_date: 1 byte 5
-Display value manufacturer_name: 1 byte 5
-Display value manufacturer_name: 255 byte 6
-Display value remaining_capacity: 10 byte 4
-Display value temperature: 255 byte 6
-Display value temperature: 0 byte 7
-Display value current: 0 byte 7
-Display value voltage: 255 byte 6
-Display value battery_status: 0 byte 3
-Display value remaining_capacity: 1 byte 5
-Display value manufacturer_name: 0 byte 7
-Display value battery_status: 11 byte 4
-Display value battery_status: 1 byte 5
-Display value remaining_capacity: 255 byte 6
-Display value voltage: 0 byte 7
-Display value remaining_capacity: 0 byte 7
-Display value battery_status: 255 byte 6
-Display value manufacturer_date: 255 byte 6
-Display value battery_status: 0 byte 7
-Display value manufacturer_date: 0 byte 7
-Display value design_capacity: 0 byte 7
-Display value charging_current: 0 byte 0
-Display value charging_current: 0 byte 1
-Display value charging_current: 1 byte 2
-Display value charging_current: 0 byte 3
-Display value charging_current: 20 byte 4
-Display value charging_current: 1 byte 5
-Display value charging_current: 255 byte 6
-Display value charging_current: 0 byte 7
-Display value full_charge_capacity: 42 byte 0
-Display value full_charge_capacity: 10 byte 1
-Display value full_charge_capacity: 1 byte 2
-Display value full_charge_capacity: 0 byte 3
-Display value full_charge_capacity: 16 byte 4
-Display value full_charge_capacity: 1 byte 5
-Display value full_charge_capacity: 255 byte 6
-Display value full_charge_capacity: 0 byte 7
-Display value at_rate_time_to_full: 0 byte 0
-Display value charging_voltage: 255 byte 0
-Display value charging_voltage: 255 byte 1
-Display value charging_voltage: 1 byte 2
-Display value charging_voltage: 0 byte 3
-Display value at_rate_time_to_full: 0 byte 1
-Display value charging_voltage: 5 byte 4
-Display value charging_voltage: 1 byte 5
-Display value at_rate_ok_text: 1 byte 0
-Display value at_rate_time_to_empty: 255 byte 0
-Display value at_rate_time_to_empty: 255 byte 1
-Display value charging_voltage: 255 byte 6
-Display value at_rate_ok_text: 0 byte 1
-Display value at_rate_time_to_empty: 1 byte 2
-Display value charging_voltage: 0 byte 7
-Display value at_rate_ok_text: 1 byte 2
-Display value at_rate_time_to_empty: 0 byte 3
-Display value at_rate_time_to_empty: 6 byte 4
-Display value at_rate: 0 byte 0
-Display value run_time_to_empty: 255 byte 0
-Display value run_time_to_empty: 255 byte 1
-Display value at_rate_time_to_empty: 1 byte 5
-Display value at_rate: 0 byte 1
-Display value abs_state_of_charge: 64 byte 0
-Display value run_time_to_empty: 1 byte 2
-Display value run_time_to_empty: 0 byte 3
-Display value run_time_to_empty: 17 byte 4
-Display value abs_state_of_charge: 0 byte 1
-Display value at_rate_time_to_empty: 255 byte 6
-Display value at_rate_time_to_full: 1 byte 2
-Display value at_rate_time_to_full: 0 byte 3
-Display value abs_state_of_charge: 1 byte 2
-Display value at_rate_time_to_empty: 0 byte 7
-Display value at_rate_ok_text: 0 byte 3
-Display value at_rate_ok_text: 7 byte 4
-Display value abs_state_of_charge: 0 byte 3
-Display value run_time_to_empty: 1 byte 5
-Display value at_rate_time_to_full: 21 byte 4
-Display value at_rate_time_to_full: 1 byte 5
-Display value rel_state_of_charge: 68 byte 0
-Display value at_rate_ok_text: 1 byte 5
-Display value abs_state_of_charge: 14 byte 4
-Display value run_time_to_empty: 255 byte 6
-Display value at_rate: 1 byte 2
-Display value at_rate_time_to_full: 255 byte 6
-Display value rel_state_of_charge: 0 byte 1
-Display value at_rate_ok_text: 255 byte 6
-Display value at_rate_ok_text: 0 byte 7
-Display value run_time_to_empty: 0 byte 7
-Display value at_rate: 0 byte 3
-Display value at_rate_time_to_full: 0 byte 7
-Display value abs_state_of_charge: 1 byte 5
-Display value rel_state_of_charge: 1 byte 2
-Display value abs_state_of_charge: 255 byte 6
-Display value rel_state_of_charge: 0 byte 3
-Display value abs_state_of_charge: 0 byte 7
-Display value rel_state_of_charge: 13 byte 4
-Display value rel_state_of_charge: 1 byte 5
-Display value at_rate: 4 byte 4
-Display value rel_state_of_charge: 255 byte 6
-Display value at_rate: 1 byte 5
-Display value rel_state_of_charge: 0 byte 7
-Display value at_rate: 255 byte 6
-Display value at_rate: 0 byte 7
-Display value avg_time_to_full: 255 byte 0
-Display value avg_time_to_full: 255 byte 1
-Display value avg_time_to_empty: 255 byte 0
-Display value avg_time_to_full: 1 byte 2
-Display value avg_time_to_full: 0 byte 3
-Display value avg_time_to_full: 18 byte 4
-Display value avg_time_to_empty: 255 byte 1
-Display value avg_time_to_empty: 1 byte 2
-Display value avg_time_to_full: 1 byte 5
-Display value avg_time_to_empty: 0 byte 3
-Display value avg_time_to_full: 255 byte 6
-Display value avg_time_to_full: 0 byte 7
-Display value avg_time_to_empty: 19 byte 4
-Display value avg_time_to_empty: 1 byte 5
-Display value avg_time_to_empty: 255 byte 6
-Display value avg_time_to_empty: 0 byte 7
-Display value max_error: 2 byte 0
-Display value max_error: 0 byte 1
-Display value max_error: 1 byte 2
-Display value max_error: 0 byte 3
-Display value max_error: 12 byte 4
-Display value max_error: 1 byte 5
-Display value max_error: 255 byte 6
-Display value max_error: 0 byte 7
-------------------------------------
-Display value manufacturer_name: 165 byte 0
-Display value device_name: 112 byte 0
-Display value design_capacity: 177 byte 0
-Display value design_capacity: 86 byte 1
-Display value design_capacity: 1 byte 2
-Display value device_name: 98 byte 1
-Display value manufacturer_name: 10 byte 1
-Display value remaining_capacity: 0 byte 0
-Display value temperature: 217 byte 0
-Display value current: 199 byte 0
-Display value current: 72 byte 1
-Display value current: 1 byte 2
-Display value current: 0 byte 3
-Display value current: 22 byte 4
-Display value design_capacity: 0 byte 3
-Display value design_capacity: 27 byte 4
-Display value design_capacity: 1 byte 5
-Display value temperature: 104 byte 1
-Display value current: 1 byte 5
-Display value current: 255 byte 6
-Display value manufacturer_date: 175 byte 0
-Display value manufacturer_date: 11 byte 1
-Display value temperature: 1 byte 2
-Display value design_voltage: 208 byte 0
-Display value design_voltage: 6 byte 1
-Display value battery_status: 0 byte 0
-Display value battery_status: 0 byte 1
-Display value temperature: 0 byte 3
-Display value current: 0 byte 7
-Display value remaining_capacity: 0 byte 1
-Display value design_capacity: 255 byte 6
-Display value design_capacity: 0 byte 7
-Display value manufacturer_name: 1 byte 2
-Display value voltage: 4 byte 0
-Display value remaining_capacity: 1 byte 2
-Display value battery_status: 1 byte 2
-Display value temperature: 9 byte 4
-Display value temperature: 1 byte 5
-Display value temperature: 255 byte 6
-Display value temperature: 0 byte 7
-Display value manufacturer_name: 0 byte 3
-Display value voltage: 0 byte 1
-Display value battery_status: 0 byte 3
-Display value design_voltage: 1 byte 2
-Display value remaining_capacity: 0 byte 3
-Display value device_name: 1 byte 2
-Display value battery_status: 11 byte 4
-Display value design_voltage: 0 byte 3
-Display value remaining_capacity: 10 byte 4
-Display value device_name: 0 byte 3
-Display value battery_status: 1 byte 5
-Display value design_voltage: 15 byte 4
-Display value remaining_capacity: 1 byte 5
-Display value remaining_capacity: 255 byte 6
-Display value battery_status: 255 byte 6
-Display value battery_status: 0 byte 7
-Display value voltage: 1 byte 2
-Display value voltage: 0 byte 3
-Display value manufacturer_name: 24 byte 4
-Display value device_name: 25 byte 4
-Display value manufacturer_date: 1 byte 2
-Display value design_voltage: 1 byte 5
-Display value remaining_capacity: 0 byte 7
-Display value voltage: 23 byte 4
-Display value manufacturer_name: 1 byte 5
-Display value device_name: 1 byte 5
-Display value voltage: 1 byte 5
-Display value voltage: 255 byte 6
-Display value manufacturer_name: 255 byte 6
-Display value design_voltage: 255 byte 6
-Display value design_voltage: 0 byte 7
-Display value manufacturer_name: 0 byte 7
-Display value manufacturer_date: 0 byte 3
-Display value device_name: 255 byte 6
-Display value voltage: 0 byte 7
-Display value device_name: 0 byte 7
-Display value manufacturer_date: 8 byte 4
-Display value manufacturer_date: 1 byte 5
-Display value manufacturer_date: 255 byte 6
-Display value manufacturer_date: 0 byte 7
---------------------------------------------------------
-Command Code Not Found : 0xff
-Command Code Not Found : 0x6e
-Command Code Not Found : 0x63
-Command Code Not Found : 0x1
-Command Code Not Found : 0xff
-Command Code Not Found : 0x37
-Command Code Not Found : 0x48
-Device Name : [3, 2, 0, 1, 0, 33, 2, 255]
-Device Name string : !
-Command Code Not Found : 0xff
-Command Code Not Found : 0x6e
-Command Code Not Found : 0x63
-Command Code Not Found : 0x1
-Command Code Not Found : 0xff
-Command Code Not Found : 0x37
-Command Code Not Found : 0x48
-Device Name : [3, 2, 0, 1, 0, 33, 2, 255]
-Device Name string : !
-
----------------------------------------------------------
-
-Command Code Not Found : 0xff
-Command Code Not Found : 0x6e
-Command Code Not Found : 0x63
-Command Code Not Found : 0x1
-Command Code Not Found : 0xff
-Device Name : ['0x3', '0x2', '0x0', '0x1', '0x0', '0x21', '0x2', '0xff']
-Command Code Not Found : 0x37
-Command Code Not Found : 0x48
-------------------------------------------------------------------------
-serial_number
-________________________________________________________________________
-# Example data packet
-data_packet = [0x02, 0x01, 0x07, 0x00, 0x22, 0x00, 0xFF]
-
-# Extract version information
-major_version = data_packet[0]
-minor_version = data_packet[1]
-patch_number = (data_packet[3] << 8) | data_packet[2]
-build_number = (data_packet[5] << 8) | data_packet[4]
-
-# Construct the version string
-version_string = f"{major_version}.{minor_version}.{patch_number}.{build_number}"
-
-# Output the version
-print(f"Battery Version: {version_string}")
-26/08/2024
-Exception in Tkinter callback
-Traceback (most recent call last):
-  File "C:\Users\adebm\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1968, in __call__
-    return self.func(*args)
-           ^^^^^^^^^^^^^^^^
-  File "C:\Users\adebm\AppData\Local\Programs\Python\Python312\Lib\site-packages\customtkinter\windows\widgets\ctk_button.py", line 554, in _clicked     
-    self._command()
-  File "d:\Ade\ade-bms-python\gui\can_connect.py", line 136, in on_connect
-    result =  pcan_initialize(selected_baudrate,selected_hwtype,selected_ioport,selected_interrupt)
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "d:\Ade\ade-bms-python\pcan_api\custom_pcan_methods.py", line 190, in pcan_initialize
-    pcan_write_read('firmware_version')
-  File "d:\Ade\ade-bms-python\pcan_api\custom_pcan_methods.py", line 299, in pcan_write_read
-    result_code = retry_pcan_read(call_name)
-                  ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "d:\Ade\ade-bms-python\pcan_api\custom_pcan_methods.py", line 305, in retry_pcan_read
-    result_code = pcan_read(call_name)
-                  ^^^^^^^^^^^^^^^^^^^^
-  File "d:\Ade\ade-bms-python\pcan_api\custom_pcan_methods.py", line 395, in pcan_read
-    patch_number = (data_packet[3] << 8) | data_packet[2]
-                    ~~~~~~~~~~~~~~~^^~~
-TypeError: unsupported operand type(s) for <<: 'str' and 'int'
------------
-fixed
--------------------------------------
-Exception has occurred: TclError
-invalid command name ".!frame.!frame2.!frame8.!checkbutton"
-  File "D:\Ade\ade-bms-python\gui\can_battery_info.py", line 683, in <lambda>
-    threading.Thread(target=lambda: (time.sleep(10), button.config(state=tk.NORMAL))).start()
-                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-_tkinter.TclError: invalid command name ".!frame.!frame2.!frame8.!checkbutton"
----------------------------
-
-Exception in thread Thread-1 (<lambda>):
-Traceback (most recent call last):
-  File "C:\Users\adebm\AppData\Local\Programs\Python\Python312\Lib\threading.py", line 1073, in _bootstrap_inner
-    self.run()
-  File "C:\Users\adebm\AppData\Local\Programs\Python\Python312\Lib\threading.py", line 1010, in run
-    self._target(*self._args, **self._kwargs)
-  File "d:\Ade\ade-bms-python\gui\can_battery_info.py", line 684, in <lambda>
-    threading.Thread(target=lambda: (time.sleep(10), button.config(state=tk.NORMAL))).start()
-                                                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\adebm\AppData\Local\Programs\Python\Python312\Lib\site-packages\ttkbootstrap\style.py", line 5003, in configure
-    func(self, cnf, **kwargs)
-  File "C:\Users\adebm\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1722, in configure
-    return self._configure('configure', cnf, kw)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\adebm\AppData\Local\Programs\Python\Python312\Lib\tkinter\__init__.py", line 1712, in _configure
-    self.tk.call(_flatten((self._w, cmd)) + self._options(cnf))
-_tkinter.TclError: invalid command name ".!frame.!frame2.!frame12.!checkbutton"
------------------------------------------------------------------------------
 
 
 1) dashboard gauges: charging current, voltage, current,capacity,temperature [Done]
@@ -1376,3 +26,435 @@ if battery_status_flags:
     print(f"Error Codes: {battery_status_flags.get('Error Codes')}")
 else:
     print("Battery status flags are not available.")
+
+    ---------------------------------------------------------------------------------------
+serial_number:0
+serial_number ID: 0x18fed0c0
+serial_number Result Hex: ['0xc4', '0x5', '0x1', '0x0', '0x1c', '0x1', '0xff', '0x0']
+serial_number Result Swapped Hex: 1476
+serial_number Result decimal_value: 1476
+serial_number Result converted value: 1476
+Call Name : serial_number
+temperature:0
+temperature ID: 0x18fed0c0
+temperature Result Hex: ['0xd5', '0xb', '0x1', '0x0', '0x8', '0x1', '0xff', '0x0']
+temperature Result Swapped Hex: 3029
+temperature Result decimal_value: 3029
+temperature Result converted value: 29.8
+Call Name : temperature
+firmware_version:0
+firmware_version ID: 0x18fed0c0
+firmware_version Result Hex: ['0x2', '0x1', '0x7', '0x0', '0x22', '0x0', '0xff', '0x0']
+firmware_version Result Swapped Hex: 258
+firmware_version Result decimal_value: 258
+firmware_version Result converted value: 2.1.7.34
+Call Name : firmware_version
+voltage:0
+voltage ID: 0x18fed0c0
+voltage Result Hex: ['0x53', '0x70', '0x1', '0x0', '0x9', '0x1', '0xff', '0x0']
+voltage Result Swapped Hex: 28755
+voltage Result decimal_value: 28755
+voltage Result converted value: 28.8
+Call Name : voltage
+cycle_count:0
+cycle_count ID: 0x18fed0c0
+cycle_count Result Hex: ['0x4', '0x0', '0x1', '0x0', '0x17', '0x1', '0xff', '0x0']
+cycle_count Result Swapped Hex: 4
+cycle_count Result decimal_value: 4
+cycle_count Result converted value: 4
+Call Name : cycle_count
+current:0
+current ID: 0x18fed0c0
+current Result Hex: ['0x89', '0x0', '0x1', '0x0', '0xa', '0x1', '0xff', '0x0']
+current Result Swapped Hex: 137
+current Result decimal_value: 137
+current Result converted value: 5.48
+Call Name : current
+charging_current:0
+charging_current ID: 0x18fed0c0
+charging_current Result Hex: ['0xe2', '0x4', '0x1', '0x0', '0x14', '0x1', '0xff', '0x0']
+charging_current Result Swapped Hex: 1250
+charging_current Result decimal_value: 1250
+charging:1250
+charging currentmA:50000
+charging currentA:50.0
+charging_current Result converted value: 50.0
+Call Name : charging_current
+remaining_capacity:0
+remaining_capacity ID: 0x18fed0c0
+remaining_capacity Result Hex: ['0x9d', '0x9', '0x1', '0x0', '0xf', '0x1', '0xff', '0x0']
+remaining_capacity Result Swapped Hex: 2461
+remaining_capacity Result decimal_value: 2461
+remaining_capacity Result converted value: 98.44
+Call Name : remaining_capacity
+full_charge_capacity:0
+full_charge_capacity ID: 0x18fed0c0
+full_charge_capacity Result Hex: ['0x24', '0xa', '0x1', '0x0', '0x10', '0x1', '0xff', '0x0']
+full_charge_capacity Result Swapped Hex: 2596
+full_charge_capacity Result decimal_value: 2596
+full_charge_capacity Result converted value: 103.84
+Call Name : full_charge_capacity
+device_name:0
+device_name ID: 0x1cecffc0
+device_name Result Hex: ['0x20', '0x10', '0x0', '0x3', '0xff', '0x0', '0xef', '0x0']
+device_name Result Swapped Hex: 4128
+device_name Result decimal_value: 4128
+device_name Result hex_string1: 0142542D37303933
+device_name Result hex_string2: 0239415048010021
+device_name Result ascii_string1: BT-7093
+device_name Result ascii_string2: 9APH!
+device_name Result converted value: BT-70939APH!
+Call Name : device_name
+manufacturer_name:0
+manufacturer_name ID: 0x1cecffc0
+manufacturer_name Result Hex: ['0x20', '0x11', '0x0', '0x3', '0xff', '0x0', '0xef', '0x0']
+manufacturer_name Result Swapped Hex: 4384
+manufacturer_name Result decimal_value: 4384
+manufacturer_name Result hex_string1: 014272656E2D5472
+manufacturer_name Result hex_string2: 026F6E6963730100
+manufacturer_name Result ascii_string1: Bren-Tr
+manufacturer_name Result ascii_string2: onics
+manufacturer_name Result converted value: Bren-Tronics
+Call Name : manufacturer_name
+------------------------------------------------------
+manufacturer_date ID: 0x1cebffc0
+manufacturer_date Result Hex: ['0x3', '0x20', '0x2', '0x0', '0x1', '0x0', '0x20', '0x2']
+design_voltage Result Swapped Hex: 28418design_capacity Result Hex: ['0x1', '0x42', '0x72', '0x65', '0x6e', '0x2d', '0x54', '0x72']
+remaining_capacity ID: 0x18fed0c0current ID: 0x18fed0c0
+
+
+design_capacity Result Swapped Hex: 16897temperature ID: 0x18fed0c0
+manufacturer_date Result Swapped Hex: 8195current Result Hex: ['0x70', '0x62', '0x1', '0x0', '0x19', '0x1', '0xff', '0x0']voltage ID: 0x18fed0c0design_voltage Result decimal_value: 28418
+
+
+temperature Result Hex: ['0xa5', '0xa', '0x1', '0x0', '0x18', '0x1', '0xff', '0x0']
+battery_status ID: 0x18fed0c0
+
+serial_number Result decimal_value: 4384
+design_voltage Result hex_string1: 026F6E6963730100design_capacity Result decimal_value: 16897remaining_capacity Result Hex: ['0xc4', '0x5', '0x1', '0x0', '0x1c', '0x1', '0xff', '0x0']
+manufacturer_date Result decimal_value: 8195
+avg_current ID: 0x18fed0c0voltage Result Hex: ['0xb1', '0x56', '0x1', '0x0', '0x1b', '0x1', '0xff', '0x0']current Result Swapped Hex: 25200cycle_count ID: 0x18fed0c0serial_number Result hex_string1: 800001001601FF00
+
+
+temperature Result Swapped Hex: 2725
+battery_status Result Hex: ['0xa6', '0x9', '0x1', '0x0', '0xf', '0x1', '0xff', '0x0']
+
+
+
+
+design_voltage Result hex_string2: 550001000A01FF00charging_current ID: 0x18fed0c0
+
+remaining_capacity Result Swapped Hex: 1476design_capacity Result hex_string1: 014272656E2D5472manufacturer_date Result hex_string1: 0320020001002002voltage Result Swapped Hex: 22193avg_current Result Hex: ['0x61', '0x70', '0x1', '0x0', '0x9', '0x1', '0xff', '0x0']current Result decimal_value: 25200cycle_count Result Hex: ['0xd4', '0xb', '0x1', '0x0', '0x8', '0x1', '0xff', '0x0']
+
+battery_status Result Swapped Hex: 2470
+
+design_voltage Result ascii_string1: onicscharging_current Result Hex: ['0x4', '0x0', '0x1', '0x0', '0x17', '0x1', '0xff', '0x0']
+manufacturer_date Result hex_string2: E20401001401FF00
+
+
+
+temperature Result decimal_value: 2725
+
+voltage Result decimal_value: 22193
+
+battery_status Result decimal_value: 2470
+cycle_count Result Swapped Hex: 3028avg_current Result Swapped Hex: 28769design_capacity Result hex_string2: 5F0001000B01FF00current Result converted value: 3.96full_charge_capacity:0temperature Result converted value: 29.7remaining_capacity Result decimal_value: 1476
+design_voltage Result ascii_string2: Ucharging_current Result Swapped Hex: 4
+manufacturer_date Result ascii_string1:
+
+
+
+
+
+
+voltage Result converted value: 28.8
+
+battery_status Result converted value:
+cycle_count Result decimal_value: 3028avg_current Result decimal_value: 28769design_capacity Result ascii_string1: Bren-TrCall Name : currentCall Name : temperature    
+
+Call Name : design_voltagecharging_current Result decimal_value: 4
+Call Name : battery_status
+
+
+
+remaining_capacity Result converted value: 98.8Call Name : voltage
+charging_voltage:0
+manufacturer_date Result ascii_string2:
+cycle_count Result converted value: 4avg_current Result converted value: 0design_capacity Result ascii_string2: _
+
+charging_current Result converted value: 50.0
+at_rate_time_to_full:0
+
+
+
+Call Name : remaining_capacityCall Name : charging_currentat_rate_time_to_empty:0Call Name : manufacturer_date
+at_rate_ok_text:0
+at_rate:0Call Name : design_capacity
+Call Name : cycle_count
+
+
+Call Name : avg_current
+
+
+
+
+rel_state_of_charge:0
+abs_state_of_charge:0avg_time_to_empty:0avg_time_to_full:0run_time_to_empty:0
+
+
+max_error:0
+
+full_charge_capacity ID: 0x18fed0c0
+full_charge_capacity Result Hex: ['0x24', '0xa', '0x1', '0x0', '0x10', '0x1', '0xff', '0x0']
+full_charge_capacity Result Swapped Hex: 2596
+full_charge_capacity Result decimal_value: 2596
+charging_voltage ID: 0x18fed0c0at_rate_time_to_empty ID: 0x18fed0c0at_rate_time_to_full ID: 0x18fed0c0
+
+at_rate_time_to_empty Result Hex: ['0xff', '0xff', '0x1', '0x0', '0x6', '0x1', '0xff', '0x0']at_rate_ok_text ID: 0x18fed0c0rel_state_of_charge ID: 0x18fed0c0at_rate ID: 0x18fed0c0charging_voltage Result Hex: ['0xd8', '0x72', '0x1', '0x0', '0x15', '0x1', '0xff', '0x0']
+
+
+max_error ID: 0x18fed0c0
+abs_state_of_charge ID: 0x18fed0c0avg_time_to_full ID: 0x18fed0c0
+
+avg_time_to_empty ID: 0x18fed0c0full_charge_capacity Result converted value: 103.84
+charging_voltage Result Swapped Hex: 29400at_rate_time_to_empty Result Swapped Hex: 65535at_rate_time_to_full Result Hex: ['0xff', '0xff', '0x1', '0x0', '0x5', '0x1', '0xff', '0x0']
+rel_state_of_charge Result Hex: ['0x5b', '0x0', '0x1', '0x0', '0xe', '0x1', '0xff', '0x0']
+abs_state_of_charge Result Hex: ['0xff', '0xff', '0x1', '0x0', '0x11', '0x1', '0xff', '0x0']avg_time_to_full Result Hex: ['0xff', '0xff', '0x1', '0x0', '0x12', '0x1', '0xff', '0x0']at_rate_ok_text Result Hex: ['0x1', '0x0', '0x1', '0x0', '0x7', '0x1', '0xff', '0x0']
+
+at_rate Result Hex: ['0x0', '0x0', '0x1', '0x0', '0x4', '0x1', '0xff', '0x0']
+
+
+max_error Result Hex: ['0x60', '0x0', '0x1', '0x0', '0xd', '0x1', '0xff', '0x0']
+run_time_to_empty ID: 0x18fed0c0
+
+
+at_rate_ok_text Result Swapped Hex: 1
+
+charging_voltage Result decimal_value: 29400
+at_rate_time_to_full Result Swapped Hex: 65535
+rel_state_of_charge Result Swapped Hex: 91
+run_time_to_empty Result Hex: ['0x4f', '0x0', '0x1', '0x0', '0x13', '0x1', '0xff', '0x0']avg_time_to_full Result Swapped Hex: 65535
+Call Name : full_charge_capacity
+at_rate Result Swapped Hex: 0at_rate_time_to_empty Result decimal_value: 65535charging_voltage Result converted value: 29.4
+at_rate_time_to_full Result decimal_value: 65535
+rel_state_of_charge Result decimal_value: 91
+avg_time_to_empty Result Hex: ['0x2', '0x0', '0x1', '0x0', '0xc', '0x1', '0xff', '0x0']avg_time_to_full Result decimal_value: 65535at_rate_ok_text Result decimal_value: 1
+
+
+max_error Result Swapped Hex: 96
+abs_state_of_charge Result Swapped Hex: 65535at_rate_time_to_full Result converted value: 65.5
+
+avg_time_to_empty Result Swapped Hex: 2
+at_rate Result decimal_value: 0at_rate_time_to_empty Result converted value: 65.5
+
+
+
+run_time_to_empty Result Swapped Hex: 79Call Name : at_rate_time_to_full
+
+avg_time_to_empty Result decimal_value: 2
+Call Name : charging_voltage
+max_error Result decimal_value: 96rel_state_of_charge Result converted value: 0abs_state_of_charge Result decimal_value: 65535
+
+avg_time_to_full Result converted value: 0at_rate_ok_text Result converted value: Yes
+at_rate Result converted value: 0.0Call Name : at_rate_time_to_empty
+
+
+run_time_to_empty Result decimal_value: 79
+
+avg_time_to_empty Result converted value: 6553.5
+
+Call Name : rel_state_of_chargemax_error Result converted value: 2abs_state_of_charge Result converted value: 91
+run_time_to_empty Result converted value: 6553.5Call Name : at_rate_ok_text
+Call Name : at_rate
+
+
+Call Name : avg_time_to_full
+
+Call Name : avg_time_to_empty
+Call Name : max_errorCall Name : abs_state_of_chargeCall Name : run_time_to_empty
+
+
+
+
+serial_number:0
+design_capacity:0
+design_voltage:0
+manufacturer_date:0
+remaining_capacity:0
+temperature:0
+current:0
+voltage:0
+battery_status:0
+cycle_count:0
+avg_current:0
+charging_current:0
+serial_number ID: 0x18fed0c0
+serial_number Result Hex: ['0xc4', '0x5', '0x1', '0x0', '0x1c', '0x1', '0xff', '0x0']
+design_capacity ID: 0x18fed0c0
+serial_number Result Swapped Hex: 1476design_capacity Result Hex: ['0xa5', '0xa', '0x1', '0x0', '0x18', '0x1', '0xff', '0x0']design_voltage ID: 0x18fed0c0
+
+
+design_voltage Result Hex: ['0x70', '0x62', '0x1', '0x0', '0x19', '0x1', '0xff', '0x0']manufacturer_date ID: 0x18fed0c0
+serial_number Result decimal_value: 1476manufacturer_date Result Hex: ['0xb1', '0x56', '0x1', '0x0', '0x1b', '0x1', '0xff', '0x0']
+remaining_capacity ID: 0x18fed0c0
+
+design_capacity Result Swapped Hex: 2725
+
+remaining_capacity Result Hex: ['0xa6', '0x9', '0x1', '0x0', '0xf', '0x1', '0xff', '0x0']design_voltage Result Swapped Hex: 25200manufacturer_date Result Swapped Hex: 22193design_capacity Result decimal_value: 2725current ID: 0x18fed0c0
+serial_number Result converted value: 1476
+
+
+
+temperature ID: 0x18fed0c0
+
+Call Name : serial_numberdesign_voltage Result decimal_value: 25200
+design_capacity Result converted value: 109.0
+temperature Result Hex: ['0x59', '0x0', '0x1', '0x0', '0xa', '0x1', '0xff', '0x0']
+temperature Result Swapped Hex: 89manufacturer_date Result decimal_value: 22193design_voltage Result converted value: 25.2
+Call Name : design_voltage
+battery_status ID: 0x18fed0c0
+
+
+current Result Hex: ['0xd4', '0xb', '0x1', '0x0', '0x8', '0x1', '0xff', '0x0']Call Name : design_capacityremaining_capacity Result Swapped Hex: 2470voltage ID: 0x18fed0c0
+full_charge_capacity:0temperature Result decimal_value: 89manufacturer_date Result converted value: 22193
+charging_voltage:0
+
+cycle_count ID: 0x18fed0c0
+voltage Result Hex: ['0x62', '0x70', '0x1', '0x0', '0x9', '0x1', '0xff', '0x0']at_rate_time_to_full:0
+
+current Result Swapped Hex: 3028
+remaining_capacity Result decimal_value: 2470
+battery_status Result Hex: ['0x80', '0x0', '0x1', '0x0', '0x16', '0x1', '0xff', '0x0']
+voltage Result Swapped Hex: 28770
+temperature Result converted value: 29.7Call Name : manufacturer_date
+
+remaining_capacity Result converted value: 98.8
+
+
+voltage Result decimal_value: 28770
+avg_current ID: 0x18fed0c0
+current Result decimal_value: 3028
+charging_current ID: 0x18fed0c0battery_status Result Swapped Hex: 128cycle_count Result Hex: ['0x4', '0x0', '0x1', '0x0', '0x17', '0x1', '0xff', '0x0']
+Call Name : temperature
+
+
+Call Name : remaining_capacity
+
+avg_current Result Hex: ['0x5e', '0x0', '0x1', '0x0', '0xb', '0x1', '0xff', '0x0']current Result converted value: 3.56voltage Result converted value: 28.8at_rate_time_to_empty:0
+cycle_count Result Swapped Hex: 4
+charging_current Result Hex: ['0xe2', '0x4', '0x1', '0x0', '0x14', '0x1', '0xff', '0x0']battery_status Result decimal_value: 128
+
+
+
+
+
+
+avg_current Result Swapped Hex: 94Call Name : voltageat_rate_ok_text:0cycle_count Result decimal_value: 4at_rate:0{'Overcharged Alarm': 1, 'Terminate Charge Alarm': 0, 
+'Over Temperature Alarm': 0, 'Terminate Discharge Alarm': 0, 'Remaining Capacity Alarm': 0, 'Remaining Time Alarm': 0, 'Initialization': 0, 'Charge FET Test': 0, 'Fully Charged': 0, 'Fully Discharged': 0, 'Error Codes': 0}
+
+Call Name : current
+
+
+charging_current Result Swapped Hex: 1250
+avg_current Result decimal_value: 94
+cycle_count Result converted value: 4
+rel_state_of_charge:0battery_status Result converted value: 1000000000000000
+
+charging_current Result decimal_value: 1250
+abs_state_of_charge:0Call Name : cycle_count
+
+avg_current Result converted value: 3.76
+
+Call Name : battery_statuscharging:1250
+
+
+Call Name : avg_currentcharging currentmA:50000
+
+charging currentA:50.0avg_time_to_empty:0
+
+run_time_to_empty:0avg_time_to_full:0charging_current Result converted value: 50.0
+
+
+Call Name : charging_current
+max_error:0
+full_charge_capacity ID: 0x18fed0c0
+full_charge_capacity Result Hex: ['0xd8', '0x72', '0x1', '0x0', '0x15', '0x1', '0xff', '0x0']
+full_charge_capacity Result Swapped Hex: 29400
+full_charge_capacity Result decimal_value: 29400
+charging_voltage ID: 0x18fed0c0at_rate_time_to_full ID: 0x18fed0c0
+full_charge_capacity Result converted value: 103.84
+at_rate_time_to_empty ID: 0x18fed0c0at_rate_ok_text ID: 0x18fed0c0at_rate_time_to_full Result Hex: ['0xff', '0xff', '0x1', '0x0', '0x5', '0x1', '0xff', '0x0']
+
+Call Name : full_charge_capacity
+rel_state_of_charge ID: 0x18fed0c0
+at_rate_ok_text Result Hex: ['0x1', '0x0', '0x1', '0x0', '0x7', '0x1', '0xff', '0x0']
+abs_state_of_charge ID: 0x18fed0c0charging_voltage Result Hex: ['0x24', '0xa', '0x1', '0x0', '0x10', '0x1', '0xff', '0x0']
+at_rate_time_to_empty Result Hex: ['0xff', '0xff', '0x1', '0x0', '0x6', '0x1', '0xff', '0x0']avg_time_to_empty ID: 0x18fed0c0
+at_rate ID: 0x18fed0c0avg_time_to_full ID: 0x18fed0c0at_rate_time_to_full Result Swapped Hex: 65535run_time_to_empty ID: 0x18fed0c0
+
+
+max_error ID: 0x18fed0c0
+
+
+rel_state_of_charge Result Hex: ['0x60', '0x0', '0x1', '0x0', '0xd', '0x1', '0xff', '0x0']
+
+at_rate_ok_text Result Swapped Hex: 1run_time_to_empty Result Hex: ['0x50', '0x0', '0x1', '0x0', '0x13', '0x1', '0xff', '0x0']abs_state_of_charge Result Hex: ['0x5b', '0x0', '0x1', '0x0', '0xe', '0x1', '0xff', '0x0']charging_voltage Result Swapped Hex: 2596
+avg_time_to_empty Result Hex: ['0xff', '0xff', '0x1', '0x0', '0x11', '0x1', '0xff', '0x0']at_rate_time_to_empty Result Swapped Hex: 65535
+
+rel_state_of_charge Result Swapped Hex: 96at_rate_time_to_full Result decimal_value: 65535
+
+
+
+max_error Result Hex: ['0x2', '0x0', '0x1', '0x0', '0xc', '0x1', '0xff', '0x0']
+at_rate Result Hex: ['0x0', '0x0', '0x1', '0x0', '0x4', '0x1', '0xff', '0x0']at_rate_time_to_empty Result decimal_value: 65535
+
+
+at_rate_ok_text Result decimal_value: 1run_time_to_empty Result Swapped Hex: 80abs_state_of_charge Result Swapped Hex: 91charging_voltage Result decimal_value: 2596    
+avg_time_to_empty Result Swapped Hex: 65535
+avg_time_to_full Result Hex: ['0xff', '0xff', '0x1', '0x0', '0x12', '0x1', '0xff', '0x0']at_rate_time_to_empty Result converted value: 65.5
+at_rate_time_to_full Result converted value: 65.5
+
+
+
+max_error Result Swapped Hex: 2
+at_rate Result Swapped Hex: 0
+rel_state_of_charge Result decimal_value: 96
+
+at_rate_ok_text Result converted value: Yesrun_time_to_empty Result decimal_value: 80abs_state_of_charge Result decimal_value: 91charging_voltage Result converted value: 29.4
+avg_time_to_empty Result decimal_value: 65535
+avg_time_to_full Result Swapped Hex: 65535
+rel_state_of_charge Result converted value: 96Call Name : at_rate_time_to_full
+
+
+
+max_error Result decimal_value: 2
+at_rate Result decimal_value: 0
+avg_time_to_full Result decimal_value: 65535
+
+Call Name : at_rate_ok_textrun_time_to_empty Result converted value: 6553.5abs_state_of_charge Result converted value: 91Call Name : charging_voltage
+avg_time_to_empty Result converted value: 6553.5Call Name : at_rate_time_to_emptyat_rate Result converted value: 0.0
+Call Name : rel_state_of_charge
+
+
+
+avg_time_to_full Result converted value: 0.1
+
+
+
+max_error Result converted value: 2Call Name : run_time_to_emptyCall Name : abs_state_of_charge
+Call Name : avg_time_to_empty
+Call Name : avg_time_to_full
+
+
+max_error Result converted value: 2Call Name : run_time_to_emptyCall Name : abs_state_of_charge
+Call Name : avg_time_to_empty
+Call Name : avg_time_to_full
+max_error Result converted value: 2Call Name : run_time_to_emptyCall Name : abs_state_of_charge
+Call Name : avg_time_to_empty
+Call Name : avg_time_to_full
+Call Name : avg_time_to_empty
+Call Name : avg_time_to_full
+Call Name : avg_time_to_full
+
+
+Call Name : at_rateCall Name : max_error
