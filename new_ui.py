@@ -98,15 +98,15 @@ class MainWindow:
 if __name__ == "__main__":
     # Create the root window
     root = tk.Tk()
-    # # Hide the main window while the splash screen is displayed
-    # root.withdraw()
+    # Hide the main window while the splash screen is displayed
+    root.withdraw()
 
-    # # Create and show the splash screen
-    # splash = SplashScreen(root)
-    # splash.update()
+    # Create and show the splash screen
+    splash = SplashScreen(root)
+    splash.update()
 
-    # # After the splash screen is closed, show the main window
-    # root.after(5000, lambda: (splash.destroy(), root.deiconify()))
+    # After the splash screen is closed, show the main window
+    root.after(5000, lambda: (splash.destroy(), root.deiconify()))
 
     # Initialize and run the main application
     app = MainWindow(root)

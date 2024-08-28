@@ -198,7 +198,7 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
         if result == 5120:
             result = 512
         messagebox.showerror("Error!", GetFormatedError(result))
-        return False
+        return True
     else:
         pcan_write_read('serial_number')
         if device_data['serial_number'] != 0:
@@ -460,6 +460,7 @@ def pcan_read(call_name):
 
 
 def convert_data(command_code, decimal_value):
+    global battery_status_flags
     # Conversion rules
     if command_code == 0x04:  # AtRate: mA / 40 unsigned
         device_data['at_rate'] = (decimal_value*40)/1000
@@ -666,6 +667,7 @@ def pcan_write_control(call_name):
 
 
 def reset_device_data_to_default():
+    global device_data
     device_data = {
         'device_name': "",
         'serial_number': 0,
@@ -696,5 +698,3 @@ def reset_device_data_to_default():
         'avg_time_to_full': 0,
         'max_error': 0
     }
-
-    device_data = device_data
