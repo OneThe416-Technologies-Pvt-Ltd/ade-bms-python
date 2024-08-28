@@ -1354,5 +1354,25 @@ _tkinter.TclError: invalid command name ".!frame.!frame2.!frame12.!checkbutton"
 2) dashboard labels: device name, serial number, manufature name, cycle count, charging/discharging battery_status [Done]
 3) if serial number is not read properly disconnect and connect automatically [Done]
 4) when we close or disconnect the battery turn off all the controls that curently turned on  [Done]
-5) when refresh or disconnect set device_data to default
+5) when refresh or disconnect set device_data to default  [Done]
 6) 
+
+ Example: Accessing Battery Status Flags
+
+battery_status_flags = device_data.get('battery_status_flags', {})
+
+if battery_status_flags:
+    print("Battery Status Flags:")
+    print(f"Overcharged Alarm: {battery_status_flags.get('Overcharged Alarm')}")
+    print(f"Terminate Charge Alarm: {battery_status_flags.get('Terminate Charge Alarm')}")
+    print(f"Over Temperature Alarm: {battery_status_flags.get('Over Temperature Alarm')}")
+    print(f"Terminate Discharge Alarm: {battery_status_flags.get('Terminate Discharge Alarm')}")
+    print(f"Remaining Capacity Alarm: {battery_status_flags.get('Remaining Capacity Alarm')}")
+    print(f"Remaining Time Alarm: {battery_status_flags.get('Remaining Time Alarm')}")
+    print(f"Initialization: {battery_status_flags.get('Initialization')}")
+    print(f"Charge FET Test: {battery_status_flags.get('Charge FET Test')}")
+    print(f"Fully Charged: {battery_status_flags.get('Fully Charged')}")
+    print(f"Fully Discharged: {battery_status_flags.get('Fully Discharged')}")
+    print(f"Error Codes: {battery_status_flags.get('Error Codes')}")
+else:
+    print("Battery status flags are not available.")

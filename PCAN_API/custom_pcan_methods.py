@@ -32,6 +32,7 @@ name_mapping = {
             "run_time_to_empty": "Run Time To Empty",
             "avg_time_to_empty": "Avg Time To Empty",
             "avg_time_to_full": "Avg Time To Full",
+            "charging_battery_status": "Charging Status",
             "max_error": "Max Error",
             "temperature": "Temperature",
             "current": "Current",
@@ -61,6 +62,7 @@ unit_mapping = {
     "abs_state_of_charge": "Percent",
     "run_time_to_empty": "minutes",
     "avg_time_to_empty": "minutes",
+    "charging_battery_status": "string",
     "avg_time_to_full": "minutes",
     "max_error": "Percent",
     "temperature": "°C",
@@ -74,10 +76,10 @@ unit_mapping = {
 }
 
 device_data = {
-            'device_name': "",
-            'serial_number': 0,
+            'device_name': "test1223",
+            'serial_number': 1477,
             'manufacturer_date': 0,
-            'manufacturer_name': "",
+            'manufacturer_name': "Bre-noics",
             'firmware_version': "",
             'battery_status': "",
             'cycle_count': 0,
@@ -104,6 +106,19 @@ device_data = {
             'max_error': 0
         } 
 
+battery_status_flags = {
+        "Overcharged Alarm": 0,
+        "Terminate Charge Alarm": 1,
+        "Over Temperature Alarm": 0,
+        "Terminate Discharge Alarm": 1,
+        "Remaining Capacity Alarm": 0,
+        "Remaining Time Alarm": 1,
+        "Initialization": 0,
+        "Charge FET Test": 1,
+        "Fully Charged": 0,
+        "Fully Discharged": 1,
+        "Error Codes": 3,  # Example value, this should be set accordingly
+}
 
 # async def fetch_and_store_data(call_name, key):
 #     value = await pcan_write_read(call_name)  # Assuming pcan_write_read is async
@@ -351,8 +366,8 @@ def pcan_read(call_name):
 
         if newMsg.ID == 0x1CECFFC0 or newMsg.ID == 0x1CEBFFC0:
             if newMsg.ID == 0x1CECFFC0:
-                hex_string1=''
-                hex_string2=''
+                hex_string1 = ''
+                hex_string2 = ''
                 result = m_objPCANBasic.Read(m_PcanHandle)
                 if result[0] != PCAN_ERROR_OK:
                     return result[0]
@@ -361,6 +376,7 @@ def pcan_read(call_name):
                     theMsg = args[0]
                     byte_values1 = [hex(theMsg.DATA[i]) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
                     hex_string1 = ''.join(format(int(h, 16), '02X') for h in byte_values1)
+
                 result = m_objPCANBasic.Read(m_PcanHandle)
                 if result[0] != PCAN_ERROR_OK:
                     return result[0]
@@ -369,11 +385,14 @@ def pcan_read(call_name):
                     theMsg2 = args[0]
                     byte_values2 = [hex(theMsg2.DATA[i]) for i in range(8 if (theMsg2.LEN > 8) else theMsg2.LEN)]
                     hex_string2 = ''.join(format(int(h, 16), '02X') for h in byte_values2)
+
+                # Convert hex strings to ASCII and filter out non-printable characters
                 ascii_string1 = ''.join(chr(b) for b in bytes.fromhex(hex_string1) if 32 <= b <= 126)
                 ascii_string2 = ''.join(chr(b) for b in bytes.fromhex(hex_string2) if 32 <= b <= 126)
 
                 # Join the two ASCII strings
-                final_string = ascii_string1 + ascii_string2
+                final_string = (ascii_string1 + ascii_string2).rstrip()
+
                 if call_name == 'manufacturer_name':
                     convert_data('manufacturer_name', final_string)
                 elif call_name == 'device_name':
@@ -485,7 +504,28 @@ def convert_data(command_code, decimal_value):
     elif command_code == 0x15:  # ChargingVoltage: mV unsigned
         device_data['charging_voltage'] = round((decimal_value / 1000),1)
     elif command_code == 0x16:  # BatteryStatus: bit flags unsigned
-        device_data['battery_status'] = hex(decimal_value)
+        binary_value = format(decimal_value, '016b')  # Convert to 16-bit binary string
+        
+        # Swap the bytes before interpreting the bits
+        swapped_value = binary_value[8:] + binary_value[:8]
+        
+        # Update the battery_status_flags dictionary with the interpreted flags
+        battery_status_flags = {
+            "Overcharged Alarm": int(swapped_value[0]),  # Bit 15
+            "Terminate Charge Alarm": int(swapped_value[1]),  # Bit 14
+            "Over Temperature Alarm": int(swapped_value[3]),  # Bit 12
+            "Terminate Discharge Alarm": int(swapped_value[4]),  # Bit 11
+            "Remaining Capacity Alarm": int(swapped_value[6]),  # Bit 9
+            "Remaining Time Alarm": int(swapped_value[7]),  # Bit 8
+            "Initialization": int(swapped_value[8]),  # Bit 7
+            "Charge FET Test": int(swapped_value[9]),  # Bit 6
+            "Fully Charged": int(swapped_value[10]),  # Bit 5
+            "Fully Discharged": int(swapped_value[11]),  # Bit 4
+            "Error Codes": int(swapped_value[12:], 2)  # Bits 3:0, convert remaining bits to an integer
+        }
+
+        # Example usage
+        print(battery_status_flags)
     elif command_code == 0x17:  # CycleCount: Count unsigned
         device_data['cycle_count'] = decimal_value
     elif command_code == 0x18:  # DesignCapacity: mAh / 40 unsigned
@@ -541,6 +581,8 @@ def pcan_write_control(call_name):
             CANMsg.DATA[0] = int('03',16)
             if call_name == 'both_off':
                 CANMsg.DATA[1] = int('01',16)
+            elif call_name == 'heater_on':
+                CANMsg.DATA[1] = int('05',16)
             else:
                 CANMsg.DATA[1] = int('00',16)
             if call_name == 'both_off':
