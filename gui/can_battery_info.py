@@ -509,9 +509,9 @@ class CanBatteryInfo:
 
        # Determine if we are in Testing Mode or Maintenance Mode
        selected_mode = self.mode_var.get()
-       limited = selected_mode == "Testing Mode"   
+       self.limited = selected_mode == "Testing Mode"   
        # Add a new right-side frame for controls
-       if not limited:
+       if not self.limited:
            right_control_frame = ttk.Labelframe(self.content_frame, text="Controls", bootstyle="primary")
            right_control_frame.pack(fill="both", expand=True, padx=10, pady=10, side="right")   
            self.reset_icon = self.load_icon("assets/images/reset.png")
@@ -605,7 +605,7 @@ class CanBatteryInfo:
        self.info_table.heading('Value', text='Value', anchor='center')
        self.info_table.heading('Units', text='Units', anchor='center')   
        self.info_table.pack(fill="both", expand=True)   
-       if limited:
+       if self.limited:
            # Insert limited data for Testing Mode
            limited_data_keys = [
                 'device_name', 
@@ -634,11 +634,11 @@ class CanBatteryInfo:
                self.info_table.insert('', 'end', values=(name, value, unit))   
        self.status_frame = ttk.Labelframe(self.content_frame, text="Battery Status", bootstyle="primary")
        self.status_frame.pack(fill="both", expand=True, padx=10, pady=10)   
-       if limited:
+       if self.limited:
            limited_status_flags = {
-               "Over Temperature Alarm": battery_status_flags.get('Over Temperature Alarm'),
-               "Fully Charged": battery_status_flags.get('Fully Charged'),
-               "Fully Discharged": battery_status_flags.get('Fully Discharged')
+               "Over Temperature Alarm": battery_status_flags.get('over_temperature_alarm'),
+               "Fully Charged": battery_status_flags.get('fully_charged'),
+               "Fully Discharged": battery_status_flags.get('fully_discharged')
            }
            self.display_status_labels(self.status_frame, limited_status_flags)
        else:
@@ -715,6 +715,34 @@ class CanBatteryInfo:
             # Clear the existing table rows
             for item in self.info_table.get_children():
                 self.info_table.delete(item)
+
+            if self.limited:
+                # Insert limited data for Testing Mode
+                limited_data_keys = [
+                     'device_name', 
+                     'serial_number', 
+                     'manufacturer_name', 
+                     'cycle_count',
+                     'remaining_capacity', 
+                     'temperature', 
+                     'current', 
+                     'voltage', 
+                     'charging_current', 
+                     'charging_voltage', 
+                     'charging_battery_status', 
+                     'rel_state_of_charge'
+                 ]
+                for index,key in enumerate(limited_data_keys):
+                    name = name_mapping.get(key, key)
+                    value = device_data.get(key, 'N/A')
+                    unit = unit_mapping.get(key, '')
+                    self.info_table.insert('', 'end', values=(name, value, unit), tags=('evenrow' if index % 2 == 0 else 'oddrow'))
+            else:
+                # Insert full data for Maintenance Mode
+                for index, (key, value) in enumerate(device_data.items()):
+                    name = name_mapping.get(key, key)
+                    unit = unit_mapping.get(key, '')
+                    self.info_table.insert('', 'end', values=(name, value, unit), tags=('evenrow' if index % 2 == 0 else 'oddrow')) 
     
             # Repopulate the table with updated data
             for index, (key, value) in enumerate(device_data.items()):
@@ -722,7 +750,15 @@ class CanBatteryInfo:
                 unit = unit_mapping.get(key, key)
                 self.info_table.insert('', 'end', values=(name, value, unit), tags=('evenrow' if index % 2 == 0 else 'oddrow'))
             # Update the battery status flags
-            self.display_status_labels(self.status_frame, battery_status_flags)
+            if self.limited:
+                limited_status_flags = {
+                    "Over Temperature Alarm": battery_status_flags.get('Over Temperature Alarm'),
+                    "Fully Charged": battery_status_flags.get('Fully Charged'),
+                    "Fully Discharged": battery_status_flags.get('Fully Discharged')
+                }
+                self.display_status_labels(self.status_frame, limited_status_flags)
+            else:
+                self.display_status_labels(self.status_frame, battery_status_flags)
             self.master.after(5000, self.auto_refresh)
 
     def refresh_info(self):
@@ -737,7 +773,15 @@ class CanBatteryInfo:
             unit = unit_mapping.get(key, key)
             self.info_table.insert('', 'end', values=(name, value, unit), tags=('evenrow' if index % 2 == 0 else 'oddrow'))
         # Update the battery status flags
-        self.display_status_labels(self.status_frame, battery_status_flags)
+        if self.limited:
+           limited_status_flags = {
+               "Over Temperature Alarm": battery_status_flags.get('over_temperature_alarm'),
+               "Fully Charged": battery_status_flags.get('Fully Charged'),
+               "Fully Discharged": battery_status_flags.get('Fully Discharged')
+           }
+           self.display_status_labels(self.status_frame, limited_status_flags)
+        else:
+           self.display_status_labels(self.status_frame, battery_status_flags)
     
     def start_logging(self):
         self.logging_active = True

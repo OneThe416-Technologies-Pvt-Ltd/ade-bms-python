@@ -106,19 +106,7 @@ device_data = {
             'max_error': 0
         } 
 
-battery_status_flags = {
-        "Overcharged Alarm": 0,
-        "Terminate Charge Alarm": 1,
-        "Over Temperature Alarm": 0,
-        "Terminate Discharge Alarm": 1,
-        "Remaining Capacity Alarm": 0,
-        "Remaining Time Alarm": 1,
-        "Initialization": 0,
-        "Charge FET Test": 1,
-        "Fully Charged": 0,
-        "Fully Discharged": 1,
-        "Error Codes": 3,  # Example value, this should be set accordingly
-}
+battery_status_flags = {}
 
 # async def fetch_and_store_data(call_name, key):
 #     value = await pcan_write_read(call_name)  # Assuming pcan_write_read is async
@@ -542,7 +530,7 @@ def convert_data(command_code, decimal_value):
         battery_status_flags = {
             "Overcharged Alarm": int(swapped_value[0]),  # Bit 15
             "Terminate Charge Alarm": int(swapped_value[1]),  # Bit 14
-            "Over Temperature Alarm": int(swapped_value[3]),  # Bit 12
+            "over_temperature_alarm": int(swapped_value[3]),  # Bit 12
             "Terminate Discharge Alarm": int(swapped_value[4]),  # Bit 11
             "Remaining Capacity Alarm": int(swapped_value[6]),  # Bit 9
             "Remaining Time Alarm": int(swapped_value[7]),  # Bit 8
