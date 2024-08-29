@@ -636,7 +636,7 @@ class CanBatteryInfo:
        self.status_frame.pack(fill="both", expand=True, padx=10, pady=10)   
        if limited:
            limited_status_flags = {
-               "Over Temperature": battery_status_flags.get('Over Temperature'),
+               "Over Temperature Alarm": battery_status_flags.get('Over Temperature Alarm'),
                "Fully Charged": battery_status_flags.get('Fully Charged'),
                "Fully Discharged": battery_status_flags.get('Fully Discharged')
            }
