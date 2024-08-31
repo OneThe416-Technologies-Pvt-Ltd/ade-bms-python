@@ -66,26 +66,26 @@ class MainWindow:
         self.battery_info.show_dashboard()
     
     def show_rs_battery_info(self, event=None):
-        # self.notebook.pack_forget()
+        self.notebook.pack_forget()
     
-        # # Set the desired size for the battery info window
-        # self.center_window(1200, 600)  # Adjust the width and height as necessary
-        # if not self.battery_info:
-        #     self.battery_info = RSBatteryInfo(self.master, self)  # Pass the reference to the MainWindow
-        # else:
-        #     self.battery_info.main_frame.pack(fill="both", expand=True)
+        # Set the desired size for the battery info window
+        self.center_window(1200, 600)  # Adjust the width and height as necessary
+        if not self.battery_info:
+            self.battery_info = RSBatteryInfo(self.master, self)  # Pass the reference to the MainWindow
+        else:
+            self.battery_info.main_frame.pack(fill="both", expand=True)
         
-        # # Show the dashboard by default
+        # Show the dashboard by default
         # self.battery_info.show_dashboard()
 
         # Path to the .exe file
         #exe_path = os.path.join(base_dir, 'C:\Program Files\PostgreSQL\16\pgAdmin 4\runtime\pgAdmin4.exe')  # Replace with the actual path to the .exe file
-        exe_path = r'C:\Program Files\PostgreSQL\16\pgAdmin 4\runtime\pgAdmin4.exe'
-        # Open the .exe file
-        try:
-            subprocess.Popen(exe_path)  # This will open the .exe file
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to open the .exe file: {e}")
+        # exe_path = r'C:\Program Files\PostgreSQL\16\pgAdmin 4\runtime\pgAdmin4.exe'
+        # # Open the .exe file
+        # try:
+        #     subprocess.Popen(exe_path)  # This will open the .exe file
+        # except Exception as e:
+        #     messagebox.showerror("Error", f"Failed to open the .exe file: {e}")
 
     def show_main_window(self):
         if self.battery_info:
@@ -99,14 +99,14 @@ if __name__ == "__main__":
     # Create the root window
     root = tk.Tk()
     # Hide the main window while the splash screen is displayed
-    root.withdraw()
+    # root.withdraw()
 
-    # Create and show the splash screen
-    splash = SplashScreen(root)
-    splash.update()
+    # # Create and show the splash screen
+    # splash = SplashScreen(root)
+    # splash.update()
 
-    # After the splash screen is closed, show the main window
-    root.after(5000, lambda: (splash.destroy(), root.deiconify()))
+    # # After the splash screen is closed, show the main window
+    # root.after(5000, lambda: (splash.destroy(), root.deiconify()))
 
     # Initialize and run the main application
     app = MainWindow(root)

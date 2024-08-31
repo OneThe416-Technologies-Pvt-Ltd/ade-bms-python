@@ -5,10 +5,10 @@ import platform
 
 # Constants for the port and configuration
 PORT = 2  # COM2
-BAUD_RATE = 38400
+BAUD_RATE = 19200
 PARITY_NONE = 0x00
-DATA_BITS_8 = 0x03
-STOP_BITS_1 = 0x00
+DATA_BITS_8 = 0x08
+STOP_BITS_1 = 0x01
 BUFFER_SIZE = 256
 
 # Load the PComm library
