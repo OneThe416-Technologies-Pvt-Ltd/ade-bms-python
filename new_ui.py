@@ -17,7 +17,7 @@ base_dir = os.path.dirname(__file__)
 class MainWindow:
     def __init__(self, master):
         self.master = master
-        self.master.title("Connection Settings")
+        self.master.title("ADE BMS")
         self.center_window(500, 400)  # Center the window with the given width and height
         self.master.iconbitmap(os.path.join(base_dir, 'assets/logo/drdo_icon.ico'))
         self.master.resizable(False, False)
@@ -42,8 +42,9 @@ class MainWindow:
         self.rs_connection = RSConnection(self.rs_frame, self)
         self.rs_connection.pack(fill="both", expand=True)
 
-         # Initialize the CanBatteryInfo frame
-        self.battery_info = None
+        # Initialize the CanBatteryInfo and RSBatteryInfo frames separately
+        self.can_battery_info = None
+        self.rs_battery_info = None
 
     def center_window(self, width, height):
         # Calculate x and y coordinates to center the window
@@ -54,29 +55,34 @@ class MainWindow:
         self.master.geometry(f'{width}x{height}+{x}+{y}')
     
     def show_can_battery_info(self, event=None):
+        if self.rs_battery_info:
+            self.rs_battery_info.main_frame.pack_forget()
+        
         self.notebook.pack_forget()
         # Set the desired size for the battery info window
         self.center_window(1200, 600)
-        if not self.battery_info:
-            self.battery_info = CanBatteryInfo(self.master, self)  # Pass the reference to the MainWindow
+        if not self.can_battery_info:
+            self.can_battery_info = CanBatteryInfo(self.master, self)  # Pass the reference to the MainWindow
         else:
-            self.battery_info.main_frame.pack(fill="both", expand=True)
+            self.can_battery_info.main_frame.pack(fill="both", expand=True)
         
         # Show the dashboard by default
-        self.battery_info.show_dashboard()
+        self.can_battery_info.show_dashboard()
     
     def show_rs_battery_info(self, event=None):
+        if self.can_battery_info:
+            self.can_battery_info.main_frame.pack_forget()
+        
         self.notebook.pack_forget()
-    
         # Set the desired size for the battery info window
-        self.center_window(1200, 600)  # Adjust the width and height as necessary
-        if not self.battery_info:
-            self.battery_info = RSBatteryInfo(self.master, self)  # Pass the reference to the MainWindow
+        self.center_window(1200, 600)
+        if not self.rs_battery_info:
+            self.rs_battery_info = RSBatteryInfo(self.master, self)  # Pass the reference to the MainWindow
         else:
-            self.battery_info.main_frame.pack(fill="both", expand=True)
+            self.rs_battery_info.main_frame.pack(fill="both", expand=True)
         
         # Show the dashboard by default
-        # self.battery_info.show_dashboard()
+        # self.rs_battery_info.show_dashboard()
 
         # Path to the .exe file
         #exe_path = os.path.join(base_dir, 'C:\Program Files\PostgreSQL\16\pgAdmin 4\runtime\pgAdmin4.exe')  # Replace with the actual path to the .exe file
@@ -88,8 +94,11 @@ class MainWindow:
         #     messagebox.showerror("Error", f"Failed to open the .exe file: {e}")
 
     def show_main_window(self):
-        if self.battery_info:
-            self.battery_info.main_frame.pack_forget()
+        if self.can_battery_info:
+            self.can_battery_info.main_frame.pack_forget()
+        if self.rs_battery_info:
+            self.rs_battery_info.main_frame.pack_forget()
+        
         # Set the desired size for the main window when showing the notebook again
         self.center_window(500, 400)
         self.notebook.pack(fill="both", expand=True)

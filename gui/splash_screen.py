@@ -31,7 +31,7 @@ class SplashScreen(tk.Toplevel):
         # print("Splash Image Path:", splash_image_path)
         # splash_image_path = os.path.abspath(splash_image_path)
 
-        self.background_image = ImageTk.PhotoImage(Image.open('assets/images/splash_bg.png'))
+        self.background_image = ImageTk.PhotoImage(Image.open(os.path.join(base_dir,'../assets/images/splash_bg.png')))
         self.canvas = tk.Canvas(self, width=splash_width, height=splash_height)
         self.canvas.pack(fill="both", expand=True)
         self.canvas.create_image(splash_width // 2, splash_height // 2, anchor="center", image=self.background_image)
@@ -49,7 +49,7 @@ class SplashScreen(tk.Toplevel):
         # Load and display your logo at the bottom (adjust path accordingly)
         # logo_image_path = os.path.join(base_dir, '../assets/logo/ade_logo.png')
         # logo_image_path = os.path.abspath(logo_image_path)
-        self.logo_image = ImageTk.PhotoImage(Image.open('assets/logo/ade_logo.png'))
+        self.logo_image = ImageTk.PhotoImage(Image.open(os.path.join(base_dir, '../assets/logo/ade_logo.png')))
         logo_width = self.logo_image.width()
         logo_height = self.logo_image.height()
         self.canvas.create_image(splash_width // 2, splash_height - logo_height // 2 - 20, anchor="center", image=self.logo_image)
