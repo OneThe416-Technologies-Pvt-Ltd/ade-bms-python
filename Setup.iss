@@ -2,17 +2,17 @@
 ; Basic setup details
 AppName=ADE BMS Software
 AppVersion=1.0
-DefaultDirName={pf}\ADE BMS Software
+DefaultDirName={commonpf}\ADE BMS Software
 DefaultGroupName=ADE BMS Software
 OutputDir=output
-OutputBaseFilename=ADE BMS SoftwareInstaller
+OutputBaseFilename=ADE BMS Software Installer
 Compression=lzma
 SolidCompression=yes
 
 [Files]
 ; Add all the necessary files, including the .exe and any required assets
-Source: "dist\new_ui\ADE BMS.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "dist\new_ui\_internal\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\main\ADE BMS.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\main\_internal\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Include driver files for both Windows 10 and 11
 Source: "drivers\PeakOemDrv.exe"; DestDir: "{app}\drivers"; Flags: ignoreversion
 Source: "drivers\driv_win_uport_v3.3_build_23100317_whql.exe"; DestDir: "{app}\drivers\win10"; Flags: ignoreversion
@@ -36,19 +36,25 @@ Filename: "{app}\drivers\win11\driv_win_uport_v4.1_build_23092610_whql.exe"; Par
 ; Specify the file to run after installation
 Filename: "{app}\ADE BMS.exe"; Description: "Launch ADE BMS Software"; Flags: nowait postinstall skipifsilent
 
-[UninstallRun]
-; Run the driver uninstallation script when the application is uninstalled
-Filename: "{app}\drivers\uninstall_drivers.bat"; Description: "Uninstall Drivers"; Flags: waituntilterminated runhidden
-
 [Code]
 function IsWindows10: Boolean;
+var
+  Version: String;
 begin
-  Result := (RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Windows NT\CurrentVersion', 'CurrentVersion', '') = '10.0');
+  if RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Windows NT\CurrentVersion', 'CurrentVersion', Version) then
+    Result := (Version = '10.0')
+  else
+    Result := False;
 end;
 
 function IsWindows11: Boolean;
+var
+  BuildNumber: String;
 begin
-  Result := (RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Windows NT\CurrentVersion', 'CurrentBuild', '') >= '22000');
+  if RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Windows NT\CurrentVersion', 'CurrentBuild', BuildNumber) then
+    Result := (StrToIntDef(BuildNumber, 0) >= 22000)
+  else
+    Result := False;
 end;
 
 function IsSupportedWindowsVersion: Boolean;
@@ -56,7 +62,7 @@ begin
   Result := IsWindows10 or IsWindows11;
 end;
 
-procedure InitializeSetup(): Boolean;
+function InitializeSetup(): Boolean;
 begin
   if not IsSupportedWindowsVersion then
   begin

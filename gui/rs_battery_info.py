@@ -549,11 +549,7 @@ class RSBatteryInfo:
             widget.destroy()
 
     def on_disconnect(self):
-        self.mode_var.set("Testing Mode")
-        pcan_write_control('both_off')
-        time.sleep(1)
-        pcan_uninitialize()
-        self.first_time_dashboard = True
+        messagebox.showinfo("Info!", "Connection Disconnect!")
         self.main_frame.pack_forget()
         self.main_window.show_main_window()
         # Perform disconnection logic here (example: print disconnect message)
@@ -566,8 +562,8 @@ class RSBatteryInfo:
         style = ttk.Style()
 
         # Configure the Labelframe title font to be bold
-        style.configure("TLabelframe.Label", font=("Helvetica", 12, "bold"))
-        
+        style.configure("TLabelframe.Label", font=("Helvetica", 10, "bold"))
+
         # Determine if we are in Testing Mode or Maintenance Mode
         selected_mode = self.mode_var.get()
         self.limited = selected_mode == "Testing Mode" 
