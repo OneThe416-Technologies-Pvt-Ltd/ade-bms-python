@@ -79,7 +79,7 @@ class RSBatteryInfo:
         # self.dashboard_button.pack(fill="x", pady=5)
         self.info_button = ttk.Button(
             self.side_menu_frame,
-            text=" Information",
+            text=" Info        ",
             command=lambda: self.select_button(self.info_button, self.show_info),
             image=self.info_icon,
             compound="left",  # Place the icon to the left of the text
@@ -562,7 +562,7 @@ class RSBatteryInfo:
         style = ttk.Style()
 
         # Configure the Labelframe title font to be bold
-        style.configure("TLabelframe.Label", font=("Helvetica", 10, "bold"))
+        style.configure("TLabelframe.Label", font=("Helvetica", 8, "bold"))
 
         # Determine if we are in Testing Mode or Maintenance Mode
         selected_mode = self.mode_var.get()
@@ -595,33 +595,73 @@ class RSBatteryInfo:
 
         # Battery Section
         battery_frame = ttk.Labelframe(main_frame, text="Battery", bootstyle='dark')
-        battery_frame.grid(row=0, column=0, columnspan=2, rowspan=2, padx=10, pady=5, sticky="nsew")
+        battery_frame.grid(row=0, column=0, columnspan=8, rowspan=6, padx=10, pady=5, sticky="nsew")
+        # Frame 1 inside battery_frame
+        parameters_frame = ttk.Labelframe(battery_frame, text="Parameters", bootstyle='dark')
+        parameters_frame.grid(row=0, column=0, columnspan=8, rowspan=4, padx=5, pady=5, sticky="nsew")
+
+        # Add a label inside frame1
+        label_in_frame1 = ttk.Label(parameters_frame, text="Label in parameters_frame")
+        label_in_frame1.grid(row=0, column=1, padx=5, pady=5)
+
+        # Frame 2 inside battery_frame
+        ic_temp_frame = ttk.Labelframe(battery_frame, text="IC Temperature", bootstyle='dark')
+        ic_temp_frame.grid(row=4, column=0, columnspan=8, rowspan=2, padx=5, pady=5, sticky="nsew")
+
+        # Add a label inside frame1
+        label_in_frame2 = ttk.Label(ic_temp_frame, text="Label in ic_temp_frame")
+        label_in_frame2.grid(row=4, column=1, padx=5, pady=5)
+
+        # Frame 3 inside battery_frame
+        duration_frame = ttk.Labelframe(battery_frame, text="Duration", bootstyle='dark')
+        duration_frame.grid(row=6, column=0, columnspan=8, rowspan=2, padx=5, pady=5, sticky="nsew")
+
+        # Add a label inside frame1
+        label_in_frame3 = ttk.Label(duration_frame, text="Label in duration_frame")
+        label_in_frame3.grid(row=6, column=1, padx=5, pady=5)
 
         # Charger Section
         charger_frame = ttk.Labelframe(main_frame, text="Charger", bootstyle='dark')
-        charger_frame.grid(row=0, column=2, columnspan=2, rowspan=2, padx=10, pady=5, sticky="nsew")
+        charger_frame.grid(row=0, column=8, columnspan=4, rowspan=6, padx=10, pady=5, sticky="nsew")
 
         # Bus Section
         bus_frame = ttk.Labelframe(main_frame, text="BUS", bootstyle='dark')
-        bus_frame.grid(row=2, column=0, columnspan=1, rowspan=2, padx=10, pady=5, sticky="nsew")
+        bus_frame.grid(row=6, column=0, columnspan=4, rowspan=6, padx=10, pady=5, sticky="nsew")
 
         # Heater Pad Section
         heater_frame = ttk.Labelframe(main_frame, text="Heater Pad", bootstyle='dark')
-        heater_frame.grid(row=2, column=1, padx=2, pady=5, sticky="nsew")  # Row 2, Column 0
+        heater_frame.grid(row=6, column=4,columnspan=4, rowspan=2, padx=2, pady=5, sticky="nsew")  # Row 2, Column 0
 
         # Watch Dog Section
         watch_frame = ttk.Labelframe(main_frame, text="Watch Dog", bootstyle='dark')
-        watch_frame.grid(row=3, column=1, padx=2, pady=5, sticky="nsew")  # Row 3, Column 0
+        watch_frame.grid(row=8, column=4,columnspan=4, rowspan=2, padx=2, pady=5, sticky="nsew")  # Row 3, Column 0
 
         # Interlock Section
         interlock_frame = ttk.Labelframe(main_frame, text="Interlock", bootstyle='dark')
-        interlock_frame.grid(row=4, column=1, padx=2, pady=5, sticky="nsew")  # Row 4, Column 0
+        interlock_frame.grid(row=10, column=4,columnspan=4, rowspan=2, padx=2, pady=5, sticky="nsew")  # Row 4, Column 0
+
+        reset_bat_param_button = ttk.Button(
+            main_frame, 
+            text="Reset Bat Param"
+        )
+        reset_bat_param_button.grid(row=6, column=8, columnspan=2, padx=10, pady=10, sticky="nsew")
+
+        exit_button = ttk.Button(
+            main_frame, 
+            text="Exit"
+        )
+        exit_button.grid(row=6, column=11, columnspan=1, padx=10, pady=10, sticky="nsew")
+
+        # Add the Text widget (textarea)
+        textarea = tk.Text(main_frame, height=10, width=40)
+        textarea.grid(row=8, column=8, columnspan=4, rowspan=4, padx=10, pady=10, sticky="nsew")
+
 
 
         # Configure row and column weights to ensure even distribution
-        for i in range(4):
+        for i in range(12):
             main_frame.grid_rowconfigure(i, weight=1)
-        for j in range(4):
+        for j in range(12):
             main_frame.grid_columnconfigure(j, weight=1)
 
         # Pack the content_frame itself

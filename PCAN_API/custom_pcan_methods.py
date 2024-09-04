@@ -8,6 +8,20 @@ import asyncio
 m_objPCANBasic = PCANBasic()
 m_PcanHandle = 81
 
+battery_status_flags = {
+    "overcharged_alarm": 0,  # Bit 15
+    "terminate_charge_alarm": 0,  # Bit 14
+    "over_temperature_alarm": 0,  # Bit 12
+    "terminate_discharge_alarm": 0,  # Bit 11
+    "remaining_capacity_alarm": 0,  # Bit 9
+    "remaining_time_alarm": 0,  # Bit 8
+    "initialization": 0,  # Bit 7
+    "charge_fet_test": 0,  # Bit 6
+    "fully_charged": 0,  # Bit 5
+    "fully_discharged": 0,  # Bit 4
+    "error_codes": 0  # Bits 3:0
+}
+
 can_connected = False
 rs_connected = False
 continuous_update_thread = None
@@ -21,6 +35,7 @@ name_mapping = {
             "manufacturer_name": "Manufacturer Name",
             "battery_status": "Battery Status",
             "cycle_count": "Cycle Count",
+            "manual_cycle_count": "Manual Cycle Count",
             "design_capacity": "Design Capacity",
             "design_voltage": "Design Voltage",
             "at_rate_ok_text": "At Rate OK",
@@ -52,6 +67,7 @@ unit_mapping = {
     "manufacturer_name": "string",
     "battery_status": "bit flags",
     "cycle_count": "Count",
+    "manual_cycle_count": "Count",
     "design_capacity": "Ah",
     "design_voltage": "mV",
     "at_rate_ok_text": "Yes/No",
@@ -76,18 +92,18 @@ unit_mapping = {
 }
 
 device_data = {
-            'device_name': "",
+            'device_name': "BT-70939APH",
             'serial_number': 0,
-            'manufacturer_date': 0,
-            'manufacturer_name': "",
+            'manufacturer_name': "Bren-Tronics",
             'firmware_version': "",
             'battery_status': "",
             'cycle_count': 0,
+            'manual_cycle_count':0,
             'design_capacity': 0,
             'design_voltage': 0,
             'remaining_capacity': 0,
             'temperature': 0,
-            'current': 0,
+            'current': 20,
             'voltage': 0,
             'avg_current': 0,
             'charging_current': 0,
@@ -97,7 +113,7 @@ device_data = {
             'at_rate_time_to_empty': 0,
             'at_rate_ok_text': "",
             'at_rate':0,
-            'charging_battery_status':"Idle",
+            'charging_battery_status':"Off",
             'rel_state_of_charge': 0,
             'abs_state_of_charge': 0,
             'run_time_to_empty': 0,
@@ -106,39 +122,33 @@ device_data = {
             'max_error': 0
         } 
 
-battery_status_flags = {}
-
-# async def fetch_and_store_data(call_name, key):
-#     value = await pcan_write_read(call_name)  # Assuming pcan_write_read is async
-#     device_data[key] = value
 
 async def update_device_data():
     data_points = [
-        ('serial_number', 'serial_number'),
+        # ('serial_number', 'serial_number'),
         # ('firmware_version', 'firmware_version'),
-        ('design_capacity', 'design_capacity'),
-        ('design_voltage', 'design_voltage'),
-        ('manufacturer_date', 'manufacturer_date'),
-        ('remaining_capacity', 'remaining_capacity'),
-        ('temperature', 'temperature'),
-        ('current', 'current'),
-        ('voltage', 'voltage'),
+        # ('design_capacity', 'design_capacity'),
+        # ('design_voltage', 'design_voltage'),
+        # ('remaining_capacity', 'remaining_capacity'),
+        # ('temperature', 'temperature'),
+        # ('current', 'current'),
+        # ('voltage', 'voltage'),
         ('battery_status', 'battery_status'),
-        ('cycle_count', 'cycle_count'),
-        ('avg_current', 'avg_current'),
-        ('charging_current', 'charging_current'),
-        ('full_charge_capacity', 'full_charge_capacity'),
-        ('charging_voltage', 'charging_voltage'),
-        ('at_rate_time_to_full', 'at_rate_time_to_full'),
-        ('at_rate_time_to_empty', 'at_rate_time_to_empty'),
-        ('at_rate_ok_text', 'at_rate_ok_text'),
-        ('at_rate', 'at_rate'),
-        ('rel_state_of_charge', 'rel_state_of_charge'),
-        ('abs_state_of_charge', 'abs_state_of_charge'),
-        ('run_time_to_empty', 'run_time_to_empty'),
-        ('avg_time_to_empty', 'avg_time_to_empty'),
-        ('avg_time_to_full', 'avg_time_to_full'),
-        ('max_error', 'max_error')
+        # ('cycle_count', 'cycle_count'),
+        # ('avg_current', 'avg_current'),
+        # ('charging_current', 'charging_current'),
+        # ('full_charge_capacity', 'full_charge_capacity'),
+        # ('charging_voltage', 'charging_voltage'),
+        # ('at_rate_time_to_full', 'at_rate_time_to_full'),
+        # ('at_rate_time_to_empty', 'at_rate_time_to_empty'),
+        # ('at_rate_ok_text', 'at_rate_ok_text'),
+        # ('at_rate', 'at_rate'),
+        # ('rel_state_of_charge', 'rel_state_of_charge'),
+        # ('abs_state_of_charge', 'abs_state_of_charge'),
+        # ('run_time_to_empty', 'run_time_to_empty'),
+        # ('avg_time_to_empty', 'avg_time_to_empty'),
+        # ('avg_time_to_full', 'avg_time_to_full'),
+        # ('max_error', 'max_error')
     ]
 
     # Create a list of tasks to be run concurrently
@@ -198,8 +208,6 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
             pcan_write_read('charging_current')       
             pcan_write_read('remaining_capacity')       
             pcan_write_read('full_charge_capacity')
-            pcan_write_read('device_name')
-            pcan_write_read('manufacturer_name')
             messagebox.showinfo("Info!", "Connection established!")
             return True
         else:
@@ -213,8 +221,6 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
                pcan_write_read('current')       
                pcan_write_read('remaining_capacity')       
                pcan_write_read('full_charge_capacity')
-               pcan_write_read('device_name') 
-               pcan_write_read('manufacturer_name')
                messagebox.showinfo("Info!", "Connection established!")
                return True
         messagebox.showinfo("Error!", "Connection Failed!")
@@ -226,10 +232,14 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
 def pcan_uninitialize(): 
         result =  m_objPCANBasic.Uninitialize(m_PcanHandle)
         if result != PCAN_ERROR_OK:
+            update_device_data_to_default()
+            update_battery_status_flags_to_default()
             messagebox.showerror("Error!", GetFormatedError(result))
             return False
         else:
-            reset_device_data_to_default()
+            # Reset device_data and battery_status_flags using the update methods
+            update_device_data_to_default()
+            update_battery_status_flags_to_default()
             messagebox.showinfo("Info!", "Connection Disconnect!")
             return True
 
@@ -313,7 +323,7 @@ def pcan_write_read(call_name):
         CANMsg.DATA[7] = int('00',16)
         result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)
         print(f"{call_name}:{result}")
-        if result != PCAN_ERROR_OK:
+        if result == PCAN_ERROR_OK:
             messagebox.showerror(f"Error! {call_name}", GetFormatedError(result))
             return -2
         else:
@@ -335,6 +345,24 @@ def retry_pcan_read(call_name, retries=1, delay=0.1):
 def pcan_read(call_name):
     result = m_objPCANBasic.Read(m_PcanHandle)
     if result[0] != PCAN_ERROR_OK:
+        print("battery_status_flags before UI update:", battery_status_flags)
+
+        # Update the battery_status_flags with the new values
+        battery_status_flags.update({
+            "overcharged_alarm": 1,  # Bit 15
+            "terminate_charge_alarm": 1,  # Bit 14
+            "over_temperature_alarm": 1,  # Bit 12
+            "terminate_discharge_alarm": 1,  # Bit 11
+            "remaining_capacity_alarm": 1,  # Bit 9
+            "remaining_time_alarm": 1,  # Bit 8
+            "initialization": 1,  # Bit 7
+            "charge_fet_test": 1,  # Bit 6
+            "fully_charged": 1,  # Bit 5
+            "fully_discharged": 0,  # Bit 4
+            "error_codes": 1  # Bits 3:0, convert remaining bits to an integer
+        })
+
+        print("battery_status_flags after data update:", battery_status_flags)
         # messagebox.showerror(f"Error!{call_name}", GetFormatedError(result[0]))
         return result[0]
     else:
@@ -654,35 +682,20 @@ def pcan_write_control(call_name):
             return 0
 
 
-def reset_device_data_to_default():
-    global device_data
-    device_data = {
-        'device_name': "",
-        'serial_number': 0,
-        'manufacturer_date': 0,
-        'manufacturer_name': "",
-        'firmware_version': "",
-        'battery_status': "",
-        'charging_battery_status':"Idle",
-        'cycle_count': 0,
-        'design_capacity': 0,
-        'design_voltage': 0,
-        'remaining_capacity': 0,
-        'temperature': 0,
-        'current': 0,
-        'voltage': 0,
-        'avg_current': 0,
-        'charging_current': 0,
-        'full_charge_capacity': 0,
-        'charging_voltage': 0,
-        'at_rate_time_to_full': 0,
-        'at_rate_time_to_empty': 0,
-        'at_rate_ok_text': "",
-        'at_rate': 0,
-        'rel_state_of_charge': 0,
-        'abs_state_of_charge': 0,
-        'run_time_to_empty': 0,
-        'avg_time_to_empty': 0,
-        'avg_time_to_full': 0,
-        'max_error': 0
-    }
+def update_device_data_to_default():
+    for key in device_data.keys():
+        if key == 'device_name':
+            device_data[key] = "BT-70939APH"  # Example: Set a specific default device name
+        elif key == 'manufacturer_name':
+            device_data[key] = "Bren-Tronics"  # Example: Set a specific manufacturer name
+        elif key == 'charging_battery_status':
+            device_data[key] = "Off"  # Example: Set a specific charging status
+        elif isinstance(device_data[key], str):
+            device_data[key] = ""  # Reset other string values to empty strings
+        elif isinstance(device_data[key], (int, float)):
+            device_data[key] = 0  # Reset numeric values to zero
+
+
+def update_battery_status_flags_to_default():
+    for key in battery_status_flags.keys():
+        battery_status_flags[key] = 0
