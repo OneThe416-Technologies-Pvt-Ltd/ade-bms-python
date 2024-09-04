@@ -36,8 +36,8 @@ class CanBatteryInfo:
         self.configure_styles()
 
         # Directory paths
-        base_path = "E:/ONETHE416/ADE/ade-bms-python/"
-        self.assets_path = os.path.join(base_path, "assets/images/")
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        self.assets_path = os.path.join(base_path, "../assets/images/")
 
         style = ttk.Style() 
         # Configure the Labelframe title font to be bold
