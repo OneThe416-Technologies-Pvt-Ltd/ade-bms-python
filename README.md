@@ -24,3 +24,16 @@ ADE BMS is a graphical user interface (GUI) application built with Python and Tk
    git clone https://github.com/yourusername/ade-bms-python.git
    cd ade-bms-python
    pip install -r requirements.txt
+
+## Adding New Package
+
+1. **Install the Package:**
+
+    ```bash
+    pip install <packagename>
+    ```
+    for adding that to requirements.txt run below code
+
+    ```bash
+    pip freeze > requirements.txt
+    ```

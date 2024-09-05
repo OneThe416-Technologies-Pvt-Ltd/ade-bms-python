@@ -526,30 +526,36 @@ class CanBatteryInfo:
         device_connect_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
         # Scan Devices Button
-        self.scan_button = ttk.Button(device_connect_frame, text="Find Devices", command=self.find_device)
-        self.scan_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+        # self.scan_button = ttk.Button(device_connect_frame, text="Find Devices", command=self.find_device)
+        # self.scan_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
         # Connect Button
         self.connect_button = ttk.Button(device_connect_frame, text="Connect to Chroma", command=self.connect_device)
-        self.connect_button.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        self.connect_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
         # Status Label
         self.status_label = ttk.Label(device_connect_frame, text="Status: Disconnected")
-        self.status_label.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
+        self.status_label.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
-        # Section: Testing Mode
-        testing_frame = ttk.Labelframe(load_frame, text="Testing Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
-        testing_frame.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
+        # Check the selected mode
+        selected_mode = self.mode_var.get()
 
-        test_button = ttk.Button(testing_frame, text="Set 50A and Turn ON Load", command=self.set_testing_mode)
-        test_button.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+        if selected_mode == "Testing Mode":
+            # Section: Testing Mode
+            testing_frame = ttk.Labelframe(load_frame, text="Testing Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
+            testing_frame.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
 
-        # Section: Maintenance Mode
-        maintenance_frame = ttk.Labelframe(load_frame, text="Maintenance Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
-        maintenance_frame.grid(row=2, column=0, padx=10, pady=10, sticky="nsew")
+            test_button = ttk.Button(testing_frame, text="Set 50A and Turn ON Load", command=self.set_testing_mode)
+            test_button.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
-        maintenance_button = ttk.Button(maintenance_frame, text="Set 100A and Turn ON Load", command=self.set_maintenance_mode)
-        maintenance_button.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+        elif selected_mode == "Maintenance Mode":
+            # Section: Maintenance Mode
+            maintenance_frame = ttk.Labelframe(load_frame, text="Maintenance Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
+            maintenance_frame.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
+
+            maintenance_button = ttk.Button(maintenance_frame, text="Set 100A and Turn ON Load", command=self.set_maintenance_mode)
+            maintenance_button.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+    
 
         # Section: Custom Mode
         custom_frame = ttk.Labelframe(load_frame, text="Custom Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
@@ -617,7 +623,11 @@ class CanBatteryInfo:
     def update_info(self, event=None):
         """Update the Info page content based on the selected mode."""
         if self.selected_button == self.info_button:
+            self.show_load()
             self.show_info()
+        if self.selected_button == self.load_button:
+            self.show_info()
+            self.show_load()
     
     def configure_styles(self):
             # Configure custom styles
