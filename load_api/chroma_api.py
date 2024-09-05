@@ -26,6 +26,8 @@ class ChromaAPI:
         """Set the load current on the Chroma device."""
         if self.device:
             try:
+                status = self.device.query("STAT:QUES:COND?")
+                print(f"Device Status: {status}")
                 self.device.write(f"CURR:STAT:L1 {current}\n")
                 return f"Current set to {current}A"
             except Exception as e:
