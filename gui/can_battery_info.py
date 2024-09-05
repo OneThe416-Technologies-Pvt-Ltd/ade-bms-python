@@ -564,6 +564,10 @@ class CanBatteryInfo:
         custom_button = ttk.Button(custom_frame, text="Set Custom Current and Turn ON Load", command=self.set_custom_mode)
         custom_button.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
 
+        # Turn Off Load Button
+        turn_off_button = ttk.Button(custom_frame, text="Turn OFF Load", command=self.manual_turn_off)
+        turn_off_button.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
+
         # Make the rows and columns expand as needed for content_frame and load_frame
         self.content_frame.grid_rowconfigure(0, weight=1)
         self.content_frame.grid_rowconfigure(1, weight=1)  # Ensures the load_frame expands fully
