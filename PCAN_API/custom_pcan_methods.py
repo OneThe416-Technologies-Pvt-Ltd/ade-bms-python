@@ -113,7 +113,7 @@ device_data = {
             'at_rate_time_to_empty': 0,
             'at_rate_ok_text': "",
             'at_rate':0,
-            'charging_battery_status':"Off",
+            'charging_battery_status':"Charging",
             'rel_state_of_charge': 0,
             'abs_state_of_charge': 0,
             'run_time_to_empty': 0,
@@ -322,7 +322,7 @@ def pcan_write_read(call_name):
         CANMsg.DATA[7] = int('00',16)
         result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)
         print(f"{call_name}:{result}")
-        if result == PCAN_ERROR_OK:
+        if result != PCAN_ERROR_OK:
             messagebox.showerror(f"Error! {call_name}", GetFormatedError(result))
             return -2
         else:
@@ -344,25 +344,6 @@ def retry_pcan_read(call_name, retries=1, delay=0.1):
 def pcan_read(call_name):
     result = m_objPCANBasic.Read(m_PcanHandle)
     if result[0] != PCAN_ERROR_OK:
-        print("battery_status_flags before UI update:", battery_status_flags)
-
-        # Update the battery_status_flags with the new values
-        battery_status_flags.update({
-            "overcharged_alarm": 1,  # Bit 15
-            "terminate_charge_alarm": 1,  # Bit 14
-            "over_temperature_alarm": 1,  # Bit 12
-            "terminate_discharge_alarm": 1,  # Bit 11
-            "remaining_capacity_alarm": 1,  # Bit 9
-            "remaining_time_alarm": 1,  # Bit 8
-            "initialization": 1,  # Bit 7
-            "charge_fet_test": 1,  # Bit 6
-            "fully_charged": 1,  # Bit 5
-            "fully_discharged": 0,  # Bit 4
-            "error_codes": 1  # Bits 3:0, convert remaining bits to an integer
-        })
-
-        print("battery_status_flags after data update:", battery_status_flags)
-        # messagebox.showerror(f"Error!{call_name}", GetFormatedError(result[0]))
         return result[0]
     else:
         args = result[1:]
@@ -373,7 +354,6 @@ def pcan_read(call_name):
         for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN):
             newMsg.DATA[i] = theMsg.DATA[i]
         
-
         resulthex = [hex(theMsg.DATA[i]) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
 
         print(f"{call_name} ID: {hex(theMsg.ID)}")
@@ -494,7 +474,7 @@ def convert_data(command_code, decimal_value):
     elif command_code == 0x0a:  # Current: mA / 40 signed
         if decimal_value == 0:
             device_data['current'] = decimal_value
-            device_data['charging_battery_status'] = "Idle"
+            # device_data['charging_battery_status'] = "Off"
         else:
             if decimal_value > 32767:
                 decimal_value -= 65536
@@ -505,7 +485,7 @@ def convert_data(command_code, decimal_value):
             elif currentA < 0:
                 device_data['charging_battery_status'] = "Discharging"
             else:
-                device_data['charging_battery_status'] = "Idle"
+                device_data['charging_battery_status'] = "Off"
             device_data['current'] = abs(currentA)
     elif command_code == 0x0b:  # Avg Current: mA / 40 signed
         if decimal_value == 0:
@@ -554,19 +534,32 @@ def convert_data(command_code, decimal_value):
         device_data['battery_status'] = swapped_value
         
         # Update the battery_status_flags dictionary with the interpreted flags
-        battery_status_flags = {
-            "Overcharged Alarm": int(swapped_value[0]),  # Bit 15
-            "Terminate Charge Alarm": int(swapped_value[1]),  # Bit 14
+        # battery_status_flags = {
+        #     "Overcharged Alarm": int(swapped_value[0]),  # Bit 15
+        #     "Terminate Charge Alarm": int(swapped_value[1]),  # Bit 14
+        #     "over_temperature_alarm": int(swapped_value[3]),  # Bit 12
+        #     "Terminate Discharge Alarm": int(swapped_value[4]),  # Bit 11
+        #     "Remaining Capacity Alarm": int(swapped_value[6]),  # Bit 9
+        #     "Remaining Time Alarm": int(swapped_value[7]),  # Bit 8
+        #     "Initialization": int(swapped_value[8]),  # Bit 7
+        #     "Charge FET Test": int(swapped_value[9]),  # Bit 6
+        #     "Fully Charged": int(swapped_value[10]),  # Bit 5
+        #     "Fully Discharged": int(swapped_value[11]),  # Bit 4
+        #     "Error Codes": int(swapped_value[12:], 2)  # Bits 3:0, convert remaining bits to an integer
+        # }
+        battery_status_flags.update({
+            "overcharged_alarm": int(swapped_value[0]),  # Bit 15
+            "terminate_charge_alarm": int(swapped_value[1]),  # Bit 14
             "over_temperature_alarm": int(swapped_value[3]),  # Bit 12
-            "Terminate Discharge Alarm": int(swapped_value[4]),  # Bit 11
-            "Remaining Capacity Alarm": int(swapped_value[6]),  # Bit 9
-            "Remaining Time Alarm": int(swapped_value[7]),  # Bit 8
-            "Initialization": int(swapped_value[8]),  # Bit 7
-            "Charge FET Test": int(swapped_value[9]),  # Bit 6
-            "Fully Charged": int(swapped_value[10]),  # Bit 5
-            "Fully Discharged": int(swapped_value[11]),  # Bit 4
-            "Error Codes": int(swapped_value[12:], 2)  # Bits 3:0, convert remaining bits to an integer
-        }
+            "terminate_discharge_alarm": int(swapped_value[4]),  # Bit 11
+            "remaining_capacity_alarm": int(swapped_value[6]),  # Bit 9
+            "remaining_time_alarm": int(swapped_value[7]),  # Bit 8
+            "initialization": int(swapped_value[8]),  # Bit 7
+            "charge_fet_test": int(swapped_value[9]),  # Bit 6
+            "fully_charged": int(swapped_value[10]),  # Bit 5
+            "fully_discharged": int(swapped_value[11]),  # Bit 4
+            "error_codes": int(swapped_value[12:], 2)  # Bits 3:0, convert remaining bits to an integer
+        })
 
         # Example usage
         print(battery_status_flags)

@@ -2,17 +2,20 @@
 import customtkinter as ctk
 import tkinter as tk
 import os
-import customtkinter as ctk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from PIL import Image, ImageTk
 Image.CUBIC = Image.BICUBIC
 import datetime
 import threading
+import pyvisa
+import time
 import asyncio
 from tkinter import messagebox
 from openpyxl import Workbook
 from pcan_api.custom_pcan_methods import *
+from load_api.chroma_api import ChromaAPI
+
 
 class CanBatteryInfo:
     def __init__(self, master, main_window=None):
@@ -26,11 +29,19 @@ class CanBatteryInfo:
         self.side_menu_width_ratio = 0.20  # 20% for side menu
         self.update_frame_sizes()  # Set initial size
         self.auto_refresh_var = tk.BooleanVar()
+        # Initialize the ChromaAPI
+        self.chroma = ChromaAPI()
         self.logging_active = False
         self.charge_fet_status = False
         self.discharge_fet_status = False
         self.first_time_dashboard = True
         self.mode_var = tk.StringVar(value="Testing Mode")  # Initialize mode_var here
+        
+        # PyVISA resource manager
+        self.rm = pyvisa.ResourceManager()
+
+        # Store the Chroma device
+        self.device = None
 
         self.style = ttk.Style()
         self.configure_styles()
@@ -95,7 +106,7 @@ class CanBatteryInfo:
         self.load_button = ttk.Button(
             self.side_menu_frame,
             text=" E-Load       ",
-            command=lambda: self.select_button(self.load_button),
+            command=lambda: self.select_button(self.load_button,self.show_load),
             image=self.loads_icon,
             compound="left",  # Place the icon to the left of the text
             bootstyle="info"
@@ -161,8 +172,8 @@ class CanBatteryInfo:
             self.prompt_manual_cycle_count()  # Show the input dialog
 
         # Create a Frame for the battery info details at the bottom
-        info_frame = ttk.Labelframe(self.content_frame, text="Battery Information", bootstyle="dark")
-        info_frame.pack(fill="x", expand=True, padx=10, pady=10)
+        info_frame = ttk.Labelframe(self.content_frame, text="Battery Information", bootstyle="dark", borderwidth=10, relief="solid")
+        info_frame.pack(fill="x", expand=True, padx=5, pady=5)
 
         # Device Name
         ttk.Label(info_frame, text="Device Name:", font=("Helvetica", 10, "bold")).pack(side="left", padx=5)
@@ -180,7 +191,7 @@ class CanBatteryInfo:
         self.manufacturer_label.pack(side="left", padx=5)
 
         # Manual Cycle Count
-        ttk.Label(info_frame, text="Manual Cycle Count:", font=("Helvetica", 10, "bold")).pack(side="left", padx=5)
+        ttk.Label(info_frame, text="Cycle Count:", font=("Helvetica", 10, "bold")).pack(side="left", padx=5)
         self.cycle_count_label = ttk.Label(info_frame, text=device_data.get('manual_cycle_count', 'N/A'), font=("Helvetica", 10))
         self.cycle_count_label.pack(side="left", padx=5)
 
@@ -192,7 +203,7 @@ class CanBatteryInfo:
         discharging_bootstyle = "dark"
 
         # Determine the status and set the corresponding style
-        charging_status = device_data.get('charging_battery_status', 'Idle').lower()
+        charging_status = device_data.get('charging_battery_status', 'Off').lower()
         if charging_status == "charging":
             bootstyle = "success"
             charging_bootstyle = 'success'
@@ -219,16 +230,16 @@ class CanBatteryInfo:
 
         # Create a main frame to hold Charging, Discharge, and Battery Health sections
         main_frame = ttk.Frame(self.content_frame)
-        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+        main_frame.pack(fill="both", expand=True, padx=5, pady=5)
 
         # Charging Section
-        charging_frame = ttk.Labelframe(main_frame, text="Charging", bootstyle=charging_bootstyle)
-        charging_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=5, sticky="nsew")
+        charging_frame = ttk.Labelframe(main_frame, text="Charging", bootstyle=charging_bootstyle, borderwidth=10, relief="solid")
+        charging_frame.grid(row=0, column=0, columnspan=2, padx=5, pady=2, sticky="nsew")
 
         # Charging Current (Row 0, Column 0)
         charging_current_frame = ttk.Frame(charging_frame)
-        charging_current_frame.grid(row=0, column=0, padx=70, pady=5, sticky="nsew", columnspan=1)
-        charging_current_label = ttk.Label(charging_current_frame, text="Charging Current", font=("Helvetica", 12, "bold"))
+        charging_current_frame.grid(row=0, column=0, padx=70, pady=2, sticky="nsew", columnspan=1)
+        charging_current_label = ttk.Label(charging_current_frame, text="Charging Current", font=("Helvetica", 10, "bold"))
         charging_current_label.pack(pady=(5, 5))
         charging_current_meter = ttk.Meter(
             master=charging_current_frame,
@@ -247,8 +258,8 @@ class CanBatteryInfo:
 
         # Charging Voltage (Row 0, Column 1)
         charging_voltage_frame = ttk.Frame(charging_frame)
-        charging_voltage_frame.grid(row=0, column=1, padx=70, pady=5, sticky="nsew", columnspan=1)
-        charging_voltage_label = ttk.Label(charging_voltage_frame, text="Charging Voltage", font=("Helvetica", 12, "bold"))
+        charging_voltage_frame.grid(row=0, column=1, padx=70, pady=2, sticky="nsew", columnspan=1)
+        charging_voltage_label = ttk.Label(charging_voltage_frame, text="Charging Voltage", font=("Helvetica", 10, "bold"))
         charging_voltage_label.pack(pady=(5, 5))
         charging_voltage_meter = ttk.Meter(
             master=charging_voltage_frame,
@@ -266,13 +277,13 @@ class CanBatteryInfo:
         charging_voltage_meter.pack()
 
         # Battery Health Section
-        battery_health_frame = ttk.Labelframe(main_frame, text="Battery Health", bootstyle='dark')
-        battery_health_frame.grid(row=0, column=2, rowspan=2, padx=10, pady=5, sticky="nsew")
+        battery_health_frame = ttk.Labelframe(main_frame, text="Battery Health", bootstyle='dark', borderwidth=10, relief="solid")
+        battery_health_frame.grid(row=0, column=2, rowspan=2, padx=5, pady=5, sticky="nsew")
 
         # Temperature (Top of Battery Health)
         temp_frame = ttk.Frame(battery_health_frame)
         temp_frame.pack(padx=10, pady=5, fill="both", expand=True)
-        temp_label = ttk.Label(temp_frame, text="Temperature", font=("Helvetica", 12, "bold"))
+        temp_label = ttk.Label(temp_frame, text="Temperature", font=("Helvetica", 10, "bold"))
         temp_label.pack(pady=(10, 10))
         temp_meter = ttk.Meter(
             master=temp_frame,
@@ -292,7 +303,7 @@ class CanBatteryInfo:
         # Capacity (Bottom of Battery Health)
         capacity_frame = ttk.Frame(battery_health_frame)
         capacity_frame.pack(padx=10, pady=5, fill="both", expand=True)
-        capacity_label = ttk.Label(capacity_frame, text="Capacity", font=("Helvetica", 12, "bold"))
+        capacity_label = ttk.Label(capacity_frame, text="Capacity", font=("Helvetica", 10, "bold"))
         capacity_label.pack(pady=(10, 10))
         full_charge_capacity = device_data.get('full_charge_capacity', 0)
         remaining_capacity = device_data.get('remaining_capacity', 0)
@@ -314,8 +325,8 @@ class CanBatteryInfo:
 
 
         # Discharging Section
-        discharging_frame = ttk.Labelframe(main_frame, text="Discharging", bootstyle=discharging_bootstyle)
-        discharging_frame.grid(row=1, column=0, columnspan=2, padx=10, pady=5, sticky="nsew")
+        discharging_frame = ttk.Labelframe(main_frame, text="Discharging", bootstyle=discharging_bootstyle, borderwidth=10, relief="solid")
+        discharging_frame.grid(row=1, column=0, columnspan=2, padx=5, pady=2, sticky="nsew")
 
         def update_max_value():
             if self.check_discharge_max.get():
@@ -326,8 +337,8 @@ class CanBatteryInfo:
 
         # Discharging Current (Row 1, Column 0)
         discharging_current_frame = ttk.Frame(discharging_frame)
-        discharging_current_frame.grid(row=1, column=0, padx=70, pady=5, sticky="nsew", columnspan=1)
-        discharging_current_label = ttk.Label(discharging_current_frame, text="Discharging Current", font=("Helvetica", 12, "bold"))
+        discharging_current_frame.grid(row=1, column=0, padx=70, pady=2, sticky="nsew", columnspan=1)
+        discharging_current_label = ttk.Label(discharging_current_frame, text="Discharging Current", font=("Helvetica", 10, "bold"))
         discharging_current_label.pack(pady=(5, 5))
         # Variable to control the max value of the discharging current gauge
         self.discharge_max_value = tk.IntVar(value=100)  # Default max value
@@ -360,8 +371,8 @@ class CanBatteryInfo:
 
         # Discharging Voltage (Row 1, Column 1)
         discharging_voltage_frame = ttk.Frame(discharging_frame)
-        discharging_voltage_frame.grid(row=1, column=1, padx=70, pady=5, sticky="nsew", columnspan=1)
-        discharging_voltage_label = ttk.Label(discharging_voltage_frame, text="Discharging Voltage", font=("Helvetica", 12, "bold"))
+        discharging_voltage_frame.grid(row=1, column=1, padx=70, pady=2, sticky="nsew", columnspan=1)
+        discharging_voltage_label = ttk.Label(discharging_voltage_frame, text="Discharging Voltage", font=("Helvetica", 10, "bold"))
         discharging_voltage_label.pack(pady=(5, 35))
         discharging_voltage_meter = ttk.Meter(
             master=discharging_voltage_frame,
@@ -391,7 +402,7 @@ class CanBatteryInfo:
     def prompt_manual_cycle_count(self):
         # Create a new top-level window for input
             input_window = tk.Toplevel(self.master)
-            input_window.title("Manual Cycle Count")
+            input_window.title("Cycle Count")
         
             # Calculate the position for the window to be centered
             screen_width = self.master.winfo_screenwidth()
@@ -407,7 +418,7 @@ class CanBatteryInfo:
             input_window.grab_set()  # Make the input window modal
         
             # Create and pack the widgets
-            label = ttk.Label(input_window, text="Enter Manual Cycle Count:", font=("Helvetica", 12))
+            label = ttk.Label(input_window, text="Enter Cycle Count:", font=("Helvetica", 12))
             label.pack(pady=10)
         
             manual_cycle_count_var = tk.IntVar()  # Use IntVar to store integer value
@@ -504,68 +515,100 @@ class CanBatteryInfo:
         self.select_button(self.control_button)
     
     def show_load(self):
+        """Show the load control screen."""
         self.clear_content_frame()
 
-        label = ttk.Label(self.content_frame, text="Electronic Load", font=("Helvetica", 16))
-        label.pack(pady=20, anchor="center")
-        # self.reset_icon = self.load_icon("assets/images/reset.png")
-        
-        # bms_control_label = ttk.Label(self.content_frame, text="BMS Controls", font=("Helvetica", 16, "bold"))
-        # bms_control_label.pack(pady=(20, 5))
+        load_frame = ttk.Frame(self.content_frame, borderwidth=10, relief="solid")
+        load_frame.grid(row=0, column=0, columnspan=4, rowspan=4, padx=10, pady=10, sticky="nsew")
 
-        # # Create a frame for the first Checkbutton
-        # check_frame1 = ttk.Frame(self.content_frame)
-        # check_frame1.pack(pady=10, anchor="center")
+        # Section: Device Connection
+        device_connect_frame = ttk.Labelframe(load_frame, bootstyle='dark', text="Connection", padding=10, borderwidth=10, relief="solid")
+        device_connect_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
-        # check_label1 = ttk.Label(check_frame1, text="Charge FET ON/OFF:", font=("Helvetica", 12), width=20, anchor="e")
-        # check_label1.pack(side="left", padx=10)
+        # Scan Devices Button
+        self.scan_button = ttk.Button(device_connect_frame, text="Find Devices", command=self.find_device)
+        self.scan_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
-        # self.check_var1 = tk.BooleanVar()
-        # self.check_var1.set(self.charge_fet_status)
-        # check_button1 = ttk.Checkbutton(
-        #     check_frame1,
-        #     variable=self.check_var1,
-        #     width=15,
-        #     bootstyle="success-round-toggle" if self.check_var1.get() else "danger-round-toggle",
-        #     command=lambda: self.toggle_button_style(self.check_var1, check_button1,'charge')
-        # )
-        # check_button1.pack(side="right", padx=10)
+        # Connect Button
+        self.connect_button = ttk.Button(device_connect_frame, text="Connect to Chroma", command=self.connect_device)
+        self.connect_button.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
-        # # Create a frame for the second Checkbutton
-        # check_frame2 = ttk.Frame(self.content_frame)
-        # check_frame2.pack(pady=10, anchor="center")
+        # Status Label
+        self.status_label = ttk.Label(device_connect_frame, text="Status: Disconnected")
+        self.status_label.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
 
-        # check_label2 = ttk.Label(check_frame2, text="Discharge FET ON/OFF:", font=("Helvetica", 12), width=20, anchor="e")
-        # check_label2.pack(side="left", padx=10)
+        # Section: Testing Mode
+        testing_frame = ttk.Labelframe(load_frame, text="Testing Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
+        testing_frame.grid(row=1, column=0, padx=10, pady=10, sticky="nsew")
 
-        # self.check_var2 = tk.BooleanVar()
-        # self.check_var2.set(self.discharge_fet_status)
-        # check_button2 = ttk.Checkbutton(
-        #     check_frame2,
-        #     variable=self.check_var2,
-        #     width=15,
-        #     bootstyle="success-round-toggle" if self.check_var2.get() else "danger-round-toggle",
-        #     command=lambda: self.toggle_button_style(self.check_var2, check_button2, 'discharge')
-        # )
-        # check_button2.pack(side="right",pady=20, padx=10)
+        test_button = ttk.Button(testing_frame, text="Set 50A and Turn ON Load", command=self.set_testing_mode)
+        test_button.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
-        # bms_reset_label = ttk.Label(self.content_frame, text="BMS Reset", font=("Helvetica", 16, "bold"))
-        # bms_reset_label.pack(pady=(5, 5))
+        # Section: Maintenance Mode
+        maintenance_frame = ttk.Labelframe(load_frame, text="Maintenance Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
+        maintenance_frame.grid(row=2, column=0, padx=10, pady=10, sticky="nsew")
 
-        # self.bms_reset_button = ttk.Button(self.content_frame, text="Reset", image=self.reset_icon, compound="left", command=self.bmsreset, width=12, bootstyle="danger")
-        # self.bms_reset_button.pack(pady=(5, 5))
+        maintenance_button = ttk.Button(maintenance_frame, text="Set 100A and Turn ON Load", command=self.set_maintenance_mode)
+        maintenance_button.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
-        # activate_heater_label = ttk.Label(self.content_frame, text="Activate Heater", font=("Helvetica", 16, "bold"))
-        # activate_heater_label.pack(pady=(5, 5))
+        # Section: Custom Mode
+        custom_frame = ttk.Labelframe(load_frame, text="Custom Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
+        custom_frame.grid(row=3, column=0, padx=10, pady=10, sticky="nsew")
 
-        # self.activate_heater_button = ttk.Button(self.content_frame, text="OFF", compound="left", command=self.activate_heater, width=12, bootstyle="danger")
-        # self.activate_heater_button.pack(pady=(5, 5))
+        custom_label = ttk.Label(custom_frame, text="Set Custom Current (A):", font=("Helvetica", 12), width=20, anchor="e")
+        custom_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
 
-        # # Pack the content_frame itself (if necessary, but typically this frame is already packed)
-        # self.content_frame.pack(fill="both", expand=True)
+        self.custom_current_entry = ttk.Entry(custom_frame)
+        self.custom_current_entry.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
+
+        custom_button = ttk.Button(custom_frame, text="Set Custom Current and Turn ON Load", command=self.set_custom_mode)
+        custom_button.grid(row=1, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
+
+        # Make the rows and columns expand as needed for content_frame and load_frame
+        self.content_frame.grid_rowconfigure(0, weight=1)
+        self.content_frame.grid_rowconfigure(1, weight=1)  # Ensures the load_frame expands fully
+        self.content_frame.grid_columnconfigure(0, weight=1)
+
+        load_frame.grid_rowconfigure(0, weight=1)  # Device Connection frame
+        load_frame.grid_rowconfigure(1, weight=1)  # Testing frame
+        load_frame.grid_rowconfigure(2, weight=1)  # Maintenance frame
+        load_frame.grid_rowconfigure(3, weight=1)  # Custom frame
+        load_frame.grid_columnconfigure(0, weight=1)  # Ensure columns expand to fill space
 
         # Highlight the control button in the side menu
         self.select_button(self.load_button)
+
+    def find_device(self):
+        """Find available devices."""
+        result = self.chroma.find_and_connect()  # Attempt to find the Chroma device
+        self.status_label.config(text=result)
+    
+    def connect_device(self):
+        """Connect to the Chroma device."""
+        result = self.chroma.find_and_connect()  # This can be the same method or a separate one for specific device connection
+        self.status_label.config(text=result)
+
+    def set_testing_mode(self):
+        """Set current to 50A and turn on load for testing mode."""
+        result = self.chroma.set_current(50)  # Set current to 50A
+        self.chroma.turn_load_on()  # Turn on the load
+        self.status_label.config(text=result)
+
+    def set_maintenance_mode(self):
+        """Set current to 100A and turn on load for maintenance mode."""
+        result = self.chroma.set_current(100)  # Set current to 100A
+        self.chroma.turn_load_on()  # Turn on the load
+        self.status_label.config(text=result)
+
+    def set_custom_mode(self):
+        """Set custom current and turn on load."""
+        current = self.custom_current_entry.get()
+        if current:
+            result = self.chroma.set_current(float(current))  # Set custom current
+            self.chroma.turn_load_on()  # Turn on the load
+            self.status_label.config(text=result)
+        else:
+            self.status_label.config(text="Please enter a valid current value.")
 
     def update_info(self, event=None):
         """Update the Info page content based on the selected mode."""
@@ -624,6 +667,23 @@ class CanBatteryInfo:
         if command:
             command()
 
+    def connect_to_device(self):
+        result = self.chroma.find_and_connect()
+        self.status_label.config(text=result)
+
+    def set_load_and_start_timer(self):
+        current = self.current_entry.get()
+        time_duration = int(self.time_entry.get())
+        result = self.chroma.set_load_with_timer(current, time_duration)
+        self.status_label.config(text=result)
+
+    def manual_turn_on(self):
+        result = self.chroma.turn_load_on()
+        self.status_label.config(text=result)
+
+    def manual_turn_off(self):
+        result = self.chroma.turn_load_off()
+        self.status_label.config(text=result)
 
     def clear_content_frame(self):
         # Clear the content frame before displaying new content
@@ -655,7 +715,7 @@ class CanBatteryInfo:
         self.file_icon = self.load_icon(os.path.join(self.assets_path, "folder.png"))
 
         # Create a Frame to hold the checkbox and buttons in one row with a white background
-        control_frame = ttk.Labelframe(self.content_frame, text="Battery Data Controls", bootstyle="dark")
+        control_frame = ttk.Labelframe(self.content_frame, text="Battery Data Controls", bootstyle="dark", borderwidth=10, relief="solid")
         control_frame.pack(fill="x", expand=True, padx=10, pady=10)
 
         auto_refresh_checkbox = ttk.Checkbutton(
@@ -704,7 +764,7 @@ class CanBatteryInfo:
             self.start_logging_button.configure(state=tk.NORMAL)
             self.stop_logging_button.configure(state=tk.DISABLED)   
         # Frame to hold the Treeview and Scrollbar
-        table_frame = ttk.Frame(self.content_frame)
+        table_frame = ttk.Frame(self.content_frame, borderwidth=10, relief="solid")
         table_frame.pack(fill="both", expand=True, padx=10, pady=10)   
         scrollbar = ttk.Scrollbar(table_frame, orient="vertical")
         scrollbar.pack(side="right", fill="y")   
@@ -746,7 +806,7 @@ class CanBatteryInfo:
                 unit = unit_mapping.get(key, '')
                 self.info_table.insert('', 'end', values=(name, value, unit))   
         if not self.limited:
-            right_control_frame = ttk.Labelframe(self.content_frame, text="Controls", bootstyle="dark")
+            right_control_frame = ttk.Labelframe(self.content_frame, text="Controls", bootstyle="dark", borderwidth=10, relief="solid")
             right_control_frame.pack(fill="both", expand=True, padx=5, pady=5, side="right")   
             self.reset_icon = self.load_icon(os.path.join(self.assets_path, "reset.png"))
             self.activate_icon = self.load_icon(os.path.join(self.assets_path, "activate.png"))  
@@ -778,7 +838,7 @@ class CanBatteryInfo:
             self.activate_heater_button = ctk.CTkButton(right_control_frame, text="Activate Heater", image=self.activate_icon, compound="left", command=self.activate_heater, width=10, fg_color="#ff6361",
                 hover_color="#d74a49")
             self.activate_heater_button.pack(pady=5)    
-        self.status_frame = ttk.Labelframe(self.content_frame, text="Battery Status", bootstyle="dark")
+        self.status_frame = ttk.Labelframe(self.content_frame, text="Battery Status", bootstyle="dark", borderwidth=10, relief="solid")
         self.status_frame.pack(fill="both", expand=True, padx=10, pady=10)   
         if self.limited:
             limited_status_flags = {
