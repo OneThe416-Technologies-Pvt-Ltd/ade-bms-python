@@ -1,7 +1,6 @@
 import tkinter as tk
 import customtkinter as ctk
 from pcan_api.custom_pcan_methods import *
-from gui.batteryinfo import CanBatteryInfo
 
 class CanConnection(tk.Frame):
     can_connected = False

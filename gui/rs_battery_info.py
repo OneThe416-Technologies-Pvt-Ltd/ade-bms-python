@@ -376,7 +376,7 @@ class RSBatteryInfo:
     def prompt_manual_cycle_count(self):
         # Create a new top-level window for input
             input_window = tk.Toplevel(self.master)
-            input_window.title("Manual Cycle Count")
+            input_window.title("Cycle Count")
         
             # Calculate the position for the window to be centered
             screen_width = self.master.winfo_screenwidth()
