@@ -68,15 +68,15 @@ class RSBatteryInfo:
         )
         self.side_menu_heading.pack(fill="x", pady=(10, 20))
 
-        # self.dashboard_button =  ttk.Button(
-        #     self.side_menu_frame,
-        #     text=" Dashboard",
-        #     command=lambda: self.select_button(self.dashboard_button, self.show_dashboard),
-        #     image=self.dashboard_icon,
-        #     compound="left",  # Place the icon to the left of the text
-        #     bootstyle="info"
-        # )
-        # self.dashboard_button.pack(fill="x", pady=5)
+        self.dashboard_button =  ttk.Button(
+            self.side_menu_frame,
+            text=" Dashboard",
+            command=lambda: self.select_button(self.dashboard_button),
+            image=self.dashboard_icon,
+            compound="left",  # Place the icon to the left of the text
+            bootstyle="info"
+        )
+        self.dashboard_button.pack(fill="x", pady=5)
         self.info_button = ttk.Button(
             self.side_menu_frame,
             text=" Info        ",
@@ -88,38 +88,23 @@ class RSBatteryInfo:
         self.info_button.pack(fill="x", pady=5)
         self.load_button = ttk.Button(
             self.side_menu_frame,
-            text=" E-Load       ",
-            command=lambda: self.select_button(self.load_button),
+            text=" EC-Load       ",
+            command=lambda: self.select_button(self.load_button,self.show_load),
             image=self.loads_icon,
             compound="left",  # Place the icon to the left of the text
             bootstyle="info"
         )
         self.load_button.pack(fill="x", pady=2)
 
-        # Add the Download PDF button
         self.download_pdf_button = ttk.Button(
-            self.side_menu_frame, 
-            text="Download Summary PDF",
-            image=self.download_icon,)
-        self.download_pdf_button.pack(fill="x", pady=20)
-
-        # # Mode Label
-        # self.mode_label = ttk.Label(
-        #     self.side_menu_frame,
-        #     bootstyle="inverse-info",
-        #     text="Mode:",
-        # )
-        # self.mode_label.pack(pady=(130, 5),padx=(0,5))
-
-        # # Mode Dropdown
-        # self.mode_dropdown = ttk.Combobox(
-        #     self.side_menu_frame,
-        #     textvariable=self.mode_var,
-        #     values=["Testing Mode", "Maintenance Mode"],
-        #     state="readonly"
-        # )
-        # self.mode_dropdown.pack(padx=(5, 20))
-        # self.mode_dropdown.bind("<<ComboboxSelected>>", self.update_info)
+            self.side_menu_frame,
+            text=" Download    ",
+            command=lambda: self.select_button(self.download_pdf_button,self.show_download),
+            image=self.download_icon,
+            compound="left",  # Place the icon to the left of the text
+            bootstyle="info"
+        )
+        self.download_pdf_button.pack(fill="x", pady=2)
 
         # Disconnect button
         self.disconnect_button = ttk.Button(
@@ -422,69 +407,183 @@ class RSBatteryInfo:
         label.pack(pady=20)
         self.select_button(self.help_button)
     
+    def show_download(self):
+        self.clear_content_frame()
+        latest_data = get_latest_battery_log()
+
+        # Create the main container LabelFrame
+        main_frame = ttk.LabelFrame(self.content_frame, text="PDF Generator", borderwidth=5)
+        main_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+
+        # Create a button to open the folder with PDF files
+        open_folder_button = ttk.Button(main_frame, text="View Battery Reports", command=open_pdf_folder)
+        open_folder_button.grid(row=0, column=1, padx=10, pady=5, sticky="e")
+
+        # Ensure column 1 takes up extra space to push the button to the right
+        main_frame.grid_columnconfigure(1, weight=1)
+
+        # Configure the grid to center the main_frame within content_frame
+        self.content_frame.grid_rowconfigure(0, weight=1)
+        self.content_frame.grid_columnconfigure(0, weight=1)
+
+        # Battery Info Frame
+        battery_info_frame = ttk.LabelFrame(main_frame, text="Battery Info", borderwidth=2)
+        battery_info_frame.grid(row=1, column=0, padx=10, pady=5, sticky="nsew")
+
+        # Battery Status Frame
+        battery_status_frame = ttk.LabelFrame(main_frame, text="Battery Status", borderwidth=2)
+        battery_status_frame.grid(row=2, column=0, padx=10, pady=5, sticky="nsew")
+
+        # Charging Frame
+        charging_frame = ttk.LabelFrame(main_frame, text="Charging", borderwidth=2)
+        charging_frame.grid(row=1, column=1, padx=10, pady=5, sticky="nsew")
+
+        # Discharging Frame
+        discharging_frame = ttk.LabelFrame(main_frame, text="Discharging", borderwidth=2)
+        discharging_frame.grid(row=2, column=1, padx=10, pady=5, sticky="nsew")
+
+        # # Date, Time, and Duration Frame
+        # date_time_frame = ttk.LabelFrame(main_frame, text="Date, Time, Duration", borderwidth=2)
+        # date_time_frame.grid(row=2, column=0, columnspan=2, padx=10, pady=5, sticky="nsew")
+
+        # Configure grid weights for resizing
+        main_frame.grid_columnconfigure((0, 1), weight=1)
+        main_frame.grid_rowconfigure((0, 1, 2), weight=1)
+
+        # Fields for Battery Info
+        battery_info_fields = ["Device Name", "Serial Number", "Manufacturer Name", "Cycle Count"]
+        entries = self.create_entries(battery_info_frame, battery_info_fields, latest_data)
+
+        # Fields for Battery Status
+        battery_status_fields = ["Charging Status", "Remaining Capacity", "Full Charge Capacity"]
+        entries.update(self.create_entries(battery_status_frame, battery_status_fields, latest_data))
+
+        # Fields for Charging (Add relevant fields as per your data)
+        charging_fields = ["Voltage", "Current","Duration","Date"]
+        entries.update(self.create_entries(charging_frame, charging_fields, latest_data))
+
+        # Fields for Discharging (You can add different fields for discharging here)
+        discharging_fields = ["Voltage", "Current","Duration","Date"]  # Add discharging-specific fields if any
+        entries.update(self.create_entries(discharging_frame, discharging_fields, latest_data))
+
+        # # Fields for Date, Time, and Duration
+        # signature_fields = ["Prepared By", "Checked By", "Approved By"]
+        # entries.update(self.create_entries(date_time_frame, signature_fields, latest_data))
+
+        # Create the Generate button within the main_frame
+        generate_button = ttk.Button(main_frame, text="Generate", command=lambda: generate_pdf_and_update_excel(entries))
+        generate_button.grid(row=3, columnspan=2, pady=10)
+
+        self.select_button(self.download_pdf_button)   
+
     def show_load(self):
+        """Show the load control screen."""
         self.clear_content_frame()
 
-        label = ttk.Label(self.content_frame, text="Electronic Load", font=("Helvetica", 16))
-        label.pack(pady=20, anchor="center")
-        # self.reset_icon = self.load_icon("assets/images/reset.png")
-        
-        # bms_control_label = ttk.Label(self.content_frame, text="BMS Controls", font=("Helvetica", 16, "bold"))
-        # bms_control_label.pack(pady=(20, 5))
+        # Create the load_frame to hold all content
+        load_frame = ttk.Frame(self.content_frame, borderwidth=10, relief="solid")
+        load_frame.grid(row=0, column=0, columnspan=4, rowspan=4, padx=10, pady=10, sticky="nsew")
 
-        # # Create a frame for the first Checkbutton
-        # check_frame1 = ttk.Frame(self.content_frame)
-        # check_frame1.pack(pady=10, anchor="center")
+        # Section: Device Connection
+        device_connect_frame = ttk.Labelframe(load_frame, bootstyle='dark', text="Connection", padding=10, borderwidth=10, relief="solid")
+        device_connect_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
-        # check_label1 = ttk.Label(check_frame1, text="Charge FET ON/OFF:", font=("Helvetica", 12), width=20, anchor="e")
-        # check_label1.pack(side="left", padx=10)
+        # Connect Button
+        self.connect_button = ttk.Button(device_connect_frame, text="Connect to Chroma", command=self.connect_device)
+        self.connect_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
-        # self.check_var1 = tk.BooleanVar()
-        # self.check_var1.set(self.charge_fet_status)
-        # check_button1 = ttk.Checkbutton(
-        #     check_frame1,
-        #     variable=self.check_var1,
-        #     width=15,
-        #     bootstyle="success-round-toggle" if self.check_var1.get() else "danger-round-toggle",
-        #     command=lambda: self.toggle_button_style(self.check_var1, check_button1,'charge')
-        # )
-        # check_button1.pack(side="right", padx=10)
+        # Status Label
+        self.status_label = ttk.Label(device_connect_frame, text="Status: Disconnected")
+        self.status_label.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
-        # # Create a frame for the second Checkbutton
-        # check_frame2 = ttk.Frame(self.content_frame)
-        # check_frame2.pack(pady=10, anchor="center")
+        # Section: Testing Mode
+        testing_frame = ttk.Labelframe(load_frame, text="Testing Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
+        testing_frame.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
 
-        # check_label2 = ttk.Label(check_frame2, text="Discharge FET ON/OFF:", font=("Helvetica", 12), width=20, anchor="e")
-        # check_label2.pack(side="left", padx=10)
+        test_button = ttk.Button(testing_frame, text="Set 25A and Turn ON Load", command=self.set_testing_mode)
+        test_button.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
-        # self.check_var2 = tk.BooleanVar()
-        # self.check_var2.set(self.discharge_fet_status)
-        # check_button2 = ttk.Checkbutton(
-        #     check_frame2,
-        #     variable=self.check_var2,
-        #     width=15,
-        #     bootstyle="success-round-toggle" if self.check_var2.get() else "danger-round-toggle",
-        #     command=lambda: self.toggle_button_style(self.check_var2, check_button2, 'discharge')
-        # )
-        # check_button2.pack(side="right",pady=20, padx=10)
+        turn_off_button = ttk.Button(testing_frame, text="Turn OFF Load", command=self.manual_turn_off)
+        turn_off_button.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
 
-        # bms_reset_label = ttk.Label(self.content_frame, text="BMS Reset", font=("Helvetica", 16, "bold"))
-        # bms_reset_label.pack(pady=(5, 5))
+        # Section: Maintenance Mode
+        maintenance_frame = ttk.Labelframe(load_frame, text="Maintenance Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
+        maintenance_frame.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
 
-        # self.bms_reset_button = ttk.Button(self.content_frame, text="Reset", image=self.reset_icon, compound="left", command=self.bmsreset, width=12, bootstyle="danger")
-        # self.bms_reset_button.pack(pady=(5, 5))
+        maintenance_button = ttk.Button(maintenance_frame, text="Set 100A and Turn ON Load", command=self.set_maintenance_mode)
+        maintenance_button.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
-        # activate_heater_label = ttk.Label(self.content_frame, text="Activate Heater", font=("Helvetica", 16, "bold"))
-        # activate_heater_label.pack(pady=(5, 5))
+        turn_off_button = ttk.Button(maintenance_frame, text="Turn OFF Load", command=self.manual_turn_off)
+        turn_off_button.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
 
-        # self.activate_heater_button = ttk.Button(self.content_frame, text="OFF", compound="left", command=self.activate_heater, width=12, bootstyle="danger")
-        # self.activate_heater_button.pack(pady=(5, 5))
+        # Section: Custom Mode
+        custom_frame = ttk.Labelframe(load_frame, text="Custom Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
+        custom_frame.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
 
-        # # Pack the content_frame itself (if necessary, but typically this frame is already packed)
-        # self.content_frame.pack(fill="both", expand=True)
+        custom_label = ttk.Label(custom_frame, text="Set Custom Current (A):", font=("Helvetica", 12), width=20, anchor="e")
+        custom_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
+
+        self.custom_current_entry = ttk.Entry(custom_frame)
+        self.custom_current_entry.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
+
+        custom_button = ttk.Button(custom_frame, text="Set Custom Current and Turn ON Load", command=self.set_custom_mode)
+        custom_button.grid(row=0, column=2, padx=10, pady=10, sticky="ew")
+
+        turn_off_button = ttk.Button(custom_frame, text="Turn OFF Load", command=self.manual_turn_off)
+        turn_off_button.grid(row=0, column=3, padx=10, pady=10, sticky="ew")
+
+        # Make the rows and columns expand as needed
+        self.content_frame.grid_rowconfigure(0, weight=1)
+        self.content_frame.grid_rowconfigure(1, weight=1)
+        self.content_frame.grid_columnconfigure(0, weight=1)
+
+        load_frame.grid_rowconfigure(0, weight=1)  # Device Connection frame
+        load_frame.grid_rowconfigure(1, weight=1)  # Testing frame
+        load_frame.grid_rowconfigure(2, weight=1)  # Maintenance frame
+        load_frame.grid_rowconfigure(3, weight=1)  # Custom frame
+        load_frame.grid_columnconfigure(0, weight=1)  # Ensure columns expand to fill space
 
         # Highlight the control button in the side menu
         self.select_button(self.load_button)
+
+    def find_device(self):
+        """Find available devices."""
+        result = self.chroma.find_and_connect()  # Attempt to find the Chroma device
+        self.status_label.config(text=result)
+    
+    def create_entries(self, parent_frame, fields, latest_data):
+        """Helper function to create label and entry pairs inside a given frame."""
+        entries = {}
+        for i, field in enumerate(fields):
+            label = ttk.Label(parent_frame, text=field)
+            label.grid(row=i, column=0, padx=10, pady=5, sticky="e")
+
+            value = latest_data.get(field, "")
+            entry = ttk.Entry(parent_frame)
+            entry.insert(0, value)  # Insert the current value into the entry field
+            entry.grid(row=i, column=1, padx=10, pady=5, sticky="w")
+
+            entries[field] = entry  # Store the entry widget for later retrieval
+        return entries
+
+    def connect_device(self):
+        """Connect to the Chroma device."""
+        result = self.chroma.find_and_connect()  # This can be the same method or a separate one for specific device connection
+        self.status_label.config(text=result)
+
+    def set_load_and_start_timer(self):
+        current = self.current_entry.get()
+        time_duration = int(self.time_entry.get())
+        result = self.chroma.set_load_with_timer(current, time_duration)
+        self.status_label.config(text=result)
+
+    def manual_turn_on(self):
+        result = self.chroma.turn_load_on()
+        self.status_label.config(text=result)
+
+    def manual_turn_off(self):
+        result = self.chroma.turn_load_off()
+        self.status_label.config(text=result)
 
     def update_info(self, event=None):
         """Update the Info page content based on the selected mode."""

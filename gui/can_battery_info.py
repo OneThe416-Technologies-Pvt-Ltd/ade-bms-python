@@ -1270,8 +1270,8 @@ class CanBatteryInfo:
         reenable_button()
 
     def bmsreset(self):
-        # Disable the main window
-        self.master.attributes("-disabled", True)
+        # # Disable the main window
+        # self.master.attributes("-disabled", True)
 
         # Create a new top-level window for the progress bar without a title bar
         popup = ctk.CTkToplevel(self.master)
@@ -1299,7 +1299,7 @@ class CanBatteryInfo:
                 time.sleep(0.15)  # Sleep to simulate progress over time
 
             popup.destroy()  # Close the popup window
-            self.master.attributes("-disabled", False)  # Re-enable the main window
+            # self.master.attributes("-disabled", False)  # Re-enable the main window
 
         # Run the update_progress_bar function in a separate thread to avoid blocking the UI
         threading.Thread(target=update_progress_bar).start()
