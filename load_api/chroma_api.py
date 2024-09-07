@@ -1,6 +1,7 @@
 import pyvisa
 import time
 import threading
+from tkinter import messagebox
 
 class ChromaAPI:
     def __init__(self):
@@ -19,8 +20,8 @@ class ChromaAPI:
                     self.device = instrument
                     return f"Connected to Chroma: {device}"
             except Exception as e:
-                return f"Error connecting to device: {e}"
-        return "Chroma device not found"
+                messagebox.showwarning("Error Occured","Turn OFF Load and Turn ON again to Connect")
+        messagebox.showwarning("Device Not Found","Chroma device not found")
 
     def set_current(self, current):
         """Set the load current on the Chroma device."""
