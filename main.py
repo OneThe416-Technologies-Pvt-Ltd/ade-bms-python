@@ -8,6 +8,7 @@ from gui.can_battery_info import CanBatteryInfo
 from gui.rs_battery_info import RSBatteryInfo
 from gui.splash_screen import SplashScreen
 
+
 # Get the base directory of the script
 base_dir = os.path.dirname(__file__)
 

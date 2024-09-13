@@ -11,6 +11,8 @@ import asyncio
 from tkinter import messagebox
 from openpyxl import Workbook
 from pcan_api.custom_pcan_methods import *
+from pcomm_api.pcomm import *
+from load_api.chroma_api import *
 
 class RSBatteryInfo:
     def __init__(self, master, main_window=None):
@@ -86,25 +88,34 @@ class RSBatteryInfo:
             bootstyle="info"
         )
         self.info_button.pack(fill="x", pady=5)
-        self.load_button = ttk.Button(
+        self.control_button = ttk.Button(
             self.side_menu_frame,
-            text=" EC-Load       ",
-            command=lambda: self.select_button(self.load_button,self.show_load),
+            text=" Controls       ",
+            command=lambda: self.select_button(self.control_button,self.show_control),
             image=self.loads_icon,
             compound="left",  # Place the icon to the left of the text
             bootstyle="info"
         )
-        self.load_button.pack(fill="x", pady=2)
+        self.control_button.pack(fill="x", pady=2)
 
         self.download_pdf_button = ttk.Button(
             self.side_menu_frame,
-            text=" Download    ",
+            text=" Reports    ",
             command=lambda: self.select_button(self.download_pdf_button,self.show_download),
             image=self.download_icon,
             compound="left",  # Place the icon to the left of the text
             bootstyle="info"
         )
         self.download_pdf_button.pack(fill="x", pady=2)
+        self.help_button = ttk.Button(
+            self.side_menu_frame,
+            text=" Help    ",
+            command=lambda: self.select_button(self.help_button,self.show_help),
+            image=self.help_icon,
+            compound="left",  # Place the icon to the left of the text
+            bootstyle="info"
+        )
+        self.help_button.pack(fill="x", pady=2)
 
         # Disconnect button
         self.disconnect_button = ttk.Button(
@@ -405,7 +416,24 @@ class RSBatteryInfo:
         self.clear_content_frame()
         label = ttk.Label(self.content_frame, text="Help", font=("Helvetica", 16))
         label.pack(pady=20)
+        # Create a text box (entry widget)
+        self.write_entry = tk.Entry(self.content_frame, width=50)
+        self.write_entry.pack(pady=20)
+
+        # Create a button to send the entered text
+        send_button = tk.Button(self.content_frame, text="Send", command=self.send_serial_data)
+        send_button.pack(pady=10)
+
         self.select_button(self.help_button)
+
+    def send_serial_data(self):
+        """Retrieve data from the entry field and send it via the serial port."""
+        data = self.write_entry.get()  # Get the data entered in the entry widget
+        if data:
+            print(f"Sending data: {data}")
+            send_data(data)
+        else:
+            messagebox.showwarning("Input Error", "Please enter data to send.")
     
     def show_download(self):
         self.clear_content_frame()
@@ -476,17 +504,52 @@ class RSBatteryInfo:
 
         self.select_button(self.download_pdf_button)   
 
-    def show_load(self):
+    def show_control(self):
         """Show the load control screen."""
         self.clear_content_frame()
 
-        # Create the load_frame to hold all content
         load_frame = ttk.Frame(self.content_frame, borderwidth=10, relief="solid")
-        load_frame.grid(row=0, column=0, columnspan=4, rowspan=4, padx=10, pady=10, sticky="nsew")
+        load_frame.grid(row=0, column=0, columnspan=8, rowspan=8, padx=10, pady=10, sticky="nsew")
 
-        # Section: Device Connection
+        # Section: Right Control Frame (Change to Grid Layout)
+        right_control_frame = ttk.Labelframe(load_frame, text="Controls", bootstyle="dark", borderwidth=5, relief="solid")
+        right_control_frame.grid(row=0, column=1, rowspan=1, padx=5, pady=5, sticky="nsew")  # Positioned to the right
+
+        # Load icons
+        self.reset_icon = self.load_icon(os.path.join(self.assets_path, "reset.png"))
+        self.activate_icon = self.load_icon(os.path.join(self.assets_path, "activate.png"))
+
+        # Row 0: Charging On/Off Label and Checkbutton
+        check_label1 = ttk.Label(right_control_frame, text="Charging On/Off:", font=("Helvetica", 12), anchor="center")
+        check_label1.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+
+        self.charger_control_var = tk.BooleanVar()
+        self.charger_control_var.set(self.charge_fet_status)
+        check_button1 = ttk.Checkbutton(
+            right_control_frame,
+            variable=self.charger_control_var,
+            bootstyle="success-round-toggle" if self.charger_control_var.get() else "danger-round-toggle",
+            command=lambda: self.toggle_button_style(self.charger_control_var, check_button1, 'charge')
+        )
+        check_button1.grid(row=0, column=1, padx=10, pady=5, sticky="e")
+
+        # Row 1: Discharging On/Off Label and Checkbutton
+        check_label2 = ttk.Label(right_control_frame, text="Discharging On/Off:", font=("Helvetica", 12), anchor="center")
+        check_label2.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+
+        self.discharger_control_var = tk.BooleanVar()
+        self.discharger_control_var.set(self.discharge_fet_status)
+        check_button2 = ttk.Checkbutton(
+            right_control_frame,
+            variable=self.discharger_control_var,
+            bootstyle="success-round-toggle" if self.discharger_control_var.get() else "danger-round-toggle",
+            command=lambda: self.toggle_button_style(self.discharger_control_var, check_button2, 'discharge')
+        )
+        check_button2.grid(row=1, column=1, padx=10, pady=5, sticky="e")
+
+        # Section:  Device Connection
         device_connect_frame = ttk.Labelframe(load_frame, bootstyle='dark', text="Connection", padding=10, borderwidth=10, relief="solid")
-        device_connect_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+        device_connect_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
         # Connect Button
         self.connect_button = ttk.Button(device_connect_frame, text="Connect to Chroma", command=self.connect_device)
@@ -496,45 +559,76 @@ class RSBatteryInfo:
         self.status_label = ttk.Label(device_connect_frame, text="Status: Disconnected")
         self.status_label.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
-        # Section: Testing Mode
-        testing_frame = ttk.Labelframe(load_frame, text="Testing Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
-        testing_frame.grid(row=1, column=0, padx=10, pady=10, sticky="ew")
+        # Check the selected mode
+        selected_mode = self.mode_var.get()
 
-        test_button = ttk.Button(testing_frame, text="Set 25A and Turn ON Load", command=self.set_testing_mode)
-        test_button.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+        if selected_mode == "Testing Mode":
+            # Section: Testing Mode
+            testing_frame = ttk.Labelframe(load_frame, text="Testing Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
+            testing_frame.grid(row=1, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
 
-        turn_off_button = ttk.Button(testing_frame, text="Turn OFF Load", command=self.manual_turn_off)
-        turn_off_button.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
+            test_button = ttk.Button(testing_frame, text="Set 25A and Turn ON Load", command=set_l1_50a_and_turn_on)
+            test_button.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
-        # Section: Maintenance Mode
-        maintenance_frame = ttk.Labelframe(load_frame, text="Maintenance Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
-        maintenance_frame.grid(row=2, column=0, padx=10, pady=10, sticky="ew")
+            # Turn Off Load Button
+            turn_off_button = ttk.Button(testing_frame, text="Turn OFF Load", command=custom_turn_off)
+            turn_off_button.grid(row=0, column=1, columnspan=2, padx=10, pady=10, sticky="ew")
 
-        maintenance_button = ttk.Button(maintenance_frame, text="Set 100A and Turn ON Load", command=self.set_maintenance_mode)
-        maintenance_button.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+        elif selected_mode == "Maintenance Mode":
+            # Section: Maintenance Mode
+            maintenance_frame = ttk.Labelframe(load_frame, text="Maintenance Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
+            maintenance_frame.grid(row=1, column=0,columnspan=4, padx=10, pady=10, sticky="nsew")
 
-        turn_off_button = ttk.Button(maintenance_frame, text="Turn OFF Load", command=self.manual_turn_off)
-        turn_off_button.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
+            maintenance_button = ttk.Button(maintenance_frame, text="Set 50A and Turn ON Load", command=set_l1_100a_and_turn_on)
+            maintenance_button.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+
+            # Turn Off Load Button
+            turn_off_button = ttk.Button(maintenance_frame, text="Turn OFF Load", command=custom_turn_off)
+            turn_off_button.grid(row=0, column=1, columnspan=2, padx=10, pady=10, sticky="ew")
+    
 
         # Section: Custom Mode
         custom_frame = ttk.Labelframe(load_frame, text="Custom Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
-        custom_frame.grid(row=3, column=0, padx=10, pady=10, sticky="ew")
+        custom_frame.grid(row=3, column=0,columnspan=4, padx=5, pady=5, sticky="nsew")
 
         custom_label = ttk.Label(custom_frame, text="Set Custom Current (A):", font=("Helvetica", 12), width=20, anchor="e")
-        custom_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        custom_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+
+        def save_custom_value():
+            """Saves the custom current value and sets it to the Chroma device."""
+            custom_value = self.custom_current_entry.get()
+            if custom_value.isdigit():  # Basic validation to ensure it's a number
+                set_custom_l1_value(int(custom_value))
+            else:
+                print("Invalid input: Please enter a valid number.")
 
         self.custom_current_entry = ttk.Entry(custom_frame)
-        self.custom_current_entry.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
+        self.custom_current_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
-        custom_button = ttk.Button(custom_frame, text="Set Custom Current and Turn ON Load", command=self.set_custom_mode)
-        custom_button.grid(row=0, column=2, padx=10, pady=10, sticky="ew")
+        custom_button = ttk.Button(custom_frame, text="Save", command=save_custom_value)
+        custom_button.grid(row=0, column=2, columnspan=1, padx=5, pady=5, sticky="ew")
 
-        turn_off_button = ttk.Button(custom_frame, text="Turn OFF Load", command=self.manual_turn_off)
-        turn_off_button.grid(row=0, column=3, padx=10, pady=10, sticky="ew")
+        # Create a toggle button for turning load ON and OFF
+        self.load_status = tk.BooleanVar()  # Boolean variable to track load status (ON/OFF)
+        self.load_status.set(False)  # Initial state is OFF
 
-        # Make the rows and columns expand as needed
+        def toggle_load():
+            if self.load_status.get():
+                custom_turn_off  # Call the Turn OFF function
+                toggle_button.config(text="Turn ON Load", bootstyle="success")  # Change to green when OFF
+                self.load_status.set(False)  # Update state to OFF
+            else:
+                custom_turn_on  # Call the Turn ON function
+                toggle_button.config(text="Turn OFF Load", bootstyle="danger")  # Change to red when ON
+                self.load_status.set(True)  # Update state to ON
+
+        # Toggle button for Load ON/OFF
+        toggle_button = ttk.Button(custom_frame, text="Turn ON Load", command=toggle_load, bootstyle='success')
+        toggle_button.grid(row=0, column=3, columnspan=2, padx=5, pady=5, sticky="ew")
+
+        # Make the rows and columns expand as needed for content_frame and load_frame
         self.content_frame.grid_rowconfigure(0, weight=1)
-        self.content_frame.grid_rowconfigure(1, weight=1)
+        self.content_frame.grid_rowconfigure(1, weight=1)  # Ensures the load_frame expands fully
         self.content_frame.grid_columnconfigure(0, weight=1)
 
         load_frame.grid_rowconfigure(0, weight=1)  # Device Connection frame
@@ -544,7 +638,7 @@ class RSBatteryInfo:
         load_frame.grid_columnconfigure(0, weight=1)  # Ensure columns expand to fill space
 
         # Highlight the control button in the side menu
-        self.select_button(self.load_button)
+        self.select_button(self.control_button)
 
     def find_device(self):
         """Find available devices."""
@@ -649,6 +743,7 @@ class RSBatteryInfo:
 
     def on_disconnect(self):
         messagebox.showinfo("Info!", "Connection Disconnect!")
+        close_serial_port()
         self.main_frame.pack_forget()
         self.main_window.show_main_window()
         # Perform disconnection logic here (example: print disconnect message)

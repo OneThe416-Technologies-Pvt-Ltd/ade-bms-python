@@ -3,10 +3,16 @@
 from pcan_api.pcan import *
 from tkinter import messagebox
 import time
+import openpyxl
 import asyncio
+from openpyxl import Workbook, load_workbook
+import datetime
+from fpdf import FPDF
+import os
 
 m_objPCANBasic = PCANBasic()
 m_PcanHandle = 81
+is_fetching_current=False
 
 battery_status_flags = {
     "overcharged_alarm": 0,  # Bit 15
@@ -16,16 +22,37 @@ battery_status_flags = {
     "remaining_capacity_alarm": 0,  # Bit 9
     "remaining_time_alarm": 0,  # Bit 8
     "initialization": 0,  # Bit 7
-    "charge_fet_test": 0,  # Bit 6
+    "charge_fet_test": 1,  # Bit 6
     "fully_charged": 0,  # Bit 5
     "fully_discharged": 0,  # Bit 4
     "error_codes": 0  # Bits 3:0
 }
-
-can_connected = False
-rs_connected = False
-continuous_update_thread = None
-stop_continuous_update = False
+battery_1_status_flags = {
+    "overcharged_alarm": 0,  # Bit 15
+    "terminate_charge_alarm": 0,  # Bit 14
+    "over_temperature_alarm": 0,  # Bit 12
+    "terminate_discharge_alarm": 0,  # Bit 11
+    "remaining_capacity_alarm": 0,  # Bit 9
+    "remaining_time_alarm": 0,  # Bit 8
+    "initialization": 0,  # Bit 7
+    "charge_fet_test": 1,  # Bit 6
+    "fully_charged": 1,  # Bit 5
+    "fully_discharged": 0,  # Bit 4
+    "error_codes": 0  # Bits 3:0
+}
+battery_2_status_flags = {
+    "overcharged_alarm": 0,  # Bit 15
+    "terminate_charge_alarm": 0,  # Bit 14
+    "over_temperature_alarm": 0,  # Bit 12
+    "terminate_discharge_alarm": 0,  # Bit 11
+    "remaining_capacity_alarm": 0,  # Bit 9
+    "remaining_time_alarm": 0,  # Bit 8
+    "initialization": 0,  # Bit 7
+    "charge_fet_test": 1,  # Bit 6
+    "fully_charged": 0,  # Bit 5
+    "fully_discharged": 0,  # Bit 4
+    "error_codes": 0  # Bits 3:0
+}
 
 name_mapping = {
             "device_name": "Device Name",
@@ -35,7 +62,6 @@ name_mapping = {
             "manufacturer_name": "Manufacturer Name",
             "battery_status": "Battery Status",
             "cycle_count": "Cycle Count",
-            "manual_cycle_count": "Manual Cycle Count",
             "design_capacity": "Design Capacity",
             "design_voltage": "Design Voltage",
             "at_rate_ok_text": "At Rate OK",
@@ -98,12 +124,11 @@ device_data = {
             'firmware_version': "",
             'battery_status': "",
             'cycle_count': 0,
-            'manual_cycle_count':0,
             'design_capacity': 0,
             'design_voltage': 0,
             'remaining_capacity': 0,
             'temperature': 0,
-            'current': 20,
+            'current': 0,
             'voltage': 0,
             'avg_current': 0,
             'charging_current': 0,
@@ -113,7 +138,67 @@ device_data = {
             'at_rate_time_to_empty': 0,
             'at_rate_ok_text': "",
             'at_rate':0,
-            'charging_battery_status':"Charging",
+            'charging_battery_status':"Off",
+            'rel_state_of_charge': 0,
+            'abs_state_of_charge': 0,
+            'run_time_to_empty': 0,
+            'avg_time_to_empty': 0,
+            'avg_time_to_full': 0,
+            'max_error': 0
+        }
+
+device_data_battery_1 = {
+            'device_name': "BT-70939APH",
+            'serial_number': 0,
+            'manufacturer_name': "Bren-Tronics",
+            'firmware_version': "",
+            'battery_status': "",
+            'cycle_count': 0,
+            'design_capacity': 0,
+            'design_voltage': 0,
+            'remaining_capacity': 0,
+            'temperature': 0,
+            'current': 0,
+            'voltage': 0,
+            'avg_current': 0,
+            'charging_current': 0,
+            'full_charge_capacity': 0,
+            'charging_voltage': 0,
+            'at_rate_time_to_full': 0,
+            'at_rate_time_to_empty': 0,
+            'at_rate_ok_text': "",
+            'at_rate':0,
+            'charging_battery_status':"Off",
+            'rel_state_of_charge': 0,
+            'abs_state_of_charge': 0,
+            'run_time_to_empty': 0,
+            'avg_time_to_empty': 0,
+            'avg_time_to_full': 0,
+            'max_error': 0
+        }
+
+device_data_battery_2 = {
+            'device_name': "BT-70939APH",
+            'serial_number': 0,
+            'manufacturer_name': "Bren-Tronics",
+            'firmware_version': "",
+            'battery_status': "",
+            'cycle_count': 0,
+            'design_capacity': 0,
+            'design_voltage': 0,
+            'remaining_capacity': 0,
+            'temperature': 0,
+            'current': 0,
+            'voltage': 0,
+            'avg_current': 0,
+            'charging_current': 0,
+            'full_charge_capacity': 0,
+            'charging_voltage': 0,
+            'at_rate_time_to_full': 0,
+            'at_rate_time_to_empty': 0,
+            'at_rate_ok_text': "",
+            'at_rate':0,
+            'charging_battery_status':"Off",
             'rel_state_of_charge': 0,
             'abs_state_of_charge': 0,
             'run_time_to_empty': 0,
@@ -133,9 +218,7 @@ async def update_device_data():
         ('current', 'current'),
         ('voltage', 'voltage'),
         ('battery_status', 'battery_status'),
-        ('cycle_count', 'cycle_count'),
         ('avg_current', 'avg_current'),
-        ('charging_current', 'charging_current'),
         ('full_charge_capacity', 'full_charge_capacity'),
         ('charging_voltage', 'charging_voltage'),
         ('at_rate_time_to_full', 'at_rate_time_to_full'),
@@ -161,70 +244,58 @@ async def update_device_data():
 
 
 async def fetch_and_store_data(call_name, key):
-    await asyncio.to_thread(pcan_write_read, call_name)
+    if device_data_battery_2['serial_number'] != 0:
+        await asyncio.to_thread(pcan_write_read, call_name,1)
+        await asyncio.to_thread(pcan_write_read, call_name,2)
+    else:
+        await asyncio.to_thread(pcan_write_read, call_name,1)
 
-
-async def process_data_points():
-    data_points = [
-        ('temperature', 'temperature'),
-        ('manufacturer_name', 'manufacturer_name'),
-        ('device_name', 'device_name'),
-        ('current', 'current'),
-        ('remaining_capacity', 'remaining_capacity'),
-        ('voltage', 'voltage'),
-        ('design_capacity', 'design_capacity'),
-        ('design_voltage', 'design_voltage'),
-        ('manufacturer_date', 'manufacturer_date'),
-        ('serial_number', 'serial_number')
-    ]
-
-    tasks = []
-    for call_name, key in data_points:
-        task = asyncio.create_task(fetch_and_store_data(call_name, key))
-        tasks.append(task)
-
-    # Wait for all tasks to complete
-    # await asyncio.gather(*tasks)
-
-async def getdata():
-    await process_data_points()
 
 def pcan_initialize(baudrate, hwtype, ioport, interrupt):
     result = m_objPCANBasic.Initialize(m_PcanHandle, baudrate, hwtype, ioport, interrupt)
     if result != PCAN_ERROR_OK:
+        log_battery_data(device_data_battery_1)
         if result == 5120:
             result = 512
         messagebox.showerror("Error!", GetFormatedError(result))
         return True
     else:
-        pcan_write_read('serial_number')
-        if device_data['serial_number'] != 0:
-            pcan_write_read('temperature')
-            pcan_write_read('firmware_version')       
-            pcan_write_read('voltage')       
-            pcan_write_read('cycle_count')       
-            pcan_write_read('current')       
-            pcan_write_read('charging_current')       
-            pcan_write_read('remaining_capacity')       
-            pcan_write_read('full_charge_capacity')
-            messagebox.showinfo("Info!", "Connection established!")
+        pcan_write_read('serial_number',1)
+        pcan_write_read('serial_number',2)
+        if device_data_battery_2['serial_number'] !=0 and device_data_battery_1['serial_number'] !=0:
+            pcan_write_read('temperature',2)
+            pcan_write_read('firmware_version',2)       
+            pcan_write_read('voltage',2)            
+            pcan_write_read('battery_status',2)       
+            pcan_write_read('current',2)     
+            pcan_write_read('remaining_capacity',2)       
+            pcan_write_read('full_charge_capacity',2)
+            log_battery_data(device_data_battery_2)
+            pcan_write_read('temperature',1)
+            pcan_write_read('firmware_version',1)       
+            pcan_write_read('voltage',1)            
+            pcan_write_read('battery_status',1)       
+            pcan_write_read('current',1)      
+            pcan_write_read('remaining_capacity',1)       
+            pcan_write_read('full_charge_capacity',1)
+            log_battery_data(device_data_battery_1)
+            messagebox.showinfo("Info!", "Device Connected with 2 batterys")
+            return True
+        elif device_data_battery_1['serial_number'] != 0:
+            pcan_write_read('temperature',1)
+            pcan_write_read('firmware_version',1)       
+            pcan_write_read('voltage',1)            
+            pcan_write_read('battery_status',1)       
+            pcan_write_read('current',1)      
+            pcan_write_read('remaining_capacity',1)       
+            pcan_write_read('full_charge_capacity',1)
+            log_battery_data(device_data_battery_1)
+            messagebox.showinfo("Info!", "Device Connected with 1 batterys")
             return True
         else:
-           pcan_write_read('serial_number')
-           if device_data['serial_number'] != 0:
-               pcan_write_read('temperature')
-               pcan_write_read('firmware_version')  
-               pcan_write_read('charging_current')       
-               pcan_write_read('voltage')   
-               pcan_write_read('cycle_count')     
-               pcan_write_read('current')       
-               pcan_write_read('remaining_capacity')       
-               pcan_write_read('full_charge_capacity')
-               messagebox.showinfo("Info!", "Connection established!")
-               return True
-        messagebox.showinfo("Error!", "Connection Failed!")
-        m_objPCANBasic.Uninitialize(m_PcanHandle)
-        return False
+            messagebox.showinfo("Error!", "Connection Failed! Wait for 10 seconds after disconnecting")
+            m_objPCANBasic.Uninitialize(m_PcanHandle)
+            return False
 
 
 #PCAN Uninitialize API Call
@@ -244,9 +315,12 @@ def pcan_uninitialize():
 
 
 #PCAN Write API Call
-def pcan_write_read(call_name):
+def pcan_write_read(call_name,battery_no):
         CANMsg = TPCANMsg()
-        CANMsg.ID = int('18EFC0D0',16)
+        if battery_no == 1:
+            CANMsg.ID = int('18EFC0D0',16)
+        elif battery_no == 2:
+            CANMsg.ID = int('18EFC1D0',16)
         CANMsg.LEN = int(8)
         CANMsg.MSGTYPE = PCAN_MESSAGE_EXTENDED
         if call_name == 'firmware_version':
@@ -319,7 +393,101 @@ def pcan_write_read(call_name):
         CANMsg.DATA[4] = int('08',16)
         CANMsg.DATA[5] = int('02',16)
         CANMsg.DATA[6] = int('00',16)
-        CANMsg.DATA[7] = int('00',16)
+        if battery_no == 1:
+            if call_name == 'serial_number':
+                CANMsg.DATA[7] = int('01',16)
+            elif call_name == 'at_rate':
+                CANMsg.DATA[7] = int('02',16)
+            elif call_name == 'at_rate_time_to_full':
+                CANMsg.DATA[7] = int('03',16)
+            elif call_name == 'at_rate_time_to_empty':
+                CANMsg.DATA[7] = int('04',16)
+            elif call_name == 'at_rate_ok_text':
+                CANMsg.DATA[7] = int('05',16)
+            elif call_name == 'temperature':
+                CANMsg.DATA[7] = int('06',16)
+            elif call_name == 'voltage':
+                CANMsg.DATA[7] = int('07',16)
+            elif call_name == 'current':
+                CANMsg.DATA[7] = int('08',16)
+            elif call_name == 'avg_current':
+                CANMsg.DATA[7] = int('09',16)
+            elif call_name == 'max_error':
+                CANMsg.DATA[7] = int('0A',16)
+            elif call_name == 'rel_state_of_charge':
+                CANMsg.DATA[7] = int('0B',16)
+            elif call_name == 'abs_state_of_charge':
+                CANMsg.DATA[7] = int('0C',16)
+            elif call_name == 'remaining_capacity':
+                CANMsg.DATA[7] = int('0D',16)
+            elif call_name == 'full_charge_capacity':
+                CANMsg.DATA[7] = int('0E',16)
+            elif call_name == 'run_time_to_empty':
+                CANMsg.DATA[7] = int('0F',16)
+            elif call_name == 'avg_time_to_empty':
+                CANMsg.DATA[7] = int('10',16)
+            elif call_name == 'avg_time_to_full':
+                CANMsg.DATA[7] = int('11',16)
+            elif call_name == 'charging_current':
+                CANMsg.DATA[7] = int('12',16)
+            elif call_name == 'charging_voltage':
+                CANMsg.DATA[7] = int('13',16)
+            elif call_name == 'battery_status':
+                CANMsg.DATA[7] = int('14',16)
+            elif call_name == 'design_capacity':
+                CANMsg.DATA[7] = int('16',16)
+            elif call_name == 'design_voltage':
+                CANMsg.DATA[7] = int('17',16)
+            elif call_name == 'firmware_version':
+                CANMsg.DATA[7] = int('1B',16)
+        elif battery_no == 2:
+            if call_name == 'serial_number':
+                CANMsg.DATA[7] = int('1C',16)
+            elif call_name == 'at_rate':
+                CANMsg.DATA[7] = int('1D',16)
+            elif call_name == 'at_rate_time_to_full':
+                CANMsg.DATA[7] = int('1E',16)
+            elif call_name == 'at_rate_time_to_empty':
+                CANMsg.DATA[7] = int('1F',16)
+            elif call_name == 'at_rate_ok_text':
+                CANMsg.DATA[7] = int('20',16)
+            elif call_name == 'temperature':
+                CANMsg.DATA[7] = int('21',16)
+            elif call_name == 'voltage':
+                CANMsg.DATA[7] = int('22',16)
+            elif call_name == 'current':
+                CANMsg.DATA[7] = int('23',16)
+            elif call_name == 'avg_current':
+                CANMsg.DATA[7] = int('24',16)
+            elif call_name == 'max_error':
+                CANMsg.DATA[7] = int('25',16)
+            elif call_name == 'rel_state_of_charge':
+                CANMsg.DATA[7] = int('26',16)
+            elif call_name == 'abs_state_of_charge':
+                CANMsg.DATA[7] = int('27',16)
+            elif call_name == 'remaining_capacity':
+                CANMsg.DATA[7] = int('28',16)
+            elif call_name == 'full_charge_capacity':
+                CANMsg.DATA[7] = int('29',16)
+            elif call_name == 'run_time_to_empty':
+                CANMsg.DATA[7] = int('2A',16)
+            elif call_name == 'avg_time_to_empty':
+                CANMsg.DATA[7] = int('2B',16)
+            elif call_name == 'avg_time_to_full':
+                CANMsg.DATA[7] = int('2C',16)
+            elif call_name == 'charging_current':
+                CANMsg.DATA[7] = int('2D',16)
+            elif call_name == 'charging_voltage':
+                CANMsg.DATA[7] = int('2E',16)
+            elif call_name == 'battery_status':
+                CANMsg.DATA[7] = int('2F',16)
+            elif call_name == 'design_capacity':
+                CANMsg.DATA[7] = int('30',16)
+            elif call_name == 'design_voltage':
+                CANMsg.DATA[7] = int('31',16)
+            elif call_name == 'firmware_version':
+                CANMsg.DATA[7] = int('32',16)
+        
         result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)
         print(f"{call_name}:{result}")
         if result != PCAN_ERROR_OK:
@@ -327,21 +495,12 @@ def pcan_write_read(call_name):
             return -2
         else:
             time.sleep(0.1)
-            # result_code = retry_pcan_read(call_name)
-            result_code = pcan_read(call_name)
+            result_code = pcan_read()
             return result_code
-
-def retry_pcan_read(call_name, retries=1, delay=0.1):
-    for _ in range(retries):
-        result_code = pcan_read(call_name)
-        if result_code == PCAN_ERROR_OK:
-            return result_code
-        time.sleep(delay)
-    return result_code
 
 
 #PCAN Read API Call
-def pcan_read(call_name):
+def pcan_read():
     result = m_objPCANBasic.Read(m_PcanHandle)
     if result[0] != PCAN_ERROR_OK:
         return result[0]
@@ -355,233 +514,270 @@ def pcan_read(call_name):
             newMsg.DATA[i] = theMsg.DATA[i]
         
         resulthex = [hex(theMsg.DATA[i]) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
-
-        print(f"{call_name} ID: {hex(theMsg.ID)}")
-        print(f"{call_name} Result Hex: {resulthex}")
         
-        command_code = newMsg.DATA[4]
         first_byte = newMsg.DATA[0]
         second_byte = newMsg.DATA[1]
 
         # Swap the bytes to create the correct hex value
         swapped_hex = (second_byte << 8) | first_byte
-        print(f"{call_name} Result Swapped Hex: {swapped_hex}")
         decimal_value = int(swapped_hex)
-        print(f"{call_name} Result decimal_value: {decimal_value}")
 
-        if newMsg.ID == 0x1CECFFC0 or newMsg.ID == 0x1CEBFFC0:
-            if newMsg.ID == 0x1CECFFC0:
-                hex_string1 = ''
-                hex_string2 = ''
-                result = m_objPCANBasic.Read(m_PcanHandle)
-                if result[0] != PCAN_ERROR_OK:
-                    return result[0]
-                else:
-                    args = result[1:]
-                    theMsg = args[0]
-                    byte_values1 = [hex(theMsg.DATA[i]) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
-                    hex_string1 = ''.join(format(int(h, 16), '02X') for h in byte_values1)
-                    print(f"{call_name} Result hex_string1: {hex_string1}")
-
-                result = m_objPCANBasic.Read(m_PcanHandle)
-                if result[0] != PCAN_ERROR_OK:
-                    return result[0]
-                else:
-                    m_objPCANBasic.Read(m_PcanHandle)
-                    args = result[1:]
-                    theMsg2 = args[0]
-                    byte_values2 = [hex(theMsg2.DATA[i]) for i in range(8 if (theMsg2.LEN > 8) else theMsg2.LEN)]
-                    hex_string2 = ''.join(format(int(h, 16), '02X') for h in byte_values2)
-                    print(f"{call_name} Result hex_string2: {hex_string2}")
-
-                # Convert hex strings to ASCII and filter out non-printable characters
-                ascii_string1 = ''.join(chr(b) for b in bytes.fromhex(hex_string1) if 32 <= b <= 126)
-                ascii_string2 = ''.join(chr(b) for b in bytes.fromhex(hex_string2) if 32 <= b <= 126)
-
-                print(f"{call_name} Result ascii_string1: {ascii_string1}")
-                print(f"{call_name} Result ascii_string2: {ascii_string2}")
-                # Join the two ASCII strings
-                final_string = (ascii_string1 + ascii_string2).rstrip()
-
-                if call_name == 'manufacturer_name':
-                    convert_data('manufacturer_name', final_string)
-                    print(f"{call_name} Result converted value: {device_data[call_name]}")
-                elif call_name == 'device_name':
-                    convert_data('device_name', final_string)
-                    print(f"{call_name} Result converted value: {device_data[call_name]}")
-            elif newMsg.ID == 0x1CEBFFC0:
-                hex_string1=''
-                hex_string2=''
-                result = m_objPCANBasic.Read(m_PcanHandle)
-                if result[0] != PCAN_ERROR_OK:
-                    return result[0]
-                else:
-                    args = result[1:]
-                    theMsg1 = args[0]
-                    byte_values1 = [hex(newMsg.DATA[i]) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
-                    hex_string1 = ''.join(format(int(h, 16), '02X') for h in byte_values1)
-                    byte_values2 = [hex(theMsg1.DATA[i]) for i in range(8 if (theMsg1.LEN > 8) else theMsg1.LEN)]
-                    hex_string2 = ''.join(format(int(h, 16), '02X') for h in byte_values2)
-                    print(f"{call_name} Result hex_string1: {hex_string1}")
-                    print(f"{call_name} Result hex_string2: {hex_string2}")
-                ascii_string1 = ''.join(chr(b) for b in bytes.fromhex(hex_string1) if 32 <= b <= 126)
-                ascii_string2 = ''.join(chr(b) for b in bytes.fromhex(hex_string2) if 32 <= b <= 126)
-                print(f"{call_name} Result ascii_string1: {ascii_string1}")
-                print(f"{call_name} Result ascii_string2: {ascii_string2}")
-                # Join the two ASCII strings
-                final_string = ascii_string1 + ascii_string2
-                if call_name == 'manufacturer_name':
-                    convert_data('manufacturer_name', final_string)
-                elif call_name == 'device_name':
-                    convert_data('device_name', final_string)
-        elif call_name == 'firmware_version':
+        if newMsg.DATA[4] ==  0x00:
             data_packet = [int(hex(newMsg.DATA[i]), 16) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
-
-            # Extract version information
             major_version = data_packet[0]
             minor_version = data_packet[1]
             patch_number = (data_packet[3] << 8) | data_packet[2]
             build_number = (data_packet[5] << 8) | data_packet[4]
 
             version_string = f"{major_version}.{minor_version}.{patch_number}.{build_number}"
-            convert_data('firmware_version', version_string)
-            print(f"{call_name} Result converted value: {device_data[call_name]}")
+            if newMsg.DATA[7] == 0x01:
+                device_data_battery_1['firmware_version'] = version_string
+            elif newMsg.DATA[7] == 0x1C:
+                device_data_battery_2['firmware_version'] = version_string
+            else:
+                print("Firmware version is not found")
         else:
-            convert_data(command_code, decimal_value)
-            print(f"{call_name} Result converted value: {device_data[call_name]}")
+            convert_data(newMsg, decimal_value)
 
-        print(f"Call Name : {call_name}")
         return result[0]
 
 
-def convert_data(command_code, decimal_value):
-    global battery_status_flags
+def convert_data(newMsg, decimal_value):
     # Conversion rules
-    if command_code == 0x04:  # AtRate: mA / 40 unsigned
-        device_data['at_rate'] = (decimal_value*40)/1000
-    elif command_code == 0x05:  # AtRateTimeToFull: minutes unsigned
-        device_data['at_rate_time_to_full'] = round((decimal_value / 1000),1)
-    elif command_code == 0x06:  # AtRateTimeToEmpty: minutes unsigned
-        device_data['at_rate_time_to_empty'] = round((decimal_value / 1000),1)
-    elif command_code == 0x07:  # AtRateOK: Boolean
-        device_data['at_rate_ok_text'] = "Yes" if decimal_value != 0 else "No" 
-    elif command_code == 0x08: # Temperature: Boolean
+    if newMsg.DATA[4] == 0x04:  # AtRate: mA / 40 unsigned
+        if newMsg.DATA[7] == 0x02:
+            device_data_battery_1['at_rate'] = (decimal_value*40)/1000
+        elif newMsg.DATA[7] == 0x1D:
+            device_data_battery_2['at_rate'] = (decimal_value*40)/1000
+        else:
+            print("AtRate Not Found")
+    elif newMsg.DATA[4] == 0x05:  # AtRateTimeToFull: minutes unsigned
+        if newMsg.DATA[7] == 0x03:
+            device_data_battery_1['at_rate_time_to_full'] = round((decimal_value / 1000),1)
+        elif newMsg.DATA[7] == 0x1E:
+            device_data_battery_2['at_rate_time_to_full'] = round((decimal_value / 1000),1)
+        else:
+            print("AtRateTimeToFull Not Found")
+    elif newMsg.DATA[4] == 0x06:  # AtRateTimeToEmpty: minutes unsigned
+        if newMsg.DATA[7] == 0x04:
+            device_data_battery_1['at_rate_time_to_empty'] = round((decimal_value / 1000),1)
+        elif newMsg.DATA[7] == 0x1F:
+            device_data_battery_2['at_rate_time_to_empty'] = round((decimal_value / 1000),1)
+        else:
+            print("AtRateTimeToEmpty Not Found")
+    elif newMsg.DATA[4] == 0x07:  # AtRateOK: Boolean
+        if newMsg.DATA[7] == 0x05:
+            device_data_battery_1['at_rate_ok_text'] = "Yes" if decimal_value != 0 else "No" 
+        elif newMsg.DATA[7] == 0x20:
+            device_data_battery_2['at_rate_ok_text'] = "Yes" if decimal_value != 0 else "No" 
+        else:
+            print("AtRateOK Not Found")
+    elif newMsg.DATA[4] == 0x08: # Temperature: Boolean
         temperature_k = decimal_value / 10.0
         temperature_c = temperature_k - 273.15
-        device_data['temperature'] = round(temperature_c,1)
-    elif command_code == 0x09:  # Voltage: mV unsigned
-        device_data['voltage'] = round((decimal_value / 1000),1)
-    elif command_code == 0x0a:  # Current: mA / 40 signed
+        if newMsg.DATA[7] == 0x06:
+            device_data_battery_1['temperature'] = round(temperature_c,1) 
+        elif newMsg.DATA[7] == 0x21:
+            device_data_battery_2['temperature'] = round(temperature_c,1)
+        else:
+            print("Temperature Not Found")
+    elif newMsg.DATA[4] == 0x09:  # Voltage: mV unsigned
+        if newMsg.DATA[7] == 0x07:
+            device_data_battery_1['voltage'] = round((decimal_value / 1000),1)
+        elif newMsg.DATA[7] == 0x22:
+            device_data_battery_2['voltage'] = round((decimal_value / 1000),1)
+        else:
+            print("Voltage Not Found")
+    elif newMsg.DATA[4] == 0x0a:  # Current: mA / 40 signed
         if decimal_value == 0:
-            device_data['current'] = decimal_value
-            # device_data['charging_battery_status'] = "Off"
+            if newMsg.DATA[7] == 0x08:
+                device_data_battery_1['current'] = decimal_value
+            elif newMsg.DATA[7] == 0x23:
+                device_data_battery_2['current'] = decimal_value
+            else:
+                print("Current Not Found")
         else:
             if decimal_value > 32767:
                 decimal_value -= 65536
             currentmA = decimal_value*40
             currentA = currentmA / 1000
             if currentA > 0:
-                device_data['charging_battery_status'] = "Charging"
+                if newMsg.DATA[7] == 0x08:
+                    device_data_battery_1['charging_battery_status'] = "Charging"
+                    device_data_battery_1['current'] = 0
+                    device_data_battery_1['charging_current'] = abs(currentA)
+                elif newMsg.DATA[7] == 0x23:
+                    device_data_battery_2['charging_battery_status'] = "Charging"
+                    device_data_battery_2['current'] = 0
+                    device_data_battery_2['charging_current'] = abs(currentA)
+                else:
+                    print("Current Not Found")
             elif currentA < 0:
-                device_data['charging_battery_status'] = "Discharging"
+                if newMsg.DATA[7] == 0x08:
+                    device_data_battery_1['charging_battery_status'] = "Discharging"
+                    device_data_battery_1['current'] = abs(currentA)
+                    device_data_battery_1['charging_current'] = 0
+                elif newMsg.DATA[7] == 0x23:
+                    device_data_battery_2['charging_battery_status'] = "Discharging"
+                    device_data_battery_2['current'] = abs(currentA)
+                    device_data_battery_2['charging_current'] = 0
+                else:
+                    print("Current Not Found")
             else:
-                device_data['charging_battery_status'] = "Off"
-            device_data['current'] = abs(currentA)
-    elif command_code == 0x0b:  # Avg Current: mA / 40 signed
+                if newMsg.DATA[7] == 0x08:
+                    device_data_battery_1['charging_battery_status'] = "Off"
+                    device_data_battery_1['current'] = 0
+                    device_data_battery_1['charging_current'] = 0
+                elif newMsg.DATA[7] == 0x23:
+                    device_data_battery_2['current'] = decimal_value
+                    device_data_battery_2['current'] = decimal_value
+                    device_data_battery_2['current'] = decimal_value
+                else:
+                    print("Current Not Found")
+    elif newMsg.DATA[4] == 0x0b:  # Avg Current: mA / 40 signed
         if decimal_value == 0:
-            device_data['avg_current'] = decimal_value
+            if newMsg.DATA[7] == 0x09:
+                device_data_battery_1['avg_current'] = decimal_value
+            elif newMsg.DATA[7] == 0x24:
+                device_data_battery_2['avg_current'] = decimal_value
+            else:
+                print("Avg Current Not Found")
         else:
             if decimal_value > 32767:
                 decimal_value -= 65536
             currentmA = decimal_value*40
             currentA = currentmA / 1000
-            device_data['avg_current'] = currentA
-    elif command_code == 0x0c:  # MaxError: Percent unsigned
-        device_data['max_error'] = decimal_value
-    elif command_code == 0x0d:  # RelStateofCharge: Percent unsigned
-        device_data['rel_state_of_charge'] = decimal_value
-    elif command_code == 0x0e:  # AbsoluteStateofCharge: Percent unsigned
-        device_data['abs_state_of_charge'] = decimal_value
-    elif command_code == 0x0f:  # RemainingCapacity: mAh / 40 unsigned
-        device_data['remaining_capacity'] = (decimal_value*40)/1000
-    elif command_code == 0x10:  # FullChargeCapacity: mAh / 40 unsigned
-        device_data['full_charge_capacity'] = (decimal_value*40)/1000
-    elif command_code == 0x11:  # RunTimeToEmpty: minutes unsigned
-        device_data['run_time_to_empty'] = round((decimal_value / 10),1)
-    elif command_code == 0x12:  # AvgTimeToEmpty: minutes unsigned
+            if newMsg.DATA[7] == 0x09:
+                device_data_battery_1['avg_current'] = currentA
+            elif newMsg.DATA[7] == 0x24:
+                device_data_battery_2['avg_current'] = currentA
+            else:
+                print("Avg Current Not Found")
+    elif newMsg.DATA[4] == 0x0c:  # MaxError: Percent unsigned
+        if newMsg.DATA[7] == 0x0A:
+            device_data_battery_1['max_error'] = decimal_value
+        elif newMsg.DATA[7] == 0x25:
+            device_data_battery_2['max_error'] = decimal_value
+        else:
+            print("MaxError Not Found")
+    elif newMsg.DATA[4] == 0x0d:  # RelStateofCharge: Percent unsigned
+        if newMsg.DATA[7] == 0x0B:
+            device_data_battery_1['rel_state_of_charge'] = decimal_value
+        elif newMsg.DATA[7] == 0x26:
+            device_data_battery_2['rel_state_of_charge'] = decimal_value
+        else:
+            print("RelStateofCharge Not Found")
+    elif newMsg.DATA[4] == 0x0e:  # AbsoluteStateofCharge: Percent unsigned
+        if newMsg.DATA[7] == 0x0C:
+            device_data_battery_1['abs_state_of_charge'] = decimal_value
+        elif newMsg.DATA[7] == 0x27:
+            device_data_battery_2['abs_state_of_charge'] = decimal_value
+        else:
+            print("AbsoluteStateofCharge Not Found")
+    elif newMsg.DATA[4] == 0x0f:  # RemainingCapacity: mAh / 40 unsigned
+        if newMsg.DATA[7] == 0x0D:
+            device_data_battery_1['remaining_capacity'] = (decimal_value*40)/1000
+        elif newMsg.DATA[7] == 0x28:
+            device_data_battery_2['remaining_capacity'] = (decimal_value*40)/1000
+        else:
+            print("MaxError Not Found")
+    elif newMsg.DATA[4] == 0x10:  # FullChargeCapacity: mAh / 40 unsigned
+        if newMsg.DATA[7] == 0x0E:
+            device_data_battery_1['full_charge_capacity'] = (decimal_value*40)/1000
+        elif newMsg.DATA[7] == 0x29:
+            device_data_battery_2['full_charge_capacity'] = (decimal_value*40)/1000
+        else:
+            print("FullChargeCapacity Not Found")
+    elif newMsg.DATA[4] == 0x11:  # RunTimeToEmpty: minutes unsigned
+        if newMsg.DATA[7] == 0x0F:
+            device_data_battery_1['run_time_to_empty'] = round((decimal_value / 10),1)
+        elif newMsg.DATA[7] == 0x2A:
+            device_data_battery_2['run_time_to_empty'] = round((decimal_value / 10),1)
+        else:
+            print("RunTimeToEmpty Not Found")
+    elif newMsg.DATA[4] == 0x12:  # AvgTimeToEmpty: minutes unsigned
+        if newMsg.DATA[7] == 0x10:
+            device_data_battery_1['avg_time_to_empty'] = round((decimal_value / 10),1)
+        elif newMsg.DATA[7] == 0x2B:
+            device_data_battery_2['avg_time_to_empty'] = round((decimal_value / 10),1)
+        else:
+            print("AvgTimeToEmpty Not Found")
         device_data['avg_time_to_empty'] = round((decimal_value / 10),1)
-    elif command_code == 0x13:  # AvgTimeToFull: minutes unsigned
-        device_data['avg_time_to_full'] = round((decimal_value / 1000),1)
-    elif command_code == 0x14:  # ChargingCurrent: mA / 40 unsigned
-        print(f'charging:{decimal_value}')
-        if decimal_value == 0:
-            device_data['charging_current'] = decimal_value
+    elif newMsg.DATA[4] == 0x13:  # AvgTimeToFull: minutes unsigned
+        if newMsg.DATA[7] == 0x11:
+            device_data_battery_1['avg_time_to_full'] = round((decimal_value / 1000),1)
+        elif newMsg.DATA[7] == 0x2C:
+            device_data_battery_2['avg_time_to_full'] = round((decimal_value / 1000),1)
         else:
-            if decimal_value > 32767:
-                decimal_value -= 65536
-            currentmA = decimal_value*40
-            print(f'charging currentmA:{currentmA}')
-            currentA = currentmA / 1000
-            print(f'charging currentA:{currentA}')
-            device_data['charging_current'] = currentA
-    elif command_code == 0x15:  # ChargingVoltage: mV unsigned
-        device_data['charging_voltage'] = round((decimal_value / 1000),1)
-    elif command_code == 0x16:  # BatteryStatus: bit flags unsigned
+            print("AvgTimeToFull Not Found")
+    elif newMsg.DATA[4] == 0x13:  # ChargingVoltage: mV unsigned
+        if newMsg.DATA[7] == 0x13:
+            device_data_battery_1['charging_voltage'] = round((decimal_value / 1000),1)
+        elif newMsg.DATA[7] == 0x2E:
+            device_data_battery_2['charging_voltage'] = round((decimal_value / 1000),1)
+        else:
+            print("ChargingVoltage Not Found")
+    elif newMsg.DATA[4] == 0x16:  # BatteryStatus: bit flags unsigned
         binary_value = format(decimal_value, '016b')  # Convert to 16-bit binary string
         
         # Swap the bytes before interpreting the bits
         swapped_value = binary_value[8:] + binary_value[:8]
-        device_data['battery_status'] = swapped_value
-        
-        # Update the battery_status_flags dictionary with the interpreted flags
-        # battery_status_flags = {
-        #     "Overcharged Alarm": int(swapped_value[0]),  # Bit 15
-        #     "Terminate Charge Alarm": int(swapped_value[1]),  # Bit 14
-        #     "over_temperature_alarm": int(swapped_value[3]),  # Bit 12
-        #     "Terminate Discharge Alarm": int(swapped_value[4]),  # Bit 11
-        #     "Remaining Capacity Alarm": int(swapped_value[6]),  # Bit 9
-        #     "Remaining Time Alarm": int(swapped_value[7]),  # Bit 8
-        #     "Initialization": int(swapped_value[8]),  # Bit 7
-        #     "Charge FET Test": int(swapped_value[9]),  # Bit 6
-        #     "Fully Charged": int(swapped_value[10]),  # Bit 5
-        #     "Fully Discharged": int(swapped_value[11]),  # Bit 4
-        #     "Error Codes": int(swapped_value[12:], 2)  # Bits 3:0, convert remaining bits to an integer
-        # }
-        battery_status_flags.update({
-            "overcharged_alarm": int(swapped_value[0]),  # Bit 15
-            "terminate_charge_alarm": int(swapped_value[1]),  # Bit 14
-            "over_temperature_alarm": int(swapped_value[3]),  # Bit 12
-            "terminate_discharge_alarm": int(swapped_value[4]),  # Bit 11
-            "remaining_capacity_alarm": int(swapped_value[6]),  # Bit 9
-            "remaining_time_alarm": int(swapped_value[7]),  # Bit 8
-            "initialization": int(swapped_value[8]),  # Bit 7
-            "charge_fet_test": int(swapped_value[9]),  # Bit 6
-            "fully_charged": int(swapped_value[10]),  # Bit 5
-            "fully_discharged": int(swapped_value[11]),  # Bit 4
-            "error_codes": int(swapped_value[12:], 2)  # Bits 3:0, convert remaining bits to an integer
-        })
-
-        # Example usage
-        print(battery_status_flags)
-    elif command_code == 0x17:  # CycleCount: Count unsigned
-        device_data['cycle_count'] = decimal_value
-    elif command_code == 0x18:  # DesignCapacity: mAh / 40 unsigned
+        if newMsg.DATA[7] == 0x14:
+            device_data_battery_1['battery_status'] = swapped_value
+            battery_1_status_flags.update({
+                    "overcharged_alarm": int(swapped_value[0]),  # Bit 15
+                    "terminate_charge_alarm": int(swapped_value[1]),  # Bit 14
+                    "over_temperature_alarm": int(swapped_value[3]),  # Bit 12
+                    "terminate_discharge_alarm": int(swapped_value[4]),  # Bit 11
+                    "remaining_capacity_alarm": int(swapped_value[6]),  # Bit 9
+                    "remaining_time_alarm": int(swapped_value[7]),  # Bit 8
+                    "initialization": int(swapped_value[8]),  # Bit 7
+                    "charge_fet_test": int(swapped_value[9]),  # Bit 6
+                    "fully_charged": int(swapped_value[10]),  # Bit 5
+                    "fully_discharged": int(swapped_value[11]),  # Bit 4
+                    "error_codes": int(swapped_value[12:], 2)  # Bits 3:0, convert remaining bits to an integer
+                })
+        elif newMsg.DATA[7] == 0x2F:
+            device_data_battery_2['battery_status'] = swapped_value
+            battery_2_status_flags.update({
+                    "overcharged_alarm": int(swapped_value[0]),  # Bit 15
+                    "terminate_charge_alarm": int(swapped_value[1]),  # Bit 14
+                    "over_temperature_alarm": int(swapped_value[3]),  # Bit 12
+                    "terminate_discharge_alarm": int(swapped_value[4]),  # Bit 11
+                    "remaining_capacity_alarm": int(swapped_value[6]),  # Bit 9
+                    "remaining_time_alarm": int(swapped_value[7]),  # Bit 8
+                    "initialization": int(swapped_value[8]),  # Bit 7
+                    "charge_fet_test": int(swapped_value[9]),  # Bit 6
+                    "fully_charged": int(swapped_value[10]),  # Bit 5
+                    "fully_discharged": int(swapped_value[11]),  # Bit 4
+                    "error_codes": int(swapped_value[12:], 2)  # Bits 3:0, convert remaining bits to an integer
+                })
+        else:
+            print("BatteryStatus Not Found")          
+    elif newMsg.DATA[4] == 0x18:  # DesignCapacity: mAh / 40 unsigned
+        if newMsg.DATA[7] == 0x16:
+            device_data_battery_1['design_capacity'] = (decimal_value*40)/1000
+        elif newMsg.DATA[7] == 0x2F:
+            device_data_battery_2['design_capacity'] = (decimal_value*40)/1000
+        else:
+            print("DesignCapacity Not Found")
         device_data['design_capacity'] = (decimal_value*40)/1000
-    elif command_code == 0x19:  # DesignVoltage: mV unsigned
-        device_data['design_voltage'] = round((decimal_value / 1000),1)
-    elif command_code == 0x1b:  # ManufactureDate: unsigned int unsigned
-        device_data['manufacturer_date'] = decimal_value
-    elif command_code == 0x1c:  # SerialNumber: number unsigned
-        device_data['serial_number'] = decimal_value
-    elif command_code == 'manufacturer_name':  # Manufacturer Name: string
-        device_data['manufacturer_name'] = decimal_value 
-    elif command_code == 'device_name':  # DeviceName: string
-        device_data['device_name'] = decimal_value
-    elif command_code == 'firmware_version':  # Firmware Version: string
-        device_data['firmware_version'] = decimal_value
+    elif newMsg.DATA[4] == 0x19:  # DesignVoltage: mV unsigned
+        if newMsg.DATA[7] == 0x17:
+            device_data_battery_1['design_voltage'] = round((decimal_value / 1000),1)
+        elif newMsg.DATA[7] == 0x31:
+            device_data_battery_2['design_voltage'] = round((decimal_value / 1000),1)
+        else:
+            print("DesignVoltage Not Found")
+    elif newMsg.DATA[4] == 0x1c:  # SerialNumber: number unsigned
+        if newMsg.DATA[7] == 0x01:
+            device_data_battery_1['serial_number'] = decimal_value
+        elif newMsg.DATA[7] == 0x1C:
+            device_data_battery_2['serial_number'] = decimal_value
+        else:
+            print("Serial Number Not Found")
     else:
-
-        print(f"Result Command Code Not Found : {hex(command_code)}")
+        print(f"Result Command Code Not Found : {hex(newMsg.DATA[4])}")
 
 
 def GetFormatedError(error):
@@ -596,15 +792,17 @@ def GetFormatedError(error):
             return stsReturn[1]
 
 
-def pcan_write_control(call_name):
-        print("test control")
+def pcan_write_control(call_name,battery_no):
         CANMsg = TPCANMsg()
-        CANMsg.ID = int('18EFC0D0',16)
+        if battery_no == 1:
+            CANMsg.ID = int('18EFC0D0',16)
+        elif battery_no == 2:
+            CANMsg.ID = int('18EFC1D0',16)
         CANMsg.LEN = int(8)
         CANMsg.MSGTYPE = PCAN_MESSAGE_EXTENDED
         CANMsg.DATA[0] = int('03',16)
         CANMsg.DATA[1] = int('03',16)
-        CANMsg.DATA[2] = int('37',16)   
+        CANMsg.DATA[2] = int('37',16)
         CANMsg.DATA[3] = int('30',16)
         CANMsg.DATA[4] = int('39',16)
         CANMsg.DATA[5] = int('33',16)
@@ -612,9 +810,13 @@ def pcan_write_control(call_name):
         CANMsg.DATA[7] = int('00',16)
         result = m_objPCANBasic.Write(m_PcanHandle, CANMsg)
         if result == PCAN_ERROR_OK:
+            # pcan_write_read('current',battery_no)
             print("Enter Diag State : Success")
             CANMsg = TPCANMsg()
-            CANMsg.ID = int('18EFC0D0',16)
+            if battery_no == 1:
+                CANMsg.ID = int('18EFC0D0',16)
+            elif battery_no == 2:
+                CANMsg.ID = int('18EFC1D0',16)
             CANMsg.LEN = int(8)
             CANMsg.MSGTYPE = PCAN_MESSAGE_EXTENDED
             CANMsg.DATA[0] = int('03',16)
@@ -648,7 +850,10 @@ def pcan_write_control(call_name):
             if result == PCAN_ERROR_OK:
                 print("FET Control State : Success")
                 CANMsg = TPCANMsg()
-                CANMsg.ID = int('18EFC0D0',16)
+                if battery_no == 1:
+                    CANMsg.ID = int('18EFC0D0',16)
+                elif battery_no == 2:
+                    CANMsg.ID = int('18EFC1D0',16)
                 CANMsg.LEN = int(8)
                 CANMsg.MSGTYPE = PCAN_MESSAGE_EXTENDED
                 CANMsg.DATA[0] = int('03',16)
@@ -675,19 +880,551 @@ def pcan_write_control(call_name):
 
 
 def update_device_data_to_default():
-    for key in device_data.keys():
+    for key in device_data_battery_1.keys():
         if key == 'device_name':
-            device_data[key] = "BT-70939APH"  # Example: Set a specific default device name
+            device_data_battery_1[key] = "BT-70939APH"  # Example: Set a specific default device name
         elif key == 'manufacturer_name':
-            device_data[key] = "Bren-Tronics"  # Example: Set a specific manufacturer name
+            device_data_battery_1[key] = "Bren-Tronics"  # Example: Set a specific manufacturer name
         elif key == 'charging_battery_status':
-            device_data[key] = "Off"  # Example: Set a specific charging status
+            device_data_battery_1[key] = "Off"  # Example: Set a specific charging status
         elif isinstance(device_data[key], str):
-            device_data[key] = ""  # Reset other string values to empty strings
+            device_data_battery_1[key] = ""  # Reset other string values to empty strings
         elif isinstance(device_data[key], (int, float)):
-            device_data[key] = 0  # Reset numeric values to zero
+            device_data_battery_1[key] = 0  # Reset numeric values to zero
+    for key in device_data_battery_2.keys():
+        if key == 'device_name':
+            device_data_battery_2[key] = "BT-70939APH"  # Example: Set a specific default device name
+        elif key == 'manufacturer_name':
+            device_data_battery_2[key] = "Bren-Tronics"  # Example: Set a specific manufacturer name
+        elif key == 'charging_battery_status':
+            device_data_battery_2[key] = "Off"  # Example: Set a specific charging status
+        elif isinstance(device_data[key], str):
+            device_data_battery_2[key] = ""  # Reset other string values to empty strings
+        elif isinstance(device_data[key], (int, float)):
+            device_data_battery_2[key] = 0  # Reset numeric values to zero
 
 
 def update_battery_status_flags_to_default():
-    for key in battery_status_flags.keys():
-        battery_status_flags[key] = 0
+    for key in battery_1_status_flags.keys():
+        battery_1_status_flags[key] = 0
+    for key in battery_2_status_flags.keys():
+        battery_2_status_flags[key] = 0
+
+
+def log_battery_data(update_battery):
+    """
+    Log battery data to an Excel file. If the serial number exists, update the row;
+    if it doesn't exist, append a new row with the data.
+    """
+    try:
+        # Create or open a folder for logs
+        folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_Logs")
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+
+        # Define the log file name
+        file_name = "Battery_Log.xlsx"
+        file_path = os.path.join(folder_path, file_name)
+
+        # Create or load workbook
+        if os.path.exists(file_path):
+            try:
+                workbook = load_workbook(file_path)
+                sheet = workbook.active
+            except Exception as e:
+                print(f"Error loading the Excel file: {str(e)}")
+                messagebox.showerror("Error", f"Failed to load the Excel file: {str(e)}. Recreating the file.")
+                workbook = Workbook()
+                sheet = workbook.active
+                sheet.title = "Battery Log"
+                # Add headers
+                headers = [
+                    "SI No", "Date", "Time", "Project", "Duration", "Device Name", "Manufacturer Name",
+                    "Serial Number", "Firmware Version", "Cycle Count", "Full Charge Capacity", "Charging Duration",
+                    "Charging Date", "OCV", "Current Loaded", "0th Second Voltage", "5th Second Voltage",
+                    "30th Second Voltage", "Discharging Date"
+                ]
+                sheet.append(headers)
+        else:
+            # File does not exist, so create it
+            workbook = Workbook()
+            sheet = workbook.active
+            sheet.title = "Battery Log"
+            # Add headers
+            headers = [
+                "SI No", "Date", "Time", "Project", "Duration", "Device Name", "Manufacturer Name",
+                "Serial Number", "Firmware Version", "Cycle Count", "Full Charge Capacity", "Charging Duration",
+                "Charging Date", "OCV", "Current Loaded", "0th Second Voltage", "5th Second Voltage",
+                "30th Second Voltage", "Discharging Date"
+            ]
+            sheet.append(headers)
+
+        # Log the current battery data
+        current_datetime = datetime.datetime.now()
+        date = current_datetime.strftime("%Y-%m-%d")
+        time = current_datetime.strftime("%H:%M:%S")
+        serial_number = update_battery.get('serial_number', 'N/A')
+
+        # Check if the serial number exists in the file
+        serial_number_column = 8  # Assuming Serial Number is in column H (8th column)
+        cycle_count_column = 10    # Assuming Cycle Count is in column J (10th column)
+        serial_found = False
+
+        for row in range(2, sheet.max_row + 1):  # Start at 2 to skip the header
+            if sheet.cell(row=row, column=serial_number_column).value == serial_number:
+                serial_found = True
+                sheet.cell(row=row, column=2).value = date  # Update Date
+                sheet.cell(row=row, column=3).value = time  # Update Time
+                sheet.cell(row=row, column=11).value = 103 # Update Project
+                sheet.cell(row=row, column=12).value = 0
+                sheet.cell(row=row, column=13).value = 0
+                sheet.cell(row=row, column=14).value = 0  # Update OCV
+                sheet.cell(row=row, column=15).value = 0  # Update Current Loaded
+                sheet.cell(row=row, column=16).value = 0  # Update 0th Second Voltage
+                sheet.cell(row=row, column=17).value = 0  # Update 5th Second Voltage
+                sheet.cell(row=row, column=18).value = 0  # Update 30th Second Voltage
+                sheet.cell(row=row, column=19).value = 0  # Update Discharging Date
+                if update_battery.get('cycle_count', 0) == 0:
+                    update_battery['cycle_count'] = sheet.cell(row=row, column=cycle_count_column).value  # Update cycle count if not provided
+                break
+
+        if not serial_found:
+            # If serial number is not found, add a new row
+            next_row = sheet.max_row + 1
+            battery_data = [
+                next_row - 1,  # SI No
+                date,  # Date
+                time,  # Time
+                update_battery.get('project', 'N/A'),  # Project
+                "N/A",  # Duration (set to N/A for now)
+                update_battery.get('device_name', 'N/A'),  # Device Name
+                update_battery.get('manufacturer_name', 'N/A'),  # Manufacturer Name
+                serial_number,  # Serial Number
+                update_battery.get('firmware_version', 'N/A'),  # Firmware Version
+                update_battery.get('cycle_count', 'N/A'),  # Cycle Count
+                update_battery.get('full_charge_capacity', 103),  # Full Charge Capacity
+                update_battery.get('ocv', 'N/A'),  # OCV
+                update_battery.get('current_loaded', 'N/A'),  # Current Loaded
+                update_battery.get('0th_second_voltage', 'N/A'),  # 0th Second Voltage
+                update_battery.get('5th_second_voltage', 'N/A'),  # 5th Second Voltage
+                update_battery.get('30th_second_voltage', 'N/A'),  # 30th Second Voltage
+                update_battery.get('discharging_date', 'N/A')  # Discharging Date
+            ]
+            sheet.append(battery_data)
+
+        # Save the Excel file
+        workbook.save(file_path)
+        workbook.close()
+        print(f"Battery data logged or updated in {file_path}")
+
+    except Exception as e:
+        print(f"An error occurred while updating the Excel file: {str(e)}")
+        messagebox.showerror("Error", f"An error occurred while updating the Excel file: {str(e)}")
+
+
+def get_latest_battery_log():
+    # Path to the Excel file
+    folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_Logs")
+    file_name = "Battery_Log.xlsx"
+    file_path = os.path.join(folder_path, file_name)
+
+    if not os.path.exists(file_path):
+        messagebox.showerror("Error", "No log file found. Please log battery data first.")
+        return None
+
+    # Load the existing workbook and access the first sheet
+    workbook = load_workbook(file_path)
+    sheet = workbook.active
+
+    # Get the last row (the most recent battery log)
+    last_row = sheet.max_row
+
+    if last_row < 2:  # Check if there's data beyond headers
+        messagebox.showerror("Error", "No battery data found in the log.")
+        return None
+
+    # Retrieve the data from the last row
+    latest_data = {}
+    headers = [cell.value for cell in sheet[1]]  # Get headers
+    values = [cell.value for cell in sheet[last_row]]  # Get latest row values
+
+    # Map headers to values
+    latest_data = dict(zip(headers, values))
+    
+    return latest_data
+
+
+def update_cycle_count_in_excel(serial_number, new_cycle_count):
+    """
+    Update the cycle count for a specific battery identified by its serial number
+    in the Battery Log Excel file.
+    """
+    # Define the folder and file path for the battery log
+    folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_Logs")
+    file_path = os.path.join(folder_path, "Battery_Log.xlsx")
+
+    # Check if the file exists
+    if not os.path.exists(file_path):
+        messagebox.showerror("Error", "Battery log file not found.")
+        return
+
+    # Open the existing Excel file
+    workbook = load_workbook(file_path)
+    sheet = workbook.active
+
+    # Loop through the rows to find the correct row by Serial Number
+    serial_number_column = 8  # Assuming Serial Number is in column G (7th column)
+    cycle_count_column = 10  # Assuming Cycle Count is in column I (9th column)
+
+    for row in range(2, sheet.max_row + 1):  # Start at 2 to skip the header
+        if sheet.cell(row=row, column=serial_number_column).value == serial_number:
+            # Update the Cycle Count value in the corresponding row
+            sheet.cell(row=row, column=cycle_count_column).value = new_cycle_count
+            break
+    else:
+        messagebox.showwarning("Warning", f"Serial number {serial_number} not found.")
+        return
+
+    # Save the updated Excel file
+    workbook.save(file_path)
+    messagebox.showinfo("Success", f"Cycle count updated successfully for Serial Number {serial_number}.")
+
+
+def is_excel_file_open(file_path):
+    """Check if the Excel file is open by trying to open it in write mode."""
+    try:
+        # Attempt to open the file in write mode (this will raise an error if the file is open)
+        with open(file_path, 'a'):
+            return False  # File is not open
+    except PermissionError:
+        return True  # File is open 
+
+
+def generate_pdf_and_update_excel(entries):
+    """
+    Get the updated values from the form, update the Excel file, and generate a PDF.
+    """
+    # Print the current entries for debugging
+    for field, value in entries.items():
+        print(f"{field}: {value}")
+
+    # Update the Excel file with the new values
+    folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_Logs")
+    file_path = os.path.join(folder_path, "Battery_Log.xlsx")
+
+    if not os.path.exists(file_path):
+        print("File does not exist.")
+        return
+
+    workbook = load_workbook(file_path)
+    sheet = workbook.active
+    serial_number = entries.get("Serial Number", "")
+
+    if not serial_number:
+        print("No serial number provided.")
+        return
+
+    serial_number_found = False
+
+    # Map form fields to Excel columns (1-based index)
+    field_to_column_map = {
+        "Si No": 1,
+        "Date": 2,
+        "Time": 3,
+        "Project": 4,  # Added the Project field to the 4th column
+        "Duration": 5,
+        "Device Name": 6,
+        "Manufacturer Name": 7,
+        "Serial Number": 8,
+        "Firmware Version": 9,
+        "Cycle Count": 10,
+        "Full Charge Capacity": 11,  # Corrected column index
+        "Charging Duration": 12,     # Assign valid column index
+        "Charging Date": 13,         # Assign valid column index
+        "OCV": 14,                   # Corrected column index
+        "Current Loaded": 15,        # Corrected column index
+        "0th Second Voltage": 16,    # Corrected column index
+        "5th Second Voltage": 17,    # Corrected column index
+        "30th Second Voltage": 18,   # Corrected column index
+        "Discharging Date": 19 
+    }
+
+    # Check if all necessary columns exist and create them if not
+    for field, column in field_to_column_map.items():
+        if sheet.cell(row=1, column=column).value != field:
+            print(f"Creating missing column for {field} at position {column}")
+            sheet.cell(row=1, column=column).value = field  # Set the header if the column doesn't exist
+
+    # Find the row with the matching serial number
+    for row in range(2, sheet.max_row + 1):
+        if str(sheet.cell(row=row, column=8).value) == serial_number:  # Assuming Serial Number is in column 8
+            serial_number_found = True
+            print(f"Serial Number {serial_number} found in row {row}. Updating values...")
+
+            # Update the values in the Excel file using the mapped columns
+            for field, column in field_to_column_map.items():
+                if field in entries:
+                    new_value = entries[field]
+                    print(f"Updating {field} in row {row}, column {column} with value: {new_value}")
+                    # Update numeric fields as numbers and others as text
+                    if field in ["Serial Number", "Cycle Count", "Voltage", "Current", "Remaining Capacity", "Full Charge Capacity"]:
+                        sheet.cell(row=row, column=column).value = float(new_value) if new_value else 0
+                    else:
+                        sheet.cell(row=row, column=column).value = new_value
+            break
+
+    if not serial_number_found:
+        print(f"Serial number {serial_number} not found in the Excel file.")
+
+    # Save the updated Excel file
+    workbook.save(file_path)
+    print(f"Excel file saved at {file_path}.")
+
+    # Generate the PDF with the updated values
+    create_pdf_summary()
+
+
+def open_pdf_folder():
+    # Get the folder path where the PDFs are saved
+    folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_PDFs")
+    
+    # Check if the folder exists, if not, show an error
+    if not os.path.exists(folder_path):
+        messagebox.showerror("Error", "No PDF files found. Please generate a PDF first.")
+        return
+    
+    # Open the folder
+    try:
+        os.startfile(folder_path)  # This will open the folder in Windows Explorer
+    except Exception as e:
+        messagebox.showerror("Error", f"Unable to open folder: {str(e)}")
+
+
+def create_pdf_summary():
+    # Retrieve the latest battery log from the Excel file
+    latest_data = get_latest_battery_log()
+    if latest_data is None:
+        return  # Stop if no data is found
+
+    # Create a folder path to save the PDF
+    folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_PDFs")
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+
+    # Create a timestamp for the PDF file
+    serial_number = device_data.get('serial_number', 'Unknown')  # Get the serial number or set 'Unknown' if not available
+    date_str = datetime.datetime.now().strftime("%Y-%m-%d")  # Get the current date in YYYY-MM-DD format
+    pdf_filename = f"Battery_Report_{serial_number}_{date_str}.pdf"  # Construct the filename with serial number and date
+    pdf_filepath = os.path.join(folder_path, pdf_filename)
+
+    # Initialize the PDF with smaller margins
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=False)  # Disable automatic page breaks to fit everything on one page
+    pdf.add_page()
+
+    # Add logo (set the path to your logo image)
+    logo_path = os.path.join(os.path.dirname(__file__), "../Assets", "logo", "ade_pdf_logo.jpg")  # Replace with the actual path to your logo
+    logo_width = 60  # Reduce logo width
+    page_width = 210  # Default A4 page width in mm
+    x_position = (page_width - logo_width) / 2
+
+    # Add the logo image, centered
+    try:
+        pdf.image(logo_path, x=x_position, y=10, w=logo_width)  # Adjust x, y, and w as needed
+    except FileNotFoundError:
+        messagebox.showerror("Error", f"Logo not found at {logo_path}")
+        return
+
+    # Set some space after the logo
+    pdf.ln(20)  # Smaller space after the logo
+
+    # Set title and fonts (smaller font size)
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(200, 6, "Aeronautical Development Establishment, Bangalore", ln=True, align='C')
+
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(200, 6, "APS", ln=True, align='C')
+
+    pdf.set_font("Arial", "B", 14)
+    pdf.cell(200, 6, "BATTERY REPORT", ln=True, align='C')
+
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(200, 6, f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True)
+
+    # Battery Info
+    pdf.ln(5)
+
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(70, 5, "Project:", 0, 0)
+    pdf.cell(100, 5, str(latest_data.get('Project', 'N/A')), ln=True)
+
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(70, 5, "Device Name:", 0, 0)
+    pdf.cell(100, 5, str(latest_data.get('Device Name', 'N/A')), ln=True)
+
+    pdf.cell(70, 5, "Serial Number:", 0, 0)
+    pdf.cell(100, 5, str(latest_data.get('Serial Number', 'N/A')), ln=True)
+
+    pdf.cell(70, 5, "Manufacturer:", 0, 0)
+    pdf.cell(100, 5, str(latest_data.get('Manufacturer Name', 'N/A')), ln=True)
+
+    pdf.cell(70, 5, "Cycle Count:", 0, 0)
+    pdf.cell(100, 5, str(latest_data.get('Cycle Count', 'N/A')), ln=True)
+
+    pdf.cell(70, 5, "Full Charge Capacity (Ah):", 0, 0)
+    pdf.cell(100, 5, str(latest_data.get('Full Charge Capacity', 'N/A')), ln=True)
+
+    # Charging Information
+    pdf.ln(5)
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(200, 5, "Charging Information", ln=True)
+
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(70, 5, "Charging Duration:", 0, 0)
+    pdf.cell(100, 5, str(latest_data.get('Charging Duration', 'N/A')), ln=True)
+
+    pdf.cell(70, 5, "Charging Date:", 0, 0)
+    pdf.cell(100, 5, str(latest_data.get('Charging Date', 'N/A')), ln=True)
+
+    # Discharging Information
+    pdf.ln(5)
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(200, 5, "Load Test Information", ln=True)
+
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(70, 5, "Current Loaded (A):", 0, 0)
+    pdf.cell(100, 5, str(latest_data.get('Current Loaded', 'N/A')), ln=True)
+
+    pdf.cell(70, 5, "OCV (V):", 0, 0)
+    pdf.cell(100, 5, str(latest_data.get('OCV', 'N/A')), ln=True)
+
+    pdf.cell(70, 5, "0th Second Voltage (V):", 0, 0)
+    pdf.cell(100, 5, str(latest_data.get('0th Second Voltage', 'N/A')), ln=True)
+
+    pdf.cell(70, 5, "5th Second Voltage (V):", 0, 0)
+    pdf.cell(100, 5, str(latest_data.get('5th Second Voltage', 'N/A')), ln=True)
+
+    pdf.cell(70, 5, "30th Second Voltage (V):", 0, 0)
+    pdf.cell(100, 5, str(latest_data.get('30th Second Voltage', 'N/A')), ln=True)
+
+    pdf.cell(70, 5, "Discharge Date:", 0, 0)
+    pdf.cell(100, 5, str(latest_data.get('Discharging Date', 'N/A')), ln=True)
+
+    # Prepared By, Checked By, Approved By
+    pdf.ln(10)
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(70, 5, "Prepared By:", 0, 0)
+    pdf.cell(70, 5, "Checked By:", 0, 0)
+    pdf.cell(70, 5, "Approved By:", 0, 1)
+
+    # Signature, Name, Designation, Date
+    pdf.cell(70, 5, "Signature:", 0, 0)
+    pdf.cell(70, 5, "", 0, 0)
+    pdf.cell(70, 5, "", 0, 1)
+
+    pdf.cell(70, 5, "Name:", 0, 0)
+    pdf.cell(70, 5, "", 0, 0)
+    pdf.cell(70, 5, "", 0, 1)
+
+    pdf.cell(70, 5, "Designation:", 0, 0)
+    pdf.cell(70, 5, "", 0, 0)
+    pdf.cell(70, 5, "", 0, 1)
+
+    pdf.cell(70, 5, "Date:", 0, 0)
+    pdf.cell(70, 5, "", 0, 0)
+    pdf.cell(70, 5, "", 0, 1)
+
+    # Save the PDF to the file
+    pdf.output(pdf_filepath)
+
+    # Notify the user about the saved file
+    messagebox.showinfo("PDF Generated", f"PDF saved successfully to {pdf_filepath}")
+
+    # Open the PDF file automatically after creation
+    os.startfile(pdf_filepath)
+
+
+def log_charging_duration_to_excel(serial_number, charging_start_time, charging_end_time, duration):
+    # Create or open the Excel file for charging logs
+    folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_Logs")
+    if not os.path.exists(folder_path):
+        os.makedirs(folder_path)
+
+    file_path = os.path.join(folder_path, "Charging_Log.xlsx")
+
+    # Load existing workbook or create a new one if the file does not exist
+    if os.path.exists(file_path):
+        workbook = load_workbook(file_path)
+    else:
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "Charging Log"
+        headers = ["Serial Number", "Rel State of Charge", "Start Date", "Start Time", "End Date", "End Time", "Duration (minutes)"]
+        sheet.append(headers)
+
+    sheet = workbook.active
+
+    # Format date and time for both start and end
+    start_date = charging_start_time.strftime("%Y-%m-%d")
+    start_time = charging_start_time.strftime("%H:%M:%S")
+    end_date = charging_end_time.strftime("%Y-%m-%d")
+    end_time = charging_end_time.strftime("%H:%M:%S")
+    duration_in_minutes = round(duration.total_seconds() / 60, 2)  # Convert duration to minutes
+
+    # Log the session
+    rel_state_of_charge = device_data['rel_state_of_charge']  # Assuming device_data has this key
+    sheet.append([serial_number, rel_state_of_charge, start_date, start_time, end_date, end_time, duration_in_minutes])
+
+    # Save the workbook and close it
+    workbook.save(file_path)
+    workbook.close()
+
+
+def fetch_charging_info(serial_number):
+    # Path to the Charging Log Excel file
+    folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_Logs")
+    file_path = os.path.join(folder_path, "Charging_Log.xlsx")
+
+    # Check if the file exists
+    if not os.path.exists(file_path):
+        return None, None  # No log found, return None for both duration and date
+
+    # Load the workbook and access the first sheet
+    workbook = load_workbook(file_path)
+    sheet = workbook.active
+
+    # Iterate over the rows to find the most recent entry for the serial number
+    for row in sheet.iter_rows(values_only=True):
+        if row[0] == serial_number:  # Assuming serial number is in the first column
+            date = row[2]  # Assuming date is in the 3rd column
+            duration = row[6]  # Assuming duration is in the 5th column
+            return duration, date
+
+    # If no matching entry is found
+    return None, None  # No previous session found
+
+async def fetch_current(battery_no):
+        # Keep fetching the current value asynchronously
+        while is_fetching_current:
+            try:
+                # Call the pcan_write_read method asynchronously
+                current_value = await asyncio.to_thread(pcan_write_read, 'current', battery_no)
+                
+                # Check if the current value is valid
+                if current_value is not None:  # Adjust this based on what you consider a valid value
+                    print(f"Current value for battery {battery_no}: {current_value}")
+                    is_fetching_current = False  # Stop fetching once a valid value is obtained
+                    break
+            except Exception as e:
+                print(f"Error fetching current for battery {battery_no}: {e}")
+            
+            await asyncio.sleep(0.5)  # Sleep for 500ms asynchronously before trying again
+
+def start_fetching_current(battery_no):
+    # Start fetching in the event loop
+    if not is_fetching_current:
+        is_fetching_current = True
+        asyncio.create_task(fetch_current(battery_no))
+def stop_fetching_current():
+    # Stop fetching current
+    is_fetching_current = False
