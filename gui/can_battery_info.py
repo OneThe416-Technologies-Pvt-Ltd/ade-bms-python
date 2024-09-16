@@ -213,6 +213,7 @@ class CanBatteryInfo:
 
     def show_dashboard(self):
         self.clear_content_frame()
+        self.auto_refresh()
 
         # Create a Frame for the battery info details at the bottom
         info_frame = ttk.Labelframe(self.content_frame, text="Battery Information", bootstyle="dark", borderwidth=10, relief="solid")
@@ -1106,7 +1107,7 @@ class CanBatteryInfo:
             self.display_status_labels(self.status_frame, battery_status_flags)
 
         # Schedule the next refresh
-        self.master.after(5000, self.auto_refresh)
+        self.master.after(1000, self.auto_refresh)
 
     def refresh_info(self):
         asyncio.run(update_device_data())

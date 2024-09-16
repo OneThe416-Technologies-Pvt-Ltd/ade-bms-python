@@ -533,7 +533,7 @@ class RSBatteryInfo:
         
         def toggle_eb1_relay():
             if rs422_write['cmd_byte_1'] == 0x00:
-                rs422_write['cmd_byte_1'] = 0x01
+                rs422_write['cmd_byte_1'] = 0x0F
                 eb1_relay_control_status.config(text="ON", bootstyle="success")  # Update button text and style
                 print(f"EB1 Relay ON: {rs422_write['cmd_byte_1']}")
             else:
@@ -555,7 +555,7 @@ class RSBatteryInfo:
             charger_control_status.grid(row=2, column=1, padx=5, pady=5)
             def toggle_output_relay():
                 if rs232_write['cmd_byte_1'] == 0x00:
-                    rs232_write['cmd_byte_1'] = 0x08  # Set to 0x08 when turning ON
+                    rs232_write['cmd_byte_1'] = 0xF0  # Set to 0x08 when turning ON
                     output_relay_control_status.config(text="ON", bootstyle="success")  # Update button text and style
                     print("Output Relay ON")
                 else:

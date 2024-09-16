@@ -149,7 +149,7 @@ device_data = {
 
 device_data_battery_1 = {
             'device_name': "BT-70939APH",
-            'serial_number': 2,
+            'serial_number': 0,
             'manufacturer_name': "Bren-Tronics",
             'firmware_version': "",
             'battery_status': "",
@@ -179,7 +179,7 @@ device_data_battery_1 = {
 
 device_data_battery_2 = {
             'device_name': "BT-70939APH",
-            'serial_number': 4,
+            'serial_number': 0,
             'manufacturer_name': "Bren-Tronics",
             'firmware_version': "",
             'battery_status': "",

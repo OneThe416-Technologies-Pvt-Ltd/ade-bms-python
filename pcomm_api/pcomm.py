@@ -133,6 +133,7 @@ def send_rs232_data():
     """Send RS232 data."""
     if control.is_open:
         data = create_rs232_packet()
+        print(f"{data} data send")
         control.write(data)
         print(f"Sent RS232 data: {data.hex()}")
 
@@ -216,13 +217,19 @@ def create_rs232_packet():
     checksum = calculate_checksum(packet[0:4])
     packet.append(checksum)
     packet.append(0x55)  # Footer
-    return bytearray(packet)
+    # Convert the packet to a hex string, making sure all letters are uppercase
+    hex_string = ''.join([f'{byte:02X}' for byte in packet])
+    
+    # Manually add the AA and footer in uppercase, then convert back to bytes
+    final_packet = bytes.fromhex(hex_string)
+    
+    return final_packet
 
 def create_rs422_packet():
     """Create an RS422 packet to send."""
     packet = [rs422_write['header'], rs422_write['cmd_byte_1'], rs422_write['cmd_byte_2']]
-    pmu_heartbeat = 0xFFFF
-    packet.extend(struct.pack('<H', pmu_heartbeat))
+    # pmu_heartbeat = 0xFFFF
+    # packet.extend(struct.pack('<H', pmu_heartbeat))
     checksum = calculate_checksum(packet)
     packet.append(checksum)
     return bytearray(packet)
