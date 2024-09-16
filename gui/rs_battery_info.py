@@ -26,11 +26,16 @@ class RSBatteryInfo:
         self.side_menu_width_ratio = 0.20  # 20% for side menu
         self.update_frame_sizes()  # Set initial size
         self.auto_refresh_var = tk.BooleanVar()
+        self.device_data = {}
         self.logging_active = False
         self.charge_fet_status = False
         self.discharge_fet_status = False
         self.first_time_dashboard = True
+        self.rs232_flag = False
+        self.rs422_flag = False
         self.mode_var = tk.StringVar(value="Testing Mode")  # Initialize mode_var here
+
+        self.auto_refresh_interval = 1000
 
         self.style = ttk.Style()
         self.configure_styles()
@@ -38,7 +43,6 @@ class RSBatteryInfo:
         # Directory paths
         base_path = os.path.dirname(os.path.abspath(__file__))
         self.assets_path = os.path.join(base_path, "../assets/images/")
-
 
         # Create the main container frame
         self.main_frame = ttk.Frame(self.master)
@@ -73,7 +77,7 @@ class RSBatteryInfo:
         self.dashboard_button =  ttk.Button(
             self.side_menu_frame,
             text=" Dashboard",
-            command=lambda: self.select_button(self.dashboard_button),
+            command=lambda: self.select_button(self.dashboard_button,self.show_dashboard),
             image=self.dashboard_icon,
             compound="left",  # Place the icon to the left of the text
             bootstyle="info"
@@ -126,246 +130,257 @@ class RSBatteryInfo:
             compound="left",  # Place the icon to the left of the text
             bootstyle="danger"
         )
-        self.disconnect_button.pack(side="bottom",pady=20)
+        self.disconnect_button.pack(side="bottom",pady=15)
          
         self.show_info()
 
         # Bind the window resize event to adjust frame sizes dynamically
         self.master.bind('<Configure>', self.on_window_resize)
+        # Set up the auto-refresh to call `update_device_data` periodically
+        self.master.after(self.auto_refresh_interval, self.periodic_refresh)
+        
+        # Other initialization code...
+    
+    def update_info(self, event=None):
+            """Update the Info page content based on the selected mode."""
+            if self.selected_button == self.info_button:
+                self.show_control()
+                self.show_info()
+            if self.selected_button == self.control_button:
+                self.show_info()
+                self.show_control()
+            if self.selected_button == self.dashboard_button:
+                self.show_dashboard()
+    
+    def periodic_refresh(self):
+        """Periodically refresh device data based on the selected flag (RS-232 or RS-422)."""
+        # Step 1: Get the active protocol from pcomm.py
+        active_protocol = get_active_protocol()
+
+        # Step 2: Update the flags based on the active protocol
+        if active_protocol == "RS-232":
+            self.rs232_flag = True
+            self.rs422_flag = False
+        elif active_protocol == "RS-422":
+            self.rs232_flag = False
+            self.rs422_flag = True
+
+        if self.rs232_flag:
+            self.device_data = rs232_device_data
+            print("RS232 data updated")
+        elif self.rs422_flag:
+            self.device_data = rs422_device_data
+            print("RS422 data updated")
+        
+        # Update the displayed data (UI updates)
+        self.update_display()
+
+        # Call this method again after the set interval
+        self.master.after(self.auto_refresh_interval, self.periodic_refresh)
+
+    def update_display(self):
+        """Update the displayed values in the GUI based on the current device data."""
+        # Update various UI elements with the current `device_data` values
+
+        # For example, update the charging current/voltage meters
+        charging_current_value = self.device_data.get('charger_output_current', 0)
+        charging_voltage_value = self.device_data.get('charger_output_voltage', 0)
+        
+        # Assuming you have widgets like meters to display these values
+        self.charging_current_meter.configure(amountused=charging_current_value)
+        self.charging_voltage_meter.configure(amountused=charging_voltage_value)
+
+        # Update other fields like charger status, bus status, etc.
+        # Update the labels or other elements
+        self.charger_current_input.config(text=self.device_data.get('charger_input_current', 'N/A'))
+        self.charger_voltage_output.config(text=self.device_data.get('charger_output_voltage', 'N/A'))
+        self.heater_status_circle_color = "green" if self.device_data.get('heater_pad') == 1 else "red"
+        
+        # Update more fields depending on your device data...
+
+    def start_logging(self):
+        # Your existing start logging method...
+        # Ensure that this also gets updated when logging
+        self.periodic_refresh()
 
     def show_dashboard(self):
         self.clear_content_frame()
 
-        # Check if this is the first time the dashboard is being opened
-        if self.first_time_dashboard:
-            self.first_time_dashboard = False  # Set the flag to False after the first time
-            self.prompt_manual_cycle_count()  # Show the input dialog
+        if self.rs232_flag:
+            # Create a Frame for the battery info details at the bottom
+            info_frame = ttk.Labelframe(self.content_frame, text="Battery Information", bootstyle="dark", borderwidth=5, relief="solid")
+            info_frame.pack(fill="x", expand=True, padx=10, pady=10)
 
-        # Create a Frame for the battery info details at the bottom
-        info_frame = ttk.Labelframe(self.content_frame, text="Battery Information", bootstyle="dark")
-        info_frame.pack(fill="x", expand=True, padx=10, pady=10)
+            # Create and place the Battery Info labels within the info_frame
+            battery_id_label = ttk.Label(info_frame, text="Battery ID:", font=("Arial", 10))
+            battery_id_label.grid(row=0, column=0, padx=10, pady=5, sticky="e")   
+            battery_id_value = ttk.Label(info_frame, text=self.device_data.get('battery_id', 'N/A'), font=("Arial", 10, "bold"))
+            battery_id_value.grid(row=0, column=1, padx=10, pady=5, sticky="w")   
+            battery_sn_label = ttk.Label(info_frame, text="Battery S.No.:", font=("Arial", 10))
+            battery_sn_label.grid(row=0, column=2, padx=10, pady=5, sticky="e")   
+            battery_sn_value = ttk.Label(info_frame, text=self.device_data.get('serial_number', 'N/A'), font=("Arial", 10, "bold"))
+            battery_sn_value.grid(row=0, column=3, padx=10, pady=5, sticky="w")   
+            hw_ver_label = ttk.Label(info_frame, text="HW Ver:", font=("Arial", 10))
+            hw_ver_label.grid(row=0, column=4, padx=10, pady=5, sticky="e")   
+            hw_ver_value = ttk.Label(info_frame, text=self.device_data.get('hw_version', 'N/A'), font=("Arial", 10, "bold"))
+            hw_ver_value.grid(row=0, column=5, padx=10, pady=5, sticky="w")   
+            sw_ver_label = ttk.Label(info_frame, text="SW Ver:", font=("Arial", 10))
+            sw_ver_label.grid(row=0, column=6, padx=10, pady=5, sticky="e")   
+            sw_ver_value = ttk.Label(info_frame, text=self.device_data.get('sw_version', 'N/A'), font=("Arial", 10, "bold"))
+            sw_ver_value.grid(row=0, column=7, padx=10, pady=5, sticky="w")
 
-        # Device Name
-        ttk.Label(info_frame, text="Device Name:", font=("Helvetica", 10, "bold")).pack(side="left", padx=5)
-        self.device_name_label = ttk.Label(info_frame, text=device_data.get('device_name', 'N/A'), font=("Helvetica", 10))
-        self.device_name_label.pack(side="left", padx=5)
+            for i in range(8):
+                info_frame.grid_columnconfigure(i, weight=1)
 
-        # Serial Number
-        ttk.Label(info_frame, text="Serial Number:", font=("Helvetica", 10, "bold")).pack(side="left", padx=5)
-        self.serial_number_label = ttk.Label(info_frame, text=device_data.get('serial_number', 'N/A'), font=("Helvetica", 10))
-        self.serial_number_label.pack(side="left", padx=5)
+            # Create a main frame to hold Charging, Discharge, and Battery Health sections
+            main_frame = ttk.Frame(self.content_frame)
+            main_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Manufacturer Name
-        ttk.Label(info_frame, text="Manufacturer:", font=("Helvetica", 10, "bold")).pack(side="left", padx=5)
-        self.manufacturer_label = ttk.Label(info_frame, text=device_data.get('manufacturer_name', 'N/A'), font=("Helvetica", 10))
-        self.manufacturer_label.pack(side="left", padx=5)
+            # Charging Section
+            charging_frame = ttk.Labelframe(main_frame, text="Charging")
+            charging_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=5, sticky="nsew")
 
-        # Manual Cycle Count
-        ttk.Label(info_frame, text="Manual Cycle Count:", font=("Helvetica", 10, "bold")).pack(side="left", padx=5)
-        self.cycle_count_label = ttk.Label(info_frame, text=device_data.get('manual_cycle_count', 'N/A'), font=("Helvetica", 10))
-        self.cycle_count_label.pack(side="left", padx=5)
+            # Charging Current (Row 0, Column 0)
+            charging_current_frame = ttk.Frame(charging_frame)
+            charging_current_frame.grid(row=0, column=0, padx=70, pady=5, sticky="nsew", columnspan=1)
+            charging_current_label = ttk.Label(charging_current_frame, text="Charging Current", font=("Helvetica", 12, "bold"))
+            charging_current_label.pack(pady=(5, 5))
+            charging_current_meter = ttk.Meter(
+                master=charging_current_frame,
+                metersize=180,
+                amountused=device_data['charging_current'],
+                meterthickness=10,
+                metertype="semi",
+                subtext="Charging Current",
+                textright="A",
+                amounttotal=120,
+                bootstyle=self.get_gauge_style(device_data['charging_current'], "charging_current"),
+                stripethickness=10,
+                subtextfont='-size 10'
+            )
+            charging_current_meter.pack()
 
-        # Charging Status
-        ttk.Label(info_frame, text="Charging Status:", font=("Helvetica", 10, "bold")).pack(side="left", padx=5)
+            # Charging Voltage (Row 0, Column 1)
+            charging_voltage_frame = ttk.Frame(charging_frame)
+            charging_voltage_frame.grid(row=0, column=1, padx=70, pady=5, sticky="nsew", columnspan=1)
+            charging_voltage_label = ttk.Label(charging_voltage_frame, text="Charging Voltage", font=("Helvetica", 12, "bold"))
+            charging_voltage_label.pack(pady=(5, 5)) 
+            charging_voltage_meter = ttk.Meter(
+                master=charging_voltage_frame,
+                metersize=180,
+                amountused=device_data['charging_voltage'],
+                meterthickness=10,
+                metertype="semi",
+                subtext="Charging Voltage",
+                textright="V",
+                amounttotal=35,
+                bootstyle=self.get_gauge_style(device_data['charging_voltage'], "charging_voltage"),
+                stripethickness=10,
+                subtextfont='-size 10'
+            )
+            charging_voltage_meter.pack()
 
-        self.status_var = tk.StringVar()
-        charging_bootstyle = 'dark'
-        discharging_bootstyle = "dark"
+            # Battery Health Section
+            battery_health_frame = ttk.Labelframe(main_frame, text="Battery Health", bootstyle='dark')
+            battery_health_frame.grid(row=0, column=2, rowspan=2, padx=10, pady=5, sticky="nsew")
 
-        # Determine the status and set the corresponding style
-        charging_status = device_data.get('charging_battery_status', 'Idle').lower()
-        if charging_status == "charging":
-            bootstyle = "success"
-            charging_bootstyle = 'success'
-            self.status_var.set("charging")
-        elif charging_status == "discharging":
-            bootstyle = "danger"
-            discharging_bootstyle = "danger"
-            self.status_var.set("discharging")
-        else:  # Assuming 'Idle' or any other status means the device is off
-            bootstyle = "dark"
-            charging_bootstyle = 'dark'
-            discharging_bootstyle = "dark"
-            self.status_var.set("off")
+            # Temperature (Top of Battery Health)
+            temp_frame = ttk.Frame(battery_health_frame)
+            temp_frame.pack(padx=10, pady=5, fill="both", expand=True)
+            temp_label = ttk.Label(temp_frame, text="Temperature", font=("Helvetica", 12, "bold"))
+            temp_label.pack(pady=(10, 10))
+            temp_meter = ttk.Meter(
+                master=temp_frame,
+                metersize=180,
+                amountused=device_data['temperature'],
+                meterthickness=10,
+                metertype="semi",
+                subtext="Temperature",
+                textright="°C",
+                amounttotal=100,
+                bootstyle=self.get_gauge_style(device_data['temperature'], "temperature"),
+                stripethickness=8,
+                subtextfont='-size 10'
+            )
+            temp_meter.pack()
 
-        # Create a Radiobutton to visually represent the status
-        self.status_indicator = ttk.Radiobutton(
-            info_frame,
-            text=charging_status.capitalize(),  # Display the charging status text
-            variable=self.status_var,  # Use the StringVar
-            value=charging_status,  # Set the value that matches the current status
-            bootstyle=bootstyle, # Apply the bootstyle based on the charging status
-        )
-        self.status_indicator.pack(side="left", padx=5)
+            # Capacity (Bottom of Battery Health)
+            capacity_frame = ttk.Frame(battery_health_frame)
+            capacity_frame.pack(padx=10, pady=5, fill="both", expand=True)
+            capacity_label = ttk.Label(capacity_frame, text="Capacity", font=("Helvetica", 12, "bold"))
+            capacity_label.pack(pady=(10, 10))
+            full_charge_capacity = device_data.get('full_charge_capacity', 0)
+            remaining_capacity = device_data.get('remaining_capacity', 0)
+            amountused = (remaining_capacity / full_charge_capacity) * 100 if full_charge_capacity else 0
+            capacity_meter = ttk.Meter(
+                master=capacity_frame,
+                metersize=180,
+                amountused=round(amountused, 1),
+                meterthickness=10,
+                metertype="semi",
+                subtext="Capacity",
+                textright="%",
+                amounttotal=100,
+                bootstyle=self.get_gauge_style(amountused, "capacity"),
+                stripethickness=8,
+                subtextfont='-size 10'
+            )
+            capacity_meter.pack()
 
-        # Create a main frame to hold Charging, Discharge, and Battery Health sections
-        main_frame = ttk.Frame(self.content_frame)
-        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+            # Discharging Section
+            discharging_frame = ttk.Labelframe(main_frame, text="Discharging")
+            discharging_frame.grid(row=1, column=0, columnspan=2, padx=10, pady=5, sticky="nsew")
 
-        # Charging Section
-        charging_frame = ttk.Labelframe(main_frame, text="Charging", bootstyle=charging_bootstyle)
-        charging_frame.grid(row=0, column=0, columnspan=2, padx=10, pady=5, sticky="nsew")
+            # Discharging Current (Row 1, Column 0)
+            discharging_current_frame = ttk.Frame(discharging_frame)
+            discharging_current_frame.grid(row=1, column=0, padx=70, pady=5, sticky="nsew", columnspan=1)
+            discharging_current_label = ttk.Label(discharging_current_frame, text="Discharging Current", font=("Helvetica", 12, "bold"))
+            discharging_current_label.pack(pady=(5, 5))
+            # Variable to control the max value of the discharging current gauge
 
-        # Charging Current (Row 0, Column 0)
-        charging_current_frame = ttk.Frame(charging_frame)
-        charging_current_frame.grid(row=0, column=0, padx=70, pady=5, sticky="nsew", columnspan=1)
-        charging_current_label = ttk.Label(charging_current_frame, text="Charging Current", font=("Helvetica", 12, "bold"))
-        charging_current_label.pack(pady=(5, 5))
-        charging_current_meter = ttk.Meter(
-            master=charging_current_frame,
-            metersize=180,
-            amountused=device_data['charging_current'],
-            meterthickness=10,
-            metertype="semi",
-            subtext="Charging Current",
-            textright="A",
-            amounttotal=120,
-            bootstyle=self.get_gauge_style(device_data['charging_current'], "charging_current"),
-            stripethickness=10,
-            subtextfont='-size 10'
-        )
-        charging_current_meter.pack()
+            # Discharging Current Gauge
+            self.discharging_current_meter = ttk.Meter(
+                master=discharging_current_frame,
+                metersize=180,
+                amountused=device_data['current'],  # Assuming this is the discharging current
+                meterthickness=10,
+                metertype="semi",
+                subtext="Discharging Current",
+                textright="A",
+                amounttotal=100,
+                bootstyle=self.get_gauge_style(device_data['current'], "current"),
+                stripethickness=10,
+                subtextfont='-size 10'
+            )
+            self.discharging_current_meter.pack()
 
-        # Charging Voltage (Row 0, Column 1)
-        charging_voltage_frame = ttk.Frame(charging_frame)
-        charging_voltage_frame.grid(row=0, column=1, padx=70, pady=5, sticky="nsew", columnspan=1)
-        charging_voltage_label = ttk.Label(charging_voltage_frame, text="Charging Voltage", font=("Helvetica", 12, "bold"))
-        charging_voltage_label.pack(pady=(5, 5))
-        charging_voltage_meter = ttk.Meter(
-            master=charging_voltage_frame,
-            metersize=180,
-            amountused=device_data['charging_voltage'],
-            meterthickness=10,
-            metertype="semi",
-            subtext="Charging Voltage",
-            textright="V",
-            amounttotal=35,
-            bootstyle=self.get_gauge_style(device_data['charging_voltage'], "charging_voltage"),
-            stripethickness=10,
-            subtextfont='-size 10'
-        )
-        charging_voltage_meter.pack()
+            # Discharging Voltage (Row 1, Column 1)
+            discharging_voltage_frame = ttk.Frame(discharging_frame)
+            discharging_voltage_frame.grid(row=1, column=1, padx=70, pady=5, sticky="nsew", columnspan=1)
+            discharging_voltage_label = ttk.Label(discharging_voltage_frame, text="Discharging Voltage", font=("Helvetica", 12, "bold"))
+            discharging_voltage_label.pack(pady=(5, 35))
+            discharging_voltage_meter = ttk.Meter(
+                master=discharging_voltage_frame,
+                metersize=180,
+                amountused=device_data['voltage'],  # Assuming this is the discharging voltage
+                meterthickness=10,
+                metertype="semi",
+                subtext="Discharging Voltage",
+                textright="V",
+                amounttotal=100,
+                bootstyle=self.get_gauge_style(device_data['voltage'], "voltage"),
+                stripethickness=10,
+                subtextfont='-size 10'
+            )
+            discharging_voltage_meter.pack()
 
-        # Battery Health Section
-        battery_health_frame = ttk.Labelframe(main_frame, text="Battery Health", bootstyle='dark')
-        battery_health_frame.grid(row=0, column=2, rowspan=2, padx=10, pady=5, sticky="nsew")
+            # Configure row and column weights to ensure even distribution
+            for i in range(2):
+                main_frame.grid_rowconfigure(i, weight=1)
+            for j in range(3):
+                main_frame.grid_columnconfigure(j, weight=1)
 
-        # Temperature (Top of Battery Health)
-        temp_frame = ttk.Frame(battery_health_frame)
-        temp_frame.pack(padx=10, pady=5, fill="both", expand=True)
-        temp_label = ttk.Label(temp_frame, text="Temperature", font=("Helvetica", 12, "bold"))
-        temp_label.pack(pady=(10, 10))
-        temp_meter = ttk.Meter(
-            master=temp_frame,
-            metersize=180,
-            amountused=device_data['temperature'],
-            meterthickness=10,
-            metertype="semi",
-            subtext="Temperature",
-            textright="°C",
-            amounttotal=100,
-            bootstyle=self.get_gauge_style(device_data['temperature'], "temperature"),
-            stripethickness=8,
-            subtextfont='-size 10'
-        )
-        temp_meter.pack()
-
-        # Capacity (Bottom of Battery Health)
-        capacity_frame = ttk.Frame(battery_health_frame)
-        capacity_frame.pack(padx=10, pady=5, fill="both", expand=True)
-        capacity_label = ttk.Label(capacity_frame, text="Capacity", font=("Helvetica", 12, "bold"))
-        capacity_label.pack(pady=(10, 10))
-        full_charge_capacity = device_data.get('full_charge_capacity', 0)
-        remaining_capacity = device_data.get('remaining_capacity', 0)
-        amountused = (remaining_capacity / full_charge_capacity) * 100 if full_charge_capacity else 0
-        capacity_meter = ttk.Meter(
-            master=capacity_frame,
-            metersize=180,
-            amountused=round(amountused, 1),
-            meterthickness=10,
-            metertype="semi",
-            subtext="Capacity",
-            textright="%",
-            amounttotal=100,
-            bootstyle=self.get_gauge_style(amountused, "capacity"),
-            stripethickness=8,
-            subtextfont='-size 10'
-        )
-        capacity_meter.pack()
-
-
-        # Discharging Section
-        discharging_frame = ttk.Labelframe(main_frame, text="Discharging", bootstyle=discharging_bootstyle)
-        discharging_frame.grid(row=1, column=0, columnspan=2, padx=10, pady=5, sticky="nsew")
-
-        def update_max_value():
-            if self.check_discharge_max.get():
-                self.discharge_max_value.set(450)
-            else:
-                self.discharge_max_value.set(100)
-            self.discharging_current_meter.configure(amounttotal=self.discharge_max_value.get())
-
-        # Discharging Current (Row 1, Column 0)
-        discharging_current_frame = ttk.Frame(discharging_frame)
-        discharging_current_frame.grid(row=1, column=0, padx=70, pady=5, sticky="nsew", columnspan=1)
-        discharging_current_label = ttk.Label(discharging_current_frame, text="Discharging Current", font=("Helvetica", 12, "bold"))
-        discharging_current_label.pack(pady=(5, 5))
-        # Variable to control the max value of the discharging current gauge
-        self.discharge_max_value = tk.IntVar(value=100)  # Default max value
-
-        # Checkbox to toggle the max value of the discharging current gauge
-        self.check_discharge_max = tk.BooleanVar()
-        discharge_max_checkbox = ttk.Checkbutton(
-            discharging_current_frame, 
-            text="Set Max to 450A", 
-            variable=self.check_discharge_max, 
-            command=update_max_value
-        )
-        discharge_max_checkbox.pack(pady=(5, 10))
-
-        # Discharging Current Gauge
-        self.discharging_current_meter = ttk.Meter(
-            master=discharging_current_frame,
-            metersize=180,
-            amountused=device_data['current'],  # Assuming this is the discharging current
-            meterthickness=10,
-            metertype="semi",
-            subtext="Discharging Current",
-            textright="A",
-            amounttotal=self.discharge_max_value.get(),
-            bootstyle=self.get_gauge_style(device_data['current'], "current"),
-            stripethickness=10,
-            subtextfont='-size 10'
-        )
-        self.discharging_current_meter.pack()
-
-        # Discharging Voltage (Row 1, Column 1)
-        discharging_voltage_frame = ttk.Frame(discharging_frame)
-        discharging_voltage_frame.grid(row=1, column=1, padx=70, pady=5, sticky="nsew", columnspan=1)
-        discharging_voltage_label = ttk.Label(discharging_voltage_frame, text="Discharging Voltage", font=("Helvetica", 12, "bold"))
-        discharging_voltage_label.pack(pady=(5, 35))
-        discharging_voltage_meter = ttk.Meter(
-            master=discharging_voltage_frame,
-            metersize=180,
-            amountused=device_data['voltage'],  # Assuming this is the discharging voltage
-            meterthickness=10,
-            metertype="semi",
-            subtext="Discharging Voltage",
-            textright="V",
-            amounttotal=100,
-            bootstyle=self.get_gauge_style(device_data['voltage'], "voltage"),
-            stripethickness=10,
-            subtextfont='-size 10'
-        )
-        discharging_voltage_meter.pack()
-
-        # Configure row and column weights to ensure even distribution
-        for i in range(2):
-            main_frame.grid_rowconfigure(i, weight=1)
-        for j in range(3):
-            main_frame.grid_columnconfigure(j, weight=1)
-
-        # Pack the content_frame itself
+            # Pack the content_frame itself
         self.content_frame.pack(fill="both", expand=True)
         self.select_button(self.dashboard_button)
 
@@ -415,10 +430,10 @@ class RSBatteryInfo:
     def show_help(self):
         self.clear_content_frame()
         label = ttk.Label(self.content_frame, text="Help", font=("Helvetica", 16))
-        label.pack(pady=20)
+        label.pack(pady=15)
         # Create a text box (entry widget)
         self.write_entry = tk.Entry(self.content_frame, width=50)
-        self.write_entry.pack(pady=20)
+        self.write_entry.pack(pady=15)
 
         # Create a button to send the entered text
         send_button = tk.Button(self.content_frame, text="Send", command=self.send_serial_data)
@@ -431,7 +446,8 @@ class RSBatteryInfo:
         data = self.write_entry.get()  # Get the data entered in the entry widget
         if data:
             print(f"Sending data: {data}")
-            send_data(data)
+            # start_periodic_sending()
+            # read_data()
         else:
             messagebox.showwarning("Input Error", "Please enter data to send.")
     
@@ -513,39 +529,68 @@ class RSBatteryInfo:
 
         # Section: Right Control Frame (Change to Grid Layout)
         right_control_frame = ttk.Labelframe(load_frame, text="Controls", bootstyle="dark", borderwidth=5, relief="solid")
-        right_control_frame.grid(row=0, column=1, rowspan=1, padx=5, pady=5, sticky="nsew")  # Positioned to the right
+        right_control_frame.grid(row=0, column=1, rowspan=1,columnspan=3, padx=5, pady=5, sticky="nsew")  # Positioned to the right
+        
+        def toggle_eb1_relay():
+            if rs422_write['cmd_byte_1'] == 0x00:
+                rs422_write['cmd_byte_1'] = 0x01
+                eb1_relay_control_status.config(text="ON", bootstyle="success")  # Update button text and style
+                print(f"EB1 Relay ON: {rs422_write['cmd_byte_1']}")
+            else:
+                rs422_write['cmd_byte_1'] = 0x00
+                eb1_relay_control_status.config(text="OFF", bootstyle="danger")  # Update button text and style
+                print(f"EB1 Relay OFF: {rs422_write['cmd_byte_1']}")
 
-        # Load icons
-        self.reset_icon = self.load_icon(os.path.join(self.assets_path, "reset.png"))
-        self.activate_icon = self.load_icon(os.path.join(self.assets_path, "activate.png"))
+        if self.rs232_flag:
+            ttk.Label(right_control_frame, text="BUS1 On/Off").grid(row=0, column=0, padx=5, pady=5)
+            bus1_control_status = ttk.Button(right_control_frame, text="OFF", bootstyle="danger")
+            bus1_control_status.grid(row=0, column=1, padx=5, pady=5)
 
-        # Row 0: Charging On/Off Label and Checkbutton
-        check_label1 = ttk.Label(right_control_frame, text="Charging On/Off:", font=("Helvetica", 12), anchor="center")
-        check_label1.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+            ttk.Label(right_control_frame, text="BUS2 On/Off").grid(row=1, column=0, padx=5, pady=5)
+            bus2_control_status = ttk.Button(right_control_frame, text="OFF", bootstyle="danger")
+            bus2_control_status.grid(row=1, column=1, padx=5, pady=5)
 
-        self.charger_control_var = tk.BooleanVar()
-        self.charger_control_var.set(self.charge_fet_status)
-        check_button1 = ttk.Checkbutton(
-            right_control_frame,
-            variable=self.charger_control_var,
-            bootstyle="success-round-toggle" if self.charger_control_var.get() else "danger-round-toggle",
-            command=lambda: self.toggle_button_style(self.charger_control_var, check_button1, 'charge')
-        )
-        check_button1.grid(row=0, column=1, padx=10, pady=5, sticky="e")
+            ttk.Label(right_control_frame, text="Charger On/Off").grid(row=2, column=0, padx=5, pady=5)
+            charger_control_status = ttk.Button(right_control_frame, text="OFF", bootstyle="danger")
+            charger_control_status.grid(row=2, column=1, padx=5, pady=5)
+            def toggle_output_relay():
+                if rs232_write['cmd_byte_1'] == 0x00:
+                    rs232_write['cmd_byte_1'] = 0x08  # Set to 0x08 when turning ON
+                    output_relay_control_status.config(text="ON", bootstyle="success")  # Update button text and style
+                    print("Output Relay ON")
+                else:
+                    rs232_write['cmd_byte_1'] = 0x00  # Reset to 0x00 when turning OFF
+                    output_relay_control_status.config(text="OFF", bootstyle="danger")  # Update button text and style
+                    print("Output Relay OFF")
 
-        # Row 1: Discharging On/Off Label and Checkbutton
-        check_label2 = ttk.Label(right_control_frame, text="Discharging On/Off:", font=("Helvetica", 12), anchor="center")
-        check_label2.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+            ttk.Label(right_control_frame, text="Output Relay On/Off").grid(row=3, column=0, padx=5, pady=5)
+            output_relay_control_status = ttk.Button(right_control_frame, text="OFF", bootstyle="danger", command=toggle_output_relay)
+            output_relay_control_status.grid(row=3, column=1, padx=5, pady=5)
 
-        self.discharger_control_var = tk.BooleanVar()
-        self.discharger_control_var.set(self.discharge_fet_status)
-        check_button2 = ttk.Checkbutton(
-            right_control_frame,
-            variable=self.discharger_control_var,
-            bootstyle="success-round-toggle" if self.discharger_control_var.get() else "danger-round-toggle",
-            command=lambda: self.toggle_button_style(self.discharger_control_var, check_button2, 'discharge')
-        )
-        check_button2.grid(row=1, column=1, padx=10, pady=5, sticky="e")
+            ttk.Label(right_control_frame, text="Reset").grid(row=4, column=0, padx=5, pady=5)
+            reset_button = ttk.Button(right_control_frame, text="RESET", bootstyle="danger")
+            reset_button.grid(row=4, column=1, padx=5, pady=5)
+        
+        if self.rs422_flag:
+            ttk.Label(right_control_frame, text="EB1 Relay On/Off").grid(row=0, column=0, padx=5, pady=5)
+            eb1_checkbox_var = tk.BooleanVar()
+            ttk.Checkbutton(right_control_frame, text="Auto", variable=eb1_checkbox_var).grid(row=0, column=1, padx=5, pady=5)
+            eb1_relay_control_status = ttk.Button(right_control_frame, text="OFF", bootstyle="danger",command=toggle_eb1_relay)
+            eb1_relay_control_status.grid(row=0, column=2, padx=5, pady=5)
+
+            ttk.Label(right_control_frame, text="EB1 Relay On/Off").grid(row=1, column=0, padx=5, pady=5)
+            eb2_checkbox_var = tk.BooleanVar()
+            ttk.Checkbutton(right_control_frame, text="Auto", variable=eb2_checkbox_var).grid(row=1, column=1, padx=5, pady=5)
+            eb2_relay_control_status = ttk.Button(right_control_frame, text="OFF", bootstyle="danger")
+            eb2_relay_control_status.grid(row=1, column=2, padx=5, pady=5)
+
+            ttk.Label(right_control_frame, text="Shutdown").grid(row=2, column=0, padx=5, pady=5)
+            shutdown_control_status = ttk.Button(right_control_frame, text="Shutdown", bootstyle="danger")
+            shutdown_control_status.grid(row=2, column=2, padx=5, pady=5)
+
+            ttk.Label(right_control_frame, text="Master/Slave").grid(row=3, column=0, padx=5, pady=5)
+            master_slave_control_status = ttk.Button(right_control_frame, text="Slave", bootstyle="danger")
+            master_slave_control_status.grid(row=3, column=2, padx=5, pady=5)
 
         # Section:  Device Connection
         device_connect_frame = ttk.Labelframe(load_frame, bootstyle='dark', text="Connection", padding=10, borderwidth=10, relief="solid")
@@ -756,111 +801,256 @@ class RSBatteryInfo:
         style = ttk.Style()
 
         # Configure the Labelframe title font to be bold
-        style.configure("TLabelframe.Label", font=("Helvetica", 8, "bold"))
+        style.configure("TLabelframe.Label", font=("Helvetica", 10, "bold"))
 
         # Determine if we are in Testing Mode or Maintenance Mode
         selected_mode = self.mode_var.get()
-        self.limited = selected_mode == "Testing Mode" 
+        self.limited = selected_mode == "Testing Mode"
 
-        # Create a Frame to hold the battery info at the top of the content frame
-        info_frame = ttk.Labelframe(self.content_frame, text="Battery Info", bootstyle="dark")
-        info_frame.pack(fill="x", padx=10, pady=10)   
-        # Create and place the Battery Info labels within the info_frame
-        battery_id_label = ttk.Label(info_frame, text="Battery ID:", font=("Arial", 10))
-        battery_id_label.grid(row=0, column=0, padx=10, pady=5, sticky="e")   
-        battery_id_value = ttk.Label(info_frame, text="123456789", font=("Arial", 10, "bold"))
-        battery_id_value.grid(row=0, column=1, padx=10, pady=5, sticky="w")   
-        battery_sn_label = ttk.Label(info_frame, text="Battery S.No.:", font=("Arial", 10))
-        battery_sn_label.grid(row=0, column=2, padx=10, pady=5, sticky="e")   
-        battery_sn_value = ttk.Label(info_frame, text="SN987654321", font=("Arial", 10, "bold"))
-        battery_sn_value.grid(row=0, column=3, padx=10, pady=5, sticky="w")   
-        hw_ver_label = ttk.Label(info_frame, text="HW Ver:", font=("Arial", 10))
-        hw_ver_label.grid(row=0, column=4, padx=10, pady=5, sticky="e")   
-        hw_ver_value = ttk.Label(info_frame, text="v1.0", font=("Arial", 10, "bold"))
-        hw_ver_value.grid(row=0, column=5, padx=10, pady=5, sticky="w")   
-        sw_ver_label = ttk.Label(info_frame, text="SW Ver:", font=("Arial", 10))
-        sw_ver_label.grid(row=0, column=6, padx=10, pady=5, sticky="e")   
-        sw_ver_value = ttk.Label(info_frame, text="v2.5", font=("Arial", 10, "bold"))
-        sw_ver_value.grid(row=0, column=7, padx=10, pady=5, sticky="w")
+        if self.rs232_flag:
+            # Create a Frame to hold the battery info at the top of the content frame
+            info_frame = ttk.Labelframe(self.content_frame, text="Battery Info", bootstyle="dark",borderwidth=5, relief="solid")
+            info_frame.pack(fill="x", padx=10, pady=10)
 
-        # Create a main frame to hold Charging, Discharge, and Battery Health sections
-        main_frame = ttk.Frame(self.content_frame)
-        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
+            # Create and place the Battery Info labels within the info_frame
+            battery_id_label = ttk.Label(info_frame, text="Battery ID:", font=("Arial", 10))
+            battery_id_label.grid(row=0, column=0, padx=10, pady=5, sticky="e")   
+            battery_id_value = ttk.Label(info_frame, text=self.device_data.get('battery_id', 'N/A'), font=("Arial", 10, "bold"))
+            battery_id_value.grid(row=0, column=1, padx=10, pady=5, sticky="w")   
+            battery_sn_label = ttk.Label(info_frame, text="Battery S.No.:", font=("Arial", 10))
+            battery_sn_label.grid(row=0, column=2, padx=10, pady=5, sticky="e")   
+            battery_sn_value = ttk.Label(info_frame, text=self.device_data.get('serial_number', 'N/A'), font=("Arial", 10, "bold"))
+            battery_sn_value.grid(row=0, column=3, padx=10, pady=5, sticky="w")   
+            hw_ver_label = ttk.Label(info_frame, text="HW Ver:", font=("Arial", 10))
+            hw_ver_label.grid(row=0, column=4, padx=10, pady=5, sticky="e")   
+            hw_ver_value = ttk.Label(info_frame, text=self.device_data.get('hw_version', 'N/A'), font=("Arial", 10, "bold"))
+            hw_ver_value.grid(row=0, column=5, padx=10, pady=5, sticky="w")   
+            sw_ver_label = ttk.Label(info_frame, text="SW Ver:", font=("Arial", 10))
+            sw_ver_label.grid(row=0, column=6, padx=10, pady=5, sticky="e")   
+            sw_ver_value = ttk.Label(info_frame, text=self.device_data.get('sw_version', 'N/A'), font=("Arial", 10, "bold"))
+            sw_ver_value.grid(row=0, column=7, padx=10, pady=5, sticky="w")
 
-        # Battery Section
-        battery_frame = ttk.Labelframe(main_frame, text="Battery", bootstyle='dark')
-        battery_frame.grid(row=0, column=0, columnspan=8, rowspan=6, padx=10, pady=5, sticky="nsew")
-        # Frame 1 inside battery_frame
-        parameters_frame = ttk.Labelframe(battery_frame, text="Parameters", bootstyle='dark')
-        parameters_frame.grid(row=0, column=0, columnspan=8, rowspan=4, padx=5, pady=5, sticky="nsew")
+            # Configure equal weight for the columns to distribute space equally
+            for i in range(8):
+                info_frame.grid_columnconfigure(i, weight=1)
 
-        # Add a label inside frame1
-        label_in_frame1 = ttk.Label(parameters_frame, text="Label in parameters_frame")
-        label_in_frame1.grid(row=0, column=1, padx=5, pady=5)
+            # Create a main frame to hold Charging, Discharge, and Battery Health sections
+            main_frame = ttk.Frame(self.content_frame)
+            main_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Frame 2 inside battery_frame
-        ic_temp_frame = ttk.Labelframe(battery_frame, text="IC Temperature", bootstyle='dark')
-        ic_temp_frame.grid(row=4, column=0, columnspan=8, rowspan=2, padx=5, pady=5, sticky="nsew")
+            # Battery section
+            battery_frame = ttk.Labelframe(main_frame, text="Battery", bootstyle='dark',borderwidth=5, relief="solid")
+            battery_frame.grid(row=0, column=0, columnspan=6, rowspan=5, padx=10, pady=5, sticky="nsew")
 
-        # Add a label inside frame1
-        label_in_frame2 = ttk.Label(ic_temp_frame, text="Label in ic_temp_frame")
-        label_in_frame2.grid(row=4, column=1, padx=5, pady=5)
+            # Parameters Frame inside Battery section
+            parameters_frame = ttk.Labelframe(battery_frame, text="Parameters", bootstyle='dark',borderwidth=5, relief="solid")
+            parameters_frame.grid(row=0, column=0, columnspan=6, rowspan=4, padx=15, pady=25, sticky="nsew")
 
-        # Frame 3 inside battery_frame
-        duration_frame = ttk.Labelframe(battery_frame, text="Duration", bootstyle='dark')
-        duration_frame.grid(row=6, column=0, columnspan=8, rowspan=2, padx=5, pady=5, sticky="nsew")
+            # Create labels for Voltage, Temperature, and Status headers
+            ttk.Label(parameters_frame, text="").grid(row=0, column=0, padx=5, pady=5)  # Empty top-left cell
+            ttk.Label(parameters_frame, text="Voltage").grid(row=1, column=0, padx=5, pady=5)
+            ttk.Label(parameters_frame, text="Temperature").grid(row=2, column=0, padx=5, pady=5)
 
-        # Add a label inside frame1
-        label_in_frame3 = ttk.Label(duration_frame, text="Label in duration_frame")
-        label_in_frame3.grid(row=6, column=1, padx=5, pady=5)
+            # Create labels and entries for each BAT (Voltage, Temperature, Status)
+            for i in range(7):
+                ttk.Label(parameters_frame, text=f"BAT{i+1}").grid(row=0, column=i+1, padx=5, pady=5)
 
-        # Charger Section
-        charger_frame = ttk.Labelframe(main_frame, text="Charger", bootstyle='dark')
-        charger_frame.grid(row=0, column=8, columnspan=4, rowspan=6, padx=10, pady=5, sticky="nsew")
+                # Set the values from the rs232_device_data dictionary
+                voltage_value = self.device_data.get(f'cell_{i+1}_voltage', 'N/A')
+                temp_value = self.device_data.get(f'cell_{i+1}_temp', 'N/A')
 
-        # Bus Section
-        bus_frame = ttk.Labelframe(main_frame, text="BUS", bootstyle='dark')
-        bus_frame.grid(row=6, column=0, columnspan=4, rowspan=6, padx=10, pady=5, sticky="nsew")
+                # Voltage label styled like an Entry (with border)
+                voltage_label = ttk.Label(parameters_frame, text=voltage_value, relief="solid", borderwidth=2, width=10, anchor="center")
+                voltage_label.grid(row=1, column=i+1, padx=5, pady=5)
 
-        # Heater Pad Section
-        heater_frame = ttk.Labelframe(main_frame, text="Heater Pad", bootstyle='dark')
-        heater_frame.grid(row=6, column=4,columnspan=4, rowspan=2, padx=2, pady=5, sticky="nsew")  # Row 2, Column 0
+                # Temperature label styled like an Entry (with border)
+                temp_label = ttk.Label(parameters_frame, text=temp_value, relief="solid", borderwidth=2, width=10, anchor="center")
+                temp_label.grid(row=2, column=i+1, padx=5, pady=5)
+  
 
-        # Watch Dog Section
-        watch_frame = ttk.Labelframe(main_frame, text="Watch Dog", bootstyle='dark')
-        watch_frame.grid(row=8, column=4,columnspan=4, rowspan=2, padx=2, pady=5, sticky="nsew")  # Row 3, Column 0
+            # Configure equal weight for the columns to distribute space equally
+            for i in range(8):
+                parameters_frame.grid_columnconfigure(i, weight=1)     
 
-        # Interlock Section
-        interlock_frame = ttk.Labelframe(main_frame, text="Interlock", bootstyle='dark')
-        interlock_frame.grid(row=10, column=4,columnspan=4, rowspan=2, padx=2, pady=5, sticky="nsew")  # Row 4, Column 0
+            # IC Temperature Frame
+            ic_temp_frame = ttk.Labelframe(battery_frame, text="IC Temperature", bootstyle='dark',borderwidth=5, relief="solid")
+            ic_temp_frame.grid(row=4, column=0, columnspan=8, rowspan=1, padx=15, pady=10, sticky="nsew")
+            ic_temp_label = ttk.Label(ic_temp_frame, text=self.device_data.get('ic_temp'), relief="solid", borderwidth=2, width=10, anchor="center")
+            ic_temp_label.grid(row=0, column=1, padx=5, pady=5)
 
-        reset_bat_param_button = ttk.Button(
-            main_frame, 
-            text="Reset Bat Param"
-        )
-        reset_bat_param_button.grid(row=6, column=8, columnspan=2, padx=10, pady=10, sticky="nsew")
+            # Configure equal weight for the columns to distribute space equally
+            ic_temp_frame.grid_columnconfigure(1, weight=1)
+            
+            battery_frame.grid_columnconfigure(1, weight=1)
 
-        exit_button = ttk.Button(
-            main_frame, 
-            text="Exit"
-        )
-        exit_button.grid(row=6, column=11, columnspan=1, padx=10, pady=10, sticky="nsew")
+            # Charger section
+            charger_frame = ttk.Labelframe(main_frame, text="Charger", bootstyle='dark',borderwidth=5, relief="solid")
+            charger_frame.grid(row=4, column=6, columnspan=6, rowspan=8, padx=10, pady=5, sticky="nsew")
 
-        # Add the Text widget (textarea)
-        textarea = tk.Text(main_frame, height=10, width=40)
-        textarea.grid(row=8, column=8, columnspan=4, rowspan=4, padx=10, pady=10, sticky="nsew")
+            ttk.Label(charger_frame, text="Input").grid(row=1, column=1, padx=5, pady=15)
+
+            ttk.Label(charger_frame, text="Output").grid(row=1, column=3, padx=5, pady=15)
+
+            ttk.Label(charger_frame, text="Voltage").grid(row=2, column=0, padx=5, pady=15)
+
+            charger_voltage_output = ttk.Label(charger_frame, text=self.device_data.get('charger_output_voltage'), relief="solid", borderwidth=2, width=10, anchor="center")
+            charger_voltage_output.grid(row=2, column=3, padx=5, pady=15)
+
+            ttk.Label(charger_frame, text="Current").grid(row=3, column=0, padx=5, pady=15)
+
+            charger_current_input = ttk.Label(charger_frame, text=self.device_data.get('charger_input_current'), relief="solid", borderwidth=2, width=10, anchor="center")
+            charger_current_input.grid(row=3, column=1, padx=5, pady=15)
+
+            charger_current_output = ttk.Label(charger_frame, text=self.device_data.get('charger_output_current'), relief="solid", borderwidth=2, width=10, anchor="center")
+            charger_current_output.grid(row=3, column=3, padx=5, pady=15)
+
+            # Configure equal weight for the columns to distribute space equally
+            for i in range(2):
+                charger_frame.grid_columnconfigure(i, weight=1)
+
+            # Bus section
+            bus_frame = ttk.Labelframe(main_frame, text="BUS", bootstyle='dark',borderwidth=5, relief="solid")
+            bus_frame.grid(row=0, column=6, columnspan=6, rowspan=4, padx=10, pady=5, sticky="nsew")
+
+            ttk.Label(bus_frame, text="BUS1").grid(row=1, column=1, padx=5, pady=15)
+
+            ttk.Label(bus_frame, text="BUS2").grid(row=1, column=3, padx=5, pady=15)
+
+            ttk.Label(bus_frame, text="Voltage Before Diode").grid(row=2, column=0, padx=5, pady=15)
+            voltage_before_diode_bus1 = ttk.Label(bus_frame, text=self.device_data.get('bus_1_voltage_before_diode'), relief="solid", borderwidth=2, width=10, anchor="center")
+            voltage_before_diode_bus1.grid(row=2, column=1, padx=5, pady=15,sticky="nsew")
+            voltage_before_diode_bus2 = ttk.Label(bus_frame, text=self.device_data.get('bus_2_voltage_before_diode'), relief="solid", borderwidth=2, width=10, anchor="center")
+            voltage_before_diode_bus2.grid(row=2, column=3, padx=5, pady=15,sticky="nsew")
+
+            ttk.Label(bus_frame, text="Voltage After Diode").grid(row=3, column=0, padx=5, pady=15)
+            voltage_after_diode_bus1 = ttk.Label(bus_frame, text=self.device_data.get('bus_1_voltage_after_diode'), relief="solid", borderwidth=2, width=10, anchor="center")
+            voltage_after_diode_bus1.grid(row=3, column=1, padx=5, pady=15,sticky="nsew")
+            voltage_after_diode_bus2 = ttk.Label(bus_frame, text=self.device_data.get('bus_2_voltage_after_diode'), relief="solid", borderwidth=2, width=10, anchor="center")
+            voltage_after_diode_bus2.grid(row=3, column=3, padx=5, pady=15,sticky="nsew")
+
+            ttk.Label(bus_frame, text="Current").grid(row=4, column=0, padx=5, pady=15)
+            current_sensor1_bus1 = ttk.Label(bus_frame, text=self.device_data.get('bus_1_current_sensor1'), relief="solid", borderwidth=2, width=10, anchor="center")
+            current_sensor1_bus1.grid(row=4, column=1, padx=5, pady=15, sticky="nsew")
+
+            current_sensor2_bus2 = ttk.Label(bus_frame, text=self.device_data.get('bus_2_current_sensor2'), relief="solid", borderwidth=2, width=10, anchor="center")
+            current_sensor2_bus2.grid(row=4, column=3, padx=5, pady=15, sticky="nsew")
+
+            # Configure equal weight for the columns to distribute space equally
+            for i in range(3):
+                bus_frame.grid_columnconfigure(i, weight=1)
+
+            # Heater Pad section
+            heater_frame = ttk.Labelframe(main_frame, text="Heater Pad", bootstyle='dark',borderwidth=5, relief="solid")
+            heater_frame.grid(row=9, column=0, padx=5, pady=5, sticky="nsew")
+
+            ttk.Label(heater_frame, text="On/Off Status").grid(row=0, column=0, padx=5, pady=5)
+            heater_circle_color = "green" if self.device_data.get('heater_pad') == 1 else "red"
+            ttk.Label(heater_frame, text="●", foreground=heater_circle_color, font=("Arial", 24)).grid(row=0, column=1, padx=5, pady=5)
+
+            # Configure equal weight for the columns to distribute space equally
+            heater_frame.grid_columnconfigure(1, weight=1)
+
+            # Heater Pad section
+            status_frame = ttk.Labelframe(main_frame, text="Status", bootstyle='dark',borderwidth=5, relief="solid")
+            status_frame.grid(row=6, column=1,rowspan=6,columnspan=5, padx=2, pady=5, sticky="nsew")
+
+            ttk.Label(status_frame, text="Constant Voltage Mode").grid(row=0, column=0, padx=5, pady=0)
+            con_volt_circle_color = "green" if self.device_data.get('constant_voltage_mode') == 1 else "red"
+            ttk.Label(status_frame, text="●", foreground=con_volt_circle_color, font=("Arial", 24)).grid(row=0, column=1, padx=5, pady=0)
+
+            ttk.Label(status_frame, text="Constant Current Mode").grid(row=1, column=0, padx=5, pady=5)
+            con_current_circle_color = "green" if self.device_data.get('constant_current_mode') == 1 else "red"
+            ttk.Label(status_frame, text="●", foreground=con_current_circle_color, font=("Arial", 24)).grid(row=1, column=1, padx=5, pady=5)
+
+            ttk.Label(status_frame, text="Input Under Voltage").grid(row=0, column=3, padx=5, pady=5)
+            under_volt_circle_color = "green" if self.device_data.get('input_under_voltage') == 1 else "red"
+            ttk.Label(status_frame, text="●", foreground=under_volt_circle_color, font=("Arial", 24)).grid(row=0, column=4, padx=5, pady=5)
+
+            ttk.Label(status_frame, text="Output Over Current").grid(row=1, column=3, padx=5, pady=5)
+            over_current__circle_color = "green" if self.device_data.get('output_over_current') == 1 else "red"
+            ttk.Label(status_frame, text="●", foreground=over_current__circle_color, font=("Arial", 24)).grid(row=1, column=4, padx=5, pady=5)
+
+            # Configure equal weight for the columns to distribute space equally
+            for i in range(4):
+                status_frame.grid_columnconfigure(i, weight=1)
 
 
+            # Configure row and column weights for the main frame
+            for i in range(12):
+                main_frame.grid_rowconfigure(i, weight=1)
+            for j in range(12):
+                main_frame.grid_columnconfigure(j, weight=1)
+        
+        if self.rs422_flag:
+            # Create a Frame to hold the battery info at the top of the content frame
+            rs422_info_frame = ttk.Labelframe(self.content_frame, text="RS-422 Info", bootstyle="dark", borderwidth=5, relief="solid")
+            rs422_info_frame.pack(fill="x", padx=10, pady=50) 
 
-        # Configure row and column weights to ensure even distribution
-        for i in range(12):
-            main_frame.grid_rowconfigure(i, weight=1)
-        for j in range(12):
-            main_frame.grid_columnconfigure(j, weight=1)
+            # Heater Pad/Charger Relay Status Frame
+            heater_pad_frame = ttk.Labelframe(rs422_info_frame, text="Heater Pad/Charger Relay Status", bootstyle='dark', borderwidth=5, relief="solid")
+            heater_pad_frame.grid(row=0, column=0, columnspan=6,rowspan=2, padx=15, pady=10, sticky="nsew")
+            ttk.Label(heater_pad_frame, text="Heater Pad/Charger Relay Status").grid(row=0, column=0, padx=5, pady=5)
+            heater_status_circle_color = "green" if self.device_data.get('heater_pad_charger_relay_status') == 1 else "red"
+            ttk.Label(heater_pad_frame, text="●", foreground=heater_status_circle_color, font=("Arial", 24)).grid(row=0, column=1, padx=5, pady=5)
+            for i in range(4):
+                heater_pad_frame.grid_columnconfigure(i, weight=1)
+
+            # Charger Status Frame
+            charger_frame = ttk.Labelframe(rs422_info_frame, text="Charger Status", bootstyle='dark', borderwidth=5, relief="solid")
+            charger_frame.grid(row=0, column=6, columnspan=6, rowspan=2, padx=15, pady=10, sticky="nsew")
+
+            ttk.Label(charger_frame, text="Charger On/Off").grid(row=0, column=0, padx=5, pady=5)
+            charger_status_circle_color = "green" if self.device_data.get('charger_status') == 1 else "red"
+            ttk.Label(charger_frame, text="●", foreground=charger_status_circle_color, font=("Arial", 24)).grid(row=0, column=1, padx=5, pady=5)
+            for i in range(4):
+                charger_frame.grid_columnconfigure(i, weight=1)
+
+            # Battery RS422 Frame
+            battery_rs422_frame = ttk.Labelframe(rs422_info_frame, text="Battery", bootstyle='dark', borderwidth=5, relief="solid")
+            battery_rs422_frame.grid(row=2, column=0, columnspan=12, rowspan=10, padx=15, pady=10, sticky="nsew")
+
+            # Add Entries for Voltage, Current EB1, Current EB2, Charge Current, Temperature, State of Charge
+
+            ttk.Label(battery_rs422_frame, text="Current EB1:").grid(row=0, column=0, padx=5, pady=40, sticky="e")
+            current_eb1_entry = ttk.Label(battery_rs422_frame, text=self.device_data.get('eb_1_current'), relief="solid", borderwidth=2, width=10, anchor="center")
+            current_eb1_entry.grid(row=0, column=1, padx=5, pady=40, sticky="ew")
+
+            # Second row: Current EB2 and Charge Current
+            ttk.Label(battery_rs422_frame, text="Current EB2:").grid(row=0, column=2, padx=5, pady=40, sticky="e")
+            current_eb2_entry = ttk.Label(battery_rs422_frame, text=self.device_data.get('eb_2_current'), relief="solid", borderwidth=2, width=10, anchor="center")
+            current_eb2_entry.grid(row=0, column=3, padx=5, pady=40, sticky="ew")
+
+            # First row: Voltage and Current EB1
+            ttk.Label(battery_rs422_frame, text="Voltage:").grid(row=4, column=0, padx=5, pady=40, sticky="e")
+            voltage_entry = ttk.Label(battery_rs422_frame, text=self.device_data.get('voltage'), relief="solid", borderwidth=2, width=10, anchor="center")
+            voltage_entry.grid(row=4, column=1, padx=5, pady=40, sticky="ew")
+
+            ttk.Label(battery_rs422_frame, text="Charge Current:").grid(row=4, column=2, padx=5, pady=40, sticky="e")
+            charge_current_entry = ttk.Label(battery_rs422_frame, text=self.device_data.get('charge_current'), relief="solid", borderwidth=2, width=10, anchor="center")
+            charge_current_entry.grid(row=4, column=3, padx=5, pady=40, sticky="ew")
+
+            # Third row: Temperature and State of Charge
+            ttk.Label(battery_rs422_frame, text="Temperature:").grid(row=8, column=0, padx=5, pady=40, sticky="e")
+            temperature_entry = ttk.Label(battery_rs422_frame, text=self.device_data.get('temperature'), relief="solid", borderwidth=2, width=10, anchor="center")
+            temperature_entry.grid(row=8, column=1, padx=5, pady=40, sticky="ew")
+
+            ttk.Label(battery_rs422_frame, text="State of Charge:").grid(row=8, column=2, padx=5, pady=40, sticky="e")
+            soc_entry = ttk.Label(battery_rs422_frame, text=self.device_data.get('state_oc_charge'), relief="solid", borderwidth=2, width=10, anchor="center")
+            soc_entry.grid(row=8, column=3, padx=5, pady=40, sticky="ew")
+
+            # Configure column weights to distribute space equally in the battery frame
+            for i in range(5):
+                battery_rs422_frame.grid_columnconfigure(i, weight=1)
+
+            # Configure equal weight for the rs422_info_frame columns to distribute space equally
+            for i in range(12):
+                rs422_info_frame.grid_columnconfigure(i, weight=1)
+
+            
 
         # Pack the content_frame itself
         self.content_frame.pack(fill="both", expand=True)
-     
+            
         self.select_button(self.info_button) 
 
     def display_status_labels(self, frame, battery_status_flags):
@@ -1173,9 +1363,3 @@ class RSBatteryInfo:
         else:
             return "info"  # Default style if gauge_type is unknown
  
-
-
-      
-
-
-

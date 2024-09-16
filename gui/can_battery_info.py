@@ -47,7 +47,7 @@ class CanBatteryInfo:
         self.battery_status_flags = None  
 
         self.device_data = device_data_battery_1
-        self.battery_status_flags = device_data_battery_1
+        self.battery_status_flags = battery_1_status_flags
 
         self.check_battery_log_for_cycle_count()
 
@@ -213,12 +213,6 @@ class CanBatteryInfo:
 
     def show_dashboard(self):
         self.clear_content_frame()
-
-        # Check if this is the first time the dashboard is being opened
-        if self.first_time_dashboard:
-            if(device_data_battery_1['cycle_count']<=0):        
-                self.first_time_dashboard = False  # Set the flag to False after the first time             
-                self.prompt_manual_cycle_count()  # Show the input dialog
 
         # Create a Frame for the battery info details at the bottom
         info_frame = ttk.Labelframe(self.content_frame, text="Battery Information", bootstyle="dark", borderwidth=10, relief="solid")
@@ -500,7 +494,7 @@ class CanBatteryInfo:
     
     def show_report(self):
         self.clear_content_frame()
-        latest_data = get_latest_battery_log()
+        latest_data = get_latest_battery_log(self.device_data.get('serial_number'))
 
         # Create the main container LabelFrame
         main_frame = ttk.LabelFrame(self.content_frame, text="Report", borderwidth=5)
@@ -558,7 +552,7 @@ class CanBatteryInfo:
         capacity_entry.grid(row=5, column=3,columnspan=2, padx=10, pady=10, sticky="w")
         capacity_entry.config(state="readonly")  # Disable editing
 
-        duration, date = fetch_charging_info(device_data['serial_number'])
+        duration, date = fetch_charging_info(self.device_data.get('serial_number'))
 
         # Charging Info Frame (row 1-2, col 2-4)
         charging_frame = ttk.LabelFrame(main_frame, text="Charging Info", borderwidth=10)
@@ -566,12 +560,12 @@ class CanBatteryInfo:
 
         ttk.Label(charging_frame, text="Duration").grid(row=0, column=1, columnspan=2, padx=10, pady=10, sticky="e")
         duration_entry = ttk.Entry(charging_frame)
-        duration_entry.insert(0, str(duration) if duration else "No previous session")  # Insert the fetched duration or a default message
+        duration_entry.insert(0, str(latest_data.get("Charging Duration", 50)))  # Insert the fetched duration or a default message
         duration_entry.grid(row=0, column=3, columnspan=2, padx=10, pady=10, sticky="w")
 
         ttk.Label(charging_frame, text="Date").grid(row=2, column=1, columnspan=2, padx=10, pady=10, sticky="e")
         date_entry = ttk.Entry(charging_frame)
-        date_entry.insert(0, str(date) if date else "N/A")  # Insert the fetched date or a default message
+        date_entry.insert(0, str(latest_data.get("Charging Date", 50)))  # Insert the fetched date or a default message
         date_entry.grid(row=2, column=3, columnspan=2, padx=10, pady=10, sticky="w")
 
         # Add individual fields for Discharging Info
@@ -591,9 +585,9 @@ class CanBatteryInfo:
         discharging_current_loaded_entry.grid(row=0, column=3, columnspan=2, padx=10, pady=10, sticky="w")
 
         ttk.Label(discharging_frame, text="Duration").grid(row=1, column=1, columnspan=2, padx=10, pady=10, sticky="e")
-        discharging_current_loaded_entry = ttk.Entry(discharging_frame)
-        discharging_current_loaded_entry.insert(0, str(latest_data.get("Discharge Duration",0)))
-        discharging_current_loaded_entry.grid(row=1, column=3, columnspan=2, padx=10, pady=10, sticky="w")
+        discharging_duration_entry = ttk.Entry(discharging_frame)
+        discharging_duration_entry.insert(0, str(latest_data.get("Discharging Duration",0)))
+        discharging_duration_entry.grid(row=1, column=3, columnspan=2, padx=10, pady=10, sticky="w")
 
         ttk.Label(discharging_frame, text="0th Second Voltage").grid(row=2, column=1, columnspan=2, padx=10, pady=10, sticky="e")
         zero_second_voltage_entry = ttk.Entry(discharging_frame)
@@ -627,6 +621,7 @@ class CanBatteryInfo:
                 "Charging Duration": duration_entry.get(),
                 "Charging Date": date_entry.get(),
                 "Current Loaded": discharging_current_loaded_entry.get(),
+                "Discharging Duration": discharging_duration_entry.get(),
                 "OCV": ocv_entry.get(),
                 "0th Second Voltage": zero_second_voltage_entry.get(),
                 "5th Second Voltage": fifth_second_voltage_entry.get(),
@@ -634,7 +629,7 @@ class CanBatteryInfo:
                 "Discharging Date": discharging_date_entry.get()
             }
             # Call the function to generate the PDF and update Excel
-            generate_pdf_and_update_excel(report_data)
+            generate_pdf_and_update_excel(report_data,self.device_data.get('serial_number'))
 
         # Generate Button (centered at the bottom, row 4, col 2)
         generate_button = ttk.Button(main_frame, text="Generate", command=collect_data_and_generate_report)

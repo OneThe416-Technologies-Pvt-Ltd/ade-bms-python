@@ -3,7 +3,7 @@ import winreg
 import customtkinter as ctk
 import serial.tools.list_ports
 from tkinter import messagebox
-from pcomm_api.pcomm import *
+from pcomm_api.pcomm import connect_to_serial_port
 import re
 
 class RSConnection(tk.Frame):
@@ -110,21 +110,21 @@ class RSConnection(tk.Frame):
         return [port[1] for port in moxa_ports]
 
     def on_connect(self):
+        selected_port = self.com_ports.get()  # Get the selected COM port from the dropdown
+        selected_mode = self.rs232_422_modes.get()
         self.main_window.show_rs_battery_info()
-        # selected_port = self.com_ports.get()  # Get the selected COM port from the dropdown
-        # selected_mode = self.rs232_422_modes.get()
-        # match = re.search(r"\((COM\d+)\)", selected_port)
-        # print(f"{match.group(1),"match"}")
-        # if match:
-        #     com_port_name = match.group(1)  # Extract the COM port (e.g., "COM7")
-        #     print(f"Connecting to {com_port_name}...")
-        #     # self.set_interface_mode(com_port_name, mode=selected_mode)
-        #     ser=connect_to_serial_port(com_port_name)
-        #     if ser:
-        #             self.main_window.show_rs_battery_info()
-        # else:
-        #     print("Invalid port selected.")
-        #     messagebox.showwarning("Selection Error", "Please select a valid COM port.")
+        match = re.search(r"\((COM\d+)\)", selected_port)
+        print(f"{match.group(1),"match"}")
+        if match:
+            com_port_name = match.group(1)  # Extract the COM port (e.g., "COM7")
+            print(f"Connecting to {com_port_name}...")
+            # self.set_interface_mode(com_port_name, mode=selected_mode)
+            ser=connect_to_serial_port(com_port_name,selected_mode)
+            if ser:
+                    self.main_window.show_rs_battery_info()
+        else:
+            print("Invalid port selected.")
+            messagebox.showwarning("Selection Error", "Please select a valid COM port.")
 
     def set_rs232_interface(self, com_port):
         """Set the interface to RS232 using Windows Registry."""

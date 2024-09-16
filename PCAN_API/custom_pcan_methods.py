@@ -28,17 +28,17 @@ battery_status_flags = {
     "error_codes": 0  # Bits 3:0
 }
 battery_1_status_flags = {
-    "overcharged_alarm": 0,  # Bit 15
-    "terminate_charge_alarm": 0,  # Bit 14
-    "over_temperature_alarm": 0,  # Bit 12
-    "terminate_discharge_alarm": 0,  # Bit 11
-    "remaining_capacity_alarm": 0,  # Bit 9
-    "remaining_time_alarm": 0,  # Bit 8
-    "initialization": 0,  # Bit 7
+    "overcharged_alarm": 1,  # Bit 15
+    "terminate_charge_alarm": 1,  # Bit 14
+    "over_temperature_alarm": 1,  # Bit 12
+    "terminate_discharge_alarm": 1,  # Bit 11
+    "remaining_capacity_alarm":1,  # Bit 9
+    "remaining_time_alarm": 1,  # Bit 8
+    "initialization": 1,  # Bit 7
     "charge_fet_test": 1,  # Bit 6
-    "fully_charged": 1,  # Bit 5
-    "fully_discharged": 0,  # Bit 4
-    "error_codes": 0  # Bits 3:0
+    "fully_charged": 0,  # Bit 5
+    "fully_discharged": 1,  # Bit 4
+    "error_codes": 1  # Bits 3:0
 }
 battery_2_status_flags = {
     "overcharged_alarm": 0,  # Bit 15
@@ -149,7 +149,7 @@ device_data = {
 
 device_data_battery_1 = {
             'device_name': "BT-70939APH",
-            'serial_number': 0,
+            'serial_number': 2,
             'manufacturer_name': "Bren-Tronics",
             'firmware_version': "",
             'battery_status': "",
@@ -179,7 +179,7 @@ device_data_battery_1 = {
 
 device_data_battery_2 = {
             'device_name': "BT-70939APH",
-            'serial_number': 0,
+            'serial_number': 4,
             'manufacturer_name': "Bren-Tronics",
             'firmware_version': "",
             'battery_status': "",
@@ -941,7 +941,7 @@ def log_battery_data(update_battery):
                 headers = [
                     "SI No", "Date", "Time", "Project", "Duration", "Device Name", "Manufacturer Name",
                     "Serial Number", "Firmware Version", "Cycle Count", "Full Charge Capacity", "Charging Duration",
-                    "Charging Date", "OCV", "Current Loaded", "0th Second Voltage", "5th Second Voltage",
+                    "Charging Date", "OCV", "Current Loaded","Discharging Duration", "0th Second Voltage", "5th Second Voltage",
                     "30th Second Voltage", "Discharging Date"
                 ]
                 sheet.append(headers)
@@ -954,7 +954,7 @@ def log_battery_data(update_battery):
             headers = [
                 "SI No", "Date", "Time", "Project", "Duration", "Device Name", "Manufacturer Name",
                 "Serial Number", "Firmware Version", "Cycle Count", "Full Charge Capacity", "Charging Duration",
-                "Charging Date", "OCV", "Current Loaded", "0th Second Voltage", "5th Second Voltage",
+                "Charging Date", "OCV", "Current Loaded","Discharging Duration", "0th Second Voltage", "5th Second Voltage",
                 "30th Second Voltage", "Discharging Date"
             ]
             sheet.append(headers)
@@ -976,14 +976,15 @@ def log_battery_data(update_battery):
                 sheet.cell(row=row, column=2).value = date  # Update Date
                 sheet.cell(row=row, column=3).value = time  # Update Time
                 sheet.cell(row=row, column=11).value = 103 # Update Project
-                sheet.cell(row=row, column=12).value = 0
-                sheet.cell(row=row, column=13).value = 0
+                sheet.cell(row=row, column=12).value = 0  # Charging Duration
+                sheet.cell(row=row, column=13).value = date  # Charging Date
                 sheet.cell(row=row, column=14).value = 0  # Update OCV
                 sheet.cell(row=row, column=15).value = 0  # Update Current Loaded
-                sheet.cell(row=row, column=16).value = 0  # Update 0th Second Voltage
-                sheet.cell(row=row, column=17).value = 0  # Update 5th Second Voltage
-                sheet.cell(row=row, column=18).value = 0  # Update 30th Second Voltage
-                sheet.cell(row=row, column=19).value = 0  # Update Discharging Date
+                sheet.cell(row=row, column=16).value = 0  # Update 0th Discharging Duration
+                sheet.cell(row=row, column=17).value = 0  # Update 0th Second Voltage
+                sheet.cell(row=row, column=18).value = 0  # Update 5th Second Voltage
+                sheet.cell(row=row, column=19).value = 0  # Update 30th Second Voltage
+                sheet.cell(row=row, column=20).value = date  # Update Discharging Date
                 if update_battery.get('cycle_count', 0) == 0:
                     update_battery['cycle_count'] = sheet.cell(row=row, column=cycle_count_column).value  # Update cycle count if not provided
                 break
@@ -995,20 +996,23 @@ def log_battery_data(update_battery):
                 next_row - 1,  # SI No
                 date,  # Date
                 time,  # Time
-                update_battery.get('project', 'N/A'),  # Project
-                "N/A",  # Duration (set to N/A for now)
-                update_battery.get('device_name', 'N/A'),  # Device Name
-                update_battery.get('manufacturer_name', 'N/A'),  # Manufacturer Name
+                'N/A',  # Project
+                0,  # Duration (set to N/A for now)
+                'BT-70939APH',  # Device Name
+                'Bren-Tronics',  # Manufacturer Name
                 serial_number,  # Serial Number
-                update_battery.get('firmware_version', 'N/A'),  # Firmware Version
-                update_battery.get('cycle_count', 'N/A'),  # Cycle Count
-                update_battery.get('full_charge_capacity', 103),  # Full Charge Capacity
-                update_battery.get('ocv', 'N/A'),  # OCV
-                update_battery.get('current_loaded', 'N/A'),  # Current Loaded
-                update_battery.get('0th_second_voltage', 'N/A'),  # 0th Second Voltage
-                update_battery.get('5th_second_voltage', 'N/A'),  # 5th Second Voltage
-                update_battery.get('30th_second_voltage', 'N/A'),  # 30th Second Voltage
-                update_battery.get('discharging_date', 'N/A')  # Discharging Date
+                'N/A',  # Firmware Version
+                0,  # Cycle Count
+                103,  # Full Charge Capacity
+                0,  # Charging Duration
+                date,  # Charging Date
+                0,  # OCV
+                0,  # Current Loaded
+                0,  # Discharging Duration
+                0,  # 0th Second Voltage
+                0,  # 5th Second Voltage
+                0,  # 30th Second Voltage
+                date  # Discharging Date
             ]
             sheet.append(battery_data)
 
@@ -1022,7 +1026,10 @@ def log_battery_data(update_battery):
         messagebox.showerror("Error", f"An error occurred while updating the Excel file: {str(e)}")
 
 
-def get_latest_battery_log():
+def get_latest_battery_log(serial_number):
+    """
+    Retrieves the most recent battery log for the specified serial number.
+    """
     # Path to the Excel file
     folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_Logs")
     file_name = "Battery_Log.xlsx"
@@ -1036,21 +1043,34 @@ def get_latest_battery_log():
     workbook = load_workbook(file_path)
     sheet = workbook.active
 
-    # Get the last row (the most recent battery log)
-    last_row = sheet.max_row
+    # Find the serial number column (assuming it's the 8th column, adjust if necessary)
+    serial_number_column = 8  # H column
 
-    if last_row < 2:  # Check if there's data beyond headers
-        messagebox.showerror("Error", "No battery data found in the log.")
+    # Search for the serial number in the rows and store the data if found
+    serial_found = False
+    latest_data = {}
+
+    for row in range(2, sheet.max_row + 1):  # Start from the second row to skip headers
+        current_serial_number = sheet.cell(row=row, column=serial_number_column).value
+        if current_serial_number == serial_number:
+            serial_found = True
+            print(f"Serial Number {serial_number} found in row {row}")
+
+            # Retrieve the headers from the first row
+            headers = [sheet.cell(row=1, column=col).value for col in range(1, sheet.max_column + 1)]
+            # Retrieve the values for the matching row
+            values = [sheet.cell(row=row, column=col).value for col in range(1, sheet.max_column + 1)]
+            
+            # Map headers to values and print for debugging
+            latest_data = dict(zip(headers, values))
+            for header, value in latest_data.items():
+                print(f"{header}: {value}")  # Debug print to ensure correct values are fetched
+            break
+
+    if not serial_found:
+        messagebox.showwarning("Warning", f"Serial number {serial_number} not found in the log.")
         return None
 
-    # Retrieve the data from the last row
-    latest_data = {}
-    headers = [cell.value for cell in sheet[1]]  # Get headers
-    values = [cell.value for cell in sheet[last_row]]  # Get latest row values
-
-    # Map headers to values
-    latest_data = dict(zip(headers, values))
-    
     return latest_data
 
 
@@ -1100,7 +1120,7 @@ def is_excel_file_open(file_path):
         return True  # File is open 
 
 
-def generate_pdf_and_update_excel(entries):
+def generate_pdf_and_update_excel(entries, serial_number):
     """
     Get the updated values from the form, update the Excel file, and generate a PDF.
     """
@@ -1108,7 +1128,7 @@ def generate_pdf_and_update_excel(entries):
     for field, value in entries.items():
         print(f"{field}: {value}")
 
-    # Update the Excel file with the new values
+    # Define the log file path
     folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_Logs")
     file_path = os.path.join(folder_path, "Battery_Log.xlsx")
 
@@ -1116,9 +1136,9 @@ def generate_pdf_and_update_excel(entries):
         print("File does not exist.")
         return
 
+    # Load the existing Excel workbook and active sheet
     workbook = load_workbook(file_path)
     sheet = workbook.active
-    serial_number = entries.get("Serial Number", "")
 
     if not serial_number:
         print("No serial number provided.")
@@ -1142,11 +1162,12 @@ def generate_pdf_and_update_excel(entries):
         "Charging Duration": 12,     # Assign valid column index
         "Charging Date": 13,         # Assign valid column index
         "OCV": 14,                   # Corrected column index
-        "Current Loaded": 15,        # Corrected column index
-        "0th Second Voltage": 16,    # Corrected column index
-        "5th Second Voltage": 17,    # Corrected column index
-        "30th Second Voltage": 18,   # Corrected column index
-        "Discharging Date": 19 
+        "Current Loaded": 15,  
+        "Discharging Duration": 16,  # Corrected column index
+        "0th Second Voltage": 17,    # Corrected column index
+        "5th Second Voltage": 18,    # Corrected column index
+        "30th Second Voltage": 19,   # Corrected column index
+        "Discharging Date": 20
     }
 
     # Check if all necessary columns exist and create them if not
@@ -1157,7 +1178,8 @@ def generate_pdf_and_update_excel(entries):
 
     # Find the row with the matching serial number
     for row in range(2, sheet.max_row + 1):
-        if str(sheet.cell(row=row, column=8).value) == serial_number:  # Assuming Serial Number is in column 8
+        current_serial_number = str(sheet.cell(row=row, column=8).value)  # Assuming Serial Number is in column 8
+        if current_serial_number == str(serial_number):  # Make sure both serial numbers are compared as strings
             serial_number_found = True
             print(f"Serial Number {serial_number} found in row {row}. Updating values...")
 
@@ -1166,9 +1188,16 @@ def generate_pdf_and_update_excel(entries):
                 if field in entries:
                     new_value = entries[field]
                     print(f"Updating {field} in row {row}, column {column} with value: {new_value}")
+
                     # Update numeric fields as numbers and others as text
-                    if field in ["Serial Number", "Cycle Count", "Voltage", "Current", "Remaining Capacity", "Full Charge Capacity"]:
-                        sheet.cell(row=row, column=column).value = float(new_value) if new_value else 0
+                    if field in ["Serial Number", "Cycle Count", "OCV", "Current Loaded", "Charging Duration",
+                                  "Discharging Duration", "0th Second Voltage", "5th Second Voltage",
+                                  "30th Second Voltage"]:
+                        # Convert numeric fields, handle empty values as 0
+                        try:
+                            sheet.cell(row=row, column=column).value = float(new_value) if new_value else 0
+                        except ValueError:
+                            sheet.cell(row=row, column=column).value = 0
                     else:
                         sheet.cell(row=row, column=column).value = new_value
             break
@@ -1178,10 +1207,11 @@ def generate_pdf_and_update_excel(entries):
 
     # Save the updated Excel file
     workbook.save(file_path)
+    workbook.close()
     print(f"Excel file saved at {file_path}.")
 
     # Generate the PDF with the updated values
-    create_pdf_summary()
+    create_pdf_summary(serial_number)
 
 
 def open_pdf_folder():
@@ -1200,9 +1230,9 @@ def open_pdf_folder():
         messagebox.showerror("Error", f"Unable to open folder: {str(e)}")
 
 
-def create_pdf_summary():
+def create_pdf_summary(serial_number):
     # Retrieve the latest battery log from the Excel file
-    latest_data = get_latest_battery_log()
+    latest_data = get_latest_battery_log(serial_number)
     if latest_data is None:
         return  # Stop if no data is found
 
@@ -1403,6 +1433,7 @@ def fetch_charging_info(serial_number):
     # If no matching entry is found
     return None, None  # No previous session found
 
+
 async def fetch_current(battery_no):
         # Keep fetching the current value asynchronously
         while is_fetching_current:
@@ -1420,11 +1451,14 @@ async def fetch_current(battery_no):
             
             await asyncio.sleep(0.5)  # Sleep for 500ms asynchronously before trying again
 
+
 def start_fetching_current(battery_no):
     # Start fetching in the event loop
     if not is_fetching_current:
         is_fetching_current = True
         asyncio.create_task(fetch_current(battery_no))
+
+
 def stop_fetching_current():
     # Stop fetching current
     is_fetching_current = False
