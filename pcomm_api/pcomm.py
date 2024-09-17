@@ -1,7 +1,5 @@
 import serial
-import time
-import struct
-import threading
+import asyncio
 
 control=None
 rs_232_flag=False
@@ -111,32 +109,26 @@ def connect_to_serial_port(port_name, flag):
         print(f"Error opening the serial port: {e}")
         return None
 
-def periodic_rs232_send_read():
-    """Send and read data using RS232 protocol in a loop."""
+async def periodic_rs232_send_read():
+    """Send and read data using RS232 protocol at precise 160 ms intervals."""
     global rs232_device_data
-    next_write_time = time.perf_counter()  # High-precision timer
     interval = 0.16  # 160 milliseconds
 
     while rs_232_flag and control.is_open:
-        current_time = time.perf_counter()
-        
-        if current_time >= next_write_time:
-            send_rs232_data()
-            read_rs232_data()
-            next_write_time = current_time + interval
+        send_rs232_data()
+        read_rs232_data()
+        await asyncio.sleep(interval)  # Non-blocking sleep for precise interval
 
-def periodic_rs422_send_read():
-    """Send and read data using RS422 protocol in a loop."""
+
+async def periodic_rs422_send_read():
+    """Send and read data using RS422 protocol at precise 160 ms intervals."""
     global rs422_device_data
-    next_write_time = time.perf_counter()  # High-precision timer
     interval = 0.16  # 160 milliseconds
+
     while rs_422_flag and control.is_open:
-        current_time = time.perf_counter()
-        
-        if current_time >= next_write_time:
-            send_rs422_data()
-            read_rs422_data()
-            next_write_time = current_time + interval
+        send_rs422_data()
+        read_rs422_data()
+        await asyncio.sleep(interval)  # Non-blocking sleep for precise interval
 
 def send_rs232_data():
     """Send RS232 data."""
@@ -417,18 +409,14 @@ def calculate_checksum(data):
         checksum ^= byte
     return checksum
 
-def start_communication():
+async def start_communication():
     """Start the communication loop based on the protocol."""
     if rs_232_flag:
-        # Start RS232 communication loop
-        rs232_thread = threading.Thread(target=periodic_rs232_send_read)
-        rs232_thread.daemon = True  # This will ensure the thread exits when the main program exits
-        rs232_thread.start()
+        # Start RS232 communication
+        await asyncio.create_task(periodic_rs232_send_read())
     elif rs_422_flag:
-        # Start RS422 communication loop
-        rs422_thread = threading.Thread(target=periodic_rs422_send_read)
-        rs422_thread.daemon = True  # Ensures thread stops when the main program exits
-        rs422_thread.start()
+        # Start RS422 communication
+        await asyncio.create_task(periodic_rs422_send_read())
 
 def stop_communication():
     """Stop the communication."""
