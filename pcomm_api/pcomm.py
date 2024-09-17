@@ -100,7 +100,7 @@ def connect_to_serial_port(port_name, flag):
         if control.is_open:
             print(f"Connected to {port_name} with baud rate {baud_rate}.")
             # Once connected, start periodic send/read loop
-            start_communication()  # Start the communication after successful connection
+            start_async_communication()
             return control
         else:
             print(f"Failed to open {port_name}.")
@@ -170,7 +170,6 @@ def read_rs232_data():
             print("No valid RS232 data block found in the received 256 bytes.")
         else:
             print("Received data is not 256 bytes long. Discarding data.")
-
 
 def read_rs422_data():
     """Read 20 bytes, validate the first 18-byte RS422 data block, and update the device data."""
@@ -432,3 +431,7 @@ def get_active_protocol():
         return "RS-232"
     elif rs_422_flag:
         return "RS-422"
+    
+def start_async_communication():
+    """Wrapper to start the async communication after connection."""
+    asyncio.run(start_communication())
