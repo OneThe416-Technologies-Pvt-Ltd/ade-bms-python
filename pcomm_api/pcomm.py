@@ -1,9 +1,16 @@
 import serial
+import threading
 import asyncio
+from openpyxl import Workbook, load_workbook
+import datetime
+from fpdf import FPDF
+import os
 
 control=None
 rs_232_flag=False
 rs_422_flag=False
+rs232_interval_event = None
+rs422_interval_event = None
 
 rs232_device_data ={
             'battery_id': 1,
@@ -30,7 +37,7 @@ rs232_device_data ={
             'bus_1_voltage_after_diode': 10,
             'bus_2_voltage_after_diode': 10,
             'bus_1_current_sensor1': 10,
-            'bus_2_current_sensor2': 10,
+            'bus_2_current_sensor1': 10,
             'charger_input_current': 10,
             'charger_output_current': 10,
             'charger_output_voltage': 10,
@@ -73,6 +80,24 @@ rs422_write = {
     'cmd_byte_3' : 0x00,
 }
 
+# Custom setInterval function using threading
+def set_interval_async(func, interval):
+    """Repeat a func every `interval` seconds using threading and an event to stop."""
+    stopped = threading.Event()
+
+    def wrapper():
+        """Wrap the function to ensure it stops when the stop event is set."""
+        while not stopped.is_set():
+            func()  # Call the function synchronously
+            stopped.wait(interval)  # Wait for the interval or stop event
+
+    thread = threading.Thread(target=wrapper)
+    thread.daemon = True  # Ensure it exits when the main program exits
+    thread.start()
+
+    return stopped
+
+
 def connect_to_serial_port(port_name, flag):
     global control, rs_232_flag, rs_422_flag
     """Connect to the serial port and configure it with default settings."""
@@ -100,7 +125,7 @@ def connect_to_serial_port(port_name, flag):
         if control.is_open:
             print(f"Connected to {port_name} with baud rate {baud_rate}.")
             # Once connected, start periodic send/read loop
-            start_async_communication()
+            start_communication()
             return control
         else:
             print(f"Failed to open {port_name}.")
@@ -109,41 +134,52 @@ def connect_to_serial_port(port_name, flag):
         print(f"Error opening the serial port: {e}")
         return None
 
-async def periodic_rs232_send_read():
-    """Send and read data using RS232 protocol at precise 160 ms intervals."""
-    global rs232_device_data
-    interval = 0.16  # 160 milliseconds
+# Method to send RS232 or RS422 data
+def send_data():
+    while control and control.is_open:
+        if rs_232_flag:
+            send_rs232_data()
+        elif rs_422_flag:
+            send_rs422_data()
+        control.flush()  # Flush the buffer
+        threading.Event().wait(0.16)  # Wait for 160ms between each send
 
-    while rs_232_flag and control.is_open:
-        send_rs232_data()
-        read_rs232_data()
-        await asyncio.sleep(interval)  # Non-blocking sleep for precise interval
+
+# Method to read RS232 or RS422 data
+def read_data():
+    while control and control.is_open:
+        if rs_232_flag:
+            read_rs232_data()
+        elif rs_422_flag:
+            read_rs422_data()
+        threading.Event().wait(0.16)  # Adjust the read interval if necessary
 
 
-async def periodic_rs422_send_read():
-    """Send and read data using RS422 protocol at precise 160 ms intervals."""
-    global rs422_device_data
-    interval = 0.16  # 160 milliseconds
+# Separate thread for sending data
+def start_sending():
+    send_thread = threading.Thread(target=send_data, daemon=True)
+    send_thread.start()
 
-    while rs_422_flag and control.is_open:
-        send_rs422_data()
-        read_rs422_data()
-        await asyncio.sleep(interval)  # Non-blocking sleep for precise interval
+
+# Separate thread for reading data
+def start_reading():
+    read_thread = threading.Thread(target=read_data, daemon=True)
+    read_thread.start()
 
 def send_rs232_data():
     """Send RS232 data."""
-    if control.is_open:
-        data = create_rs232_packet()
-        print(f"{data} data send")
-        control.write(data)
-        print(f"Sent RS232 data: {data.hex()}")
+    # if control.is_open:
+    data = create_rs232_packet()
+    print(f"{data} data send")
+    control.write(data)
+    print(f"Sent RS232 data: {data.hex()}")
 
 def send_rs422_data():
     """Send RS422 data."""
-    if control.is_open:
-        data = create_rs422_packet()
-        control.write(data)
-        print(f"Sent RS422 data: {data.hex()}")
+    # if control.is_open:
+    data = create_rs422_packet()
+    control.write(data)
+    print(f"Sent RS422 data: {data.hex()}")
 
 def read_rs232_data():
     """Read 256 bytes of data, find the valid 64-byte block, and update RS232 data."""
@@ -408,30 +444,345 @@ def calculate_checksum(data):
         checksum ^= byte
     return checksum
 
-async def start_communication():
-    """Start the communication loop based on the protocol."""
-    if rs_232_flag:
-        # Start RS232 communication
-        await asyncio.create_task(periodic_rs232_send_read())
-    elif rs_422_flag:
-        # Start RS422 communication
-        await asyncio.create_task(periodic_rs422_send_read())
+def start_communication():
+    start_sending()
+    start_reading()
 
 def stop_communication():
-    """Stop the communication."""
-    global rs_232_flag, rs_422_flag
+    """Stop communication."""
+    global rs_232_flag, rs_422_flag, rs232_interval_event, rs422_interval_event
+
+    # Stop RS232 or RS422 intervals if they are running
+    if rs232_interval_event:
+        rs232_interval_event.set()  # Stop RS232 interval
+    if rs422_interval_event:
+        rs422_interval_event.set()  # Stop RS422 interval
+
     rs_232_flag = False
     rs_422_flag = False
+
     if control and control.is_open:
         control.close()
+        print("Serial connection closed.")
 
 def get_active_protocol():
     global rs_422_flag, rs_232_flag
-    if rs_232_flag :
+    if rs_232_flag:
         return "RS-232"
     elif rs_422_flag:
         return "RS-422"
+def set_active_protocol(selected_flag):
+    global rs_422_flag, rs_232_flag
+    if selected_flag == "RS-232":
+        rs_232_flag = True
+    elif selected_flag == "RS-422":
+        rs_422_flag = True
     
-def start_async_communication():
-    """Wrapper to start the async communication after connection."""
-    asyncio.run(start_communication())
+# async def fetch_current(battery_no):
+#     global charging_start_time, is_fetching_current
+#     print(f"Starting to fetch current for battery {battery_no}...")
+    
+#     # Keep fetching the current value asynchronously
+#     while is_fetching_current:
+#         try:
+#             # Call the pcan_write_read method asynchronously
+#             print(f"Calling pcan_write_read for current on battery {battery_no}")
+#             await asyncio.to_thread(pcan_write_read, 'current', battery_no)
+            
+#             # Get the current value based on the battery number
+#             current_value = None
+#             if battery_no == 1:
+#                 current_value = device_data_battery_1['charging_current']
+#             elif battery_no == 2:
+#                 current_value = device_data_battery_2['charging_current']
+
+#             # Log the current value retrieved
+#             print(f"Retrieved current value for battery {battery_no}: {current_value}")
+            
+#             # If current is greater than 0, start tracking charging time
+#             if current_value is not None and current_value > 0:
+#                 print(f"Battery {battery_no} is charging with current {current_value}")
+                
+#                 # If this is the first time fetching, set the start time
+#                 if charging_start_time is None:
+#                     charging_start_time = datetime.datetime.now()
+#                     print(f"Charging started for battery {battery_no} at {charging_start_time}")
+            
+#             # Stop if current drops to 0 or below, calculate the charging time
+#             elif current_value is not None and current_value <= 0:
+#                 if charging_start_time is not None:
+#                     charging_end_time = datetime.datetime.now()
+#                     charging_duration = charging_end_time - charging_start_time
+#                     print(f"Charging stopped for battery {battery_no} at {charging_end_time}")
+#                     print(f"Total charging duration: {charging_duration}")
+
+#                     # Update charging duration in the CAN log
+#                     update_charging_duration_in_can_log(
+#                         device_data_battery_1['serial_number'] if battery_no == 1 else device_data_battery_2['serial_number'],
+#                         charging_duration
+#                     )
+#                 else:
+#                     print(f"No charging start time recorded for battery {battery_no}")
+
+#                 # Reset the charging start time and stop the loop
+#                 charging_start_time = None
+#                 print(f"Stopping fetch for battery {battery_no}")
+#                 is_fetching_current = False
+#                 break
+
+#         except Exception as e:
+#             print(f"Error fetching current for battery {battery_no}: {e}")
+        
+#         # Delay before fetching again
+#         print(f"Sleeping for 500ms before next fetch for battery {battery_no}")
+#         await asyncio.sleep(0.5)  # Sleep for 500ms asynchronously before trying again
+
+
+# def start_fetching_current(battery_no):
+#     global is_fetching_current
+#     # Ensure the asyncio event loop is running
+#     start_asyncio_event_loop()
+    
+#     # Start fetching in the event loop
+#     if not is_fetching_current:
+#         is_fetching_current = True
+#         asyncio.run_coroutine_threadsafe(fetch_current(battery_no), asyncio.get_event_loop())
+
+
+# def stop_fetching_current():
+#     # Stop fetching current
+#     global charging_start_time,is_fetching_current   
+#     device_data_battery_1['charging_current'] = 0  # Reset the start time
+#     if charging_start_time is None:
+#         is_fetching_current = False
+
+
+# def update_charging_duration_in_can_log(serial_number, charging_duration):
+#     """
+#     Update the charging date and duration for a specific battery identified by its serial number
+#     in the CAN Log Excel file (Can_Log.xlsx).
+#     """
+#     # Define the log file path for Can_Log.xlsx
+#     folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_Logs")
+#     file_path = os.path.join(folder_path, "Can_Log.xlsx")
+
+#     # Load existing workbook or create a new one if the file does not exist
+#     if os.path.exists(file_path):
+#         workbook = load_workbook(file_path)
+#         sheet = workbook.active
+#     else:
+#         print("Log file not found.")
+#         return
+
+#     # Find the row corresponding to the battery's serial number
+#     serial_number_column = 8  # Assuming Serial Number is in the 8th column (H)
+#     charging_duration_column = 12  # Charging Duration in the 12th column (L)
+#     charging_date_column = 13  # Charging Date in the 13th column (M)
+
+#     found = False
+
+#     for row in range(2, sheet.max_row + 1):
+#         if sheet.cell(row=row, column=serial_number_column).value == serial_number:
+#             # Found the row, retrieve previous duration and add the new one
+#             previous_duration = sheet.cell(row=row, column=charging_duration_column).value or 0
+#             total_duration = previous_duration + (charging_duration.total_seconds() / 60)  # Convert to minutes
+#             total_duration = round(total_duration, 2)
+
+#             # Update the charging duration and date in the corresponding row
+#             sheet.cell(row=row, column=charging_duration_column).value = total_duration
+#             sheet.cell(row=row, column=charging_date_column).value = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+#             found = True
+#             break
+
+#     if not found:
+#         print(f"Serial number {serial_number} not found in the log.")
+
+#     # Save the updated Excel file
+#     workbook.save(file_path)
+#     print(f"Updated charging duration and date for Serial Number {serial_number} in Can_Log.xlsx.")
+
+
+# async def fetch_voltage(battery_no,load_value):
+#     global discharging_start_time, is_fetching_voltage, ocv
+#     if load_value == 50:
+#         print(f"Starting to fetch current for battery {battery_no}...")
+#         # Keep fetching the current value asynchronously
+#         while is_fetching_voltage:
+#             try:
+#                 # Call the pcan_write_read method asynchronously (commented out, replace with actual call)
+#                 print(f"Calling pcan_write_read for current on battery {battery_no}")
+#                 await asyncio.to_thread(pcan_write_read, 'voltage', battery_no)
+
+#                 # Get the current voltage based on the battery number
+#                 voltage_value = None
+#                 if battery_no == 1:
+#                     ocv = device_data_battery_1['charging_voltage']
+#                     voltage_value = device_data_battery_1['voltage']
+#                 elif battery_no == 2:
+#                     ocv = device_data_battery_2['charging_voltage']
+#                     voltage_value = device_data_battery_2['voltage']
+
+#                 # Log the current value retrieved
+#                 print(f"Retrieved current value for battery {battery_no}: {voltage_value}")
+
+#                 # Start tracking discharging process
+#                 if voltage_value is not None and voltage_value > 0:
+#                     print(f"Battery {battery_no} is discharging with voltage {voltage_value}")
+#                     print(f"Discharging started for battery {battery_no} at {discharging_start_time}")
+#                     print(f"Open-circuit voltage (OCV): {ocv}")
+#                     voltage_value_0s = device_data_battery_1['voltage'] if battery_no == 1 else device_data_battery_2['voltage']
+#                     # Capture voltage at 0 seconds
+#                     print(f"Voltage at 0 seconds: {voltage_value}")
+
+#                     # Wait for 15 seconds and capture voltage
+#                     time.sleep(15)
+#                     voltage_value_15s = device_data_battery_1['voltage'] if battery_no == 1 else device_data_battery_2['voltage']
+#                     print(f"Voltage at 15 seconds: {voltage_value_15s}")
+
+#                     # Wait for another 15 seconds (total 30 seconds) and capture voltage
+#                     time.sleep(15)
+#                     voltage_value_30s = device_data_battery_1['voltage'] if battery_no == 1 else device_data_battery_2['voltage']
+#                     print(f"Voltage at 30 seconds: {voltage_value_30s}")
+        
+#                     # Update discharging duration in the CAN log
+#                     update_discharging_duration_in_can_log(
+#                         device_data_battery_1['serial_number'] if battery_no == 1 else device_data_battery_2['serial_number'],
+#                         0, load_value, voltage_value_0s=voltage_value_0s,voltage_value_15s=voltage_value_15s,voltage_value_30s=voltage_value_30s
+#                     )
+#                     # Reset the discharging start time and stop the loop
+#                     discharging_start_time = None
+#                     print(f"Stopping fetch for battery {battery_no}")
+#                     is_fetching_voltage = False
+
+#             except Exception as e:
+#                 print(f"Error fetching current for battery {battery_no}: {e}")
+#                 is_fetching_voltage = False
+#                 break
+
+#             except Exception as e:
+#                 print(f"Error fetching current for battery {battery_no}: {e}")
+#     else:
+#         print(f"Starting to fetch current for battery {battery_no}...")
+#         # Keep fetching the current value asynchronously
+#         while is_fetching_voltage:
+#             try:
+#                 # Call the pcan_write_read method asynchronously
+#                 print(f"Calling pcan_write_read for current on battery {battery_no}")
+#                 # await asyncio.to_thread(pcan_write_read, 'current', battery_no)
+#                 # Get the current value based on the battery number
+#                 voltage_value = None
+#                 if battery_no == 1:
+#                     ocv=device_data_battery_1['charging_voltage']
+#                     voltage_value = device_data_battery_1['voltage']
+#                 elif battery_no == 2:
+#                     voltage_value = device_data_battery_2['voltage']
+#                 # Log the current value retrieved
+#                 print(f"Retrieved current value for battery {battery_no}: {voltage_value}")
+#                 # If current is greater than 0, start tracking charging time
+#                 if voltage_value is not None and voltage_value > 0:
+#                     print(f"Battery {battery_no} is charging with voltage {voltage_value}")
+#                     # If this is the first time fetching, set the start time
+#                     if discharging_start_time is None:
+#                         discharging_start_time = datetime.datetime.now()
+#                         print(f"Charging started for battery {battery_no} at {discharging_start_time}")
+#                 # Stop if current drops to 0 or below, calculate the charging time
+#                 elif voltage_value is not None and voltage_value <= 21:
+#                     if discharging_start_time is not None:
+#                         discharging_end_time = datetime.datetime.now()
+#                         discharging_duration = discharging_end_time - discharging_start_time
+#                         print(f"Charging stopped for battery {battery_no} at {discharging_end_time}")
+#                         print(f"Total charging duration: {discharging_duration}")
+#                         # Update charging duration in the CAN log
+#                         update_discharging_duration_in_can_log(
+#                             device_data_battery_1['serial_number'] if battery_no == 1 else device_data_battery_2['serial_number'],
+#                             discharging_duration,load_value
+#                         )
+#                     else:
+#                         print(f"No charging start time recorded for battery {battery_no}")
+#                     # Reset the charging start time and stop the loop
+#                     discharging_start_time = None
+#                     print(f"Stopping fetch for battery {battery_no}")
+#                     is_fetching_voltage = False
+#                     break
+#             except Exception as e:
+#                 print(f"Error fetching current for battery {battery_no}: {e}")
+#             # Delay before fetching again
+#             print(f"Sleeping for 500ms before next fetch for battery {battery_no}")
+#             await asyncio.sleep(0.5)  # Sleep for 500ms asynchronously before trying again
+
+
+# def start_fetching_voltage(battery_no,load_value):
+#     global is_fetching_voltage
+#     # Ensure the asyncio event loop is running
+#     start_asyncio_event_loop()
+    
+#     # Start fetching in the event loop
+#     if not is_fetching_voltage:
+#         is_fetching_voltage = True
+#         asyncio.run_coroutine_threadsafe(fetch_voltage(battery_no,load_value), asyncio.get_event_loop())
+
+
+# def stop_fetching_voltage():
+#     # Stop fetching current
+#     global discharging_start_time,is_fetching_voltage   
+#     device_data_battery_1['voltage'] = 0  # Reset the start time
+#     if discharging_start_time is None:
+#         is_fetching_voltage = False
+
+
+# def update_discharging_duration_in_can_log(serial_number, discharging_duration,load_value,voltage_value_0s=0,voltage_value_15s=0,voltage_value_30s=0):
+#     """
+#     Update the charging date and duration for a specific battery identified by its serial number
+#     in the CAN Log Excel file (Can_Log.xlsx).
+#     """
+#     # Define the log file path for Can_Log.xlsx
+#     folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_Logs")
+#     file_path = os.path.join(folder_path, "Can_Log.xlsx")
+
+#     # Load existing workbook or create a new one if the file does not exist
+#     if os.path.exists(file_path):
+#         workbook = load_workbook(file_path)
+#         sheet = workbook.active
+#     else:
+#         print("Log file not found.")
+#         return
+
+#     # Find the row corresponding to the battery's serial number
+#     serial_number_column = 8  # Assuming Serial Number is in the 8th column (H)
+#     ocv_column = 14
+#     current_load_column = 15
+#     discharging_duration_column = 16  # Charging Duration in the 12th column (L)
+#     voltage_value_0s_column = 17
+#     voltage_value_15s_column = 18
+#     voltage_value_30s_column = 19
+#     discharging_date_column = 20  # Charging Date in the 13th column (M)
+
+#     found = False
+
+#     for row in range(2, sheet.max_row + 1):
+#         if sheet.cell(row=row, column=serial_number_column).value == serial_number:
+#             # Found the row, retrieve previous duration and add the new one
+#             previous_duration = sheet.cell(row=row, column=discharging_duration_column).value or 0
+#             if discharging_duration == 0:
+#                 total_duration = 0
+#             else:
+#                 total_duration = previous_duration + (discharging_duration.total_seconds() / 60)  # Convert to minutes
+#                 total_duration = round(total_duration, 2)
+
+#             # Update the charging duration and date in the corresponding row
+#             sheet.cell(row=row, column=discharging_duration_column).value = total_duration
+#             sheet.cell(row=row, column=discharging_date_column).value = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+#             sheet.cell(row=row, column=ocv_column).value = ocv
+#             sheet.cell(row=row, column=current_load_column).value = load_value
+#             sheet.cell(row=row, column=voltage_value_0s_column).value = voltage_value_0s
+#             sheet.cell(row=row, column=voltage_value_15s_column).value = voltage_value_15s
+#             sheet.cell(row=row, column=voltage_value_30s_column).value = voltage_value_30s
+#             found = True
+#             break
+
+#     if not found:
+#         print(f"Serial number {serial_number} not found in the log.")
+
+#     # Save the updated Excel file
+#     workbook.save(file_path)
+#     print(f"Updated charging duration and date for Serial Number {serial_number} in Can_Log.xlsx.")

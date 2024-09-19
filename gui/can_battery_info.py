@@ -27,9 +27,24 @@ class CanBatteryInfo:
         # Calculate one-fourth of the main window width for the side menu
         self.side_menu_width_ratio = 0.20  # 20% for side menu
         self.update_frame_sizes()  # Set initial size
-        # self.auto_refresh_var = tk.BooleanVar()
+
+        # Variables to store control states for each battery
+        self.charger_control_var_battery_1 = tk.BooleanVar(value=False)  # Default to False
+        self.charger_control_var_battery_2 = tk.BooleanVar(value=False)
+        self.discharger_control_var_battery_1 = tk.BooleanVar(value=False)
+        self.discharger_control_var_battery_2 = tk.BooleanVar(value=False)
+
+        # Track the selected battery
+        self.selected_battery = "Battery 1"
+
+         # Default to Battery 1
+        self.charger_control_var = self.charger_control_var_battery_1
+        self.discharger_control_var = self.discharger_control_var_battery_1
 
         self.logging_active = False
+        # Initialize the limited attribute to avoid AttributeError
+        self.limited = False
+
         self.first_time_dashboard = False
         self.mode_var = tk.StringVar(value="Testing Mode")
          # Directory paths
@@ -199,21 +214,33 @@ class CanBatteryInfo:
         self.master.bind('<Configure>', self.on_window_resize)
     
     def update_battery_selection(self, event=None):
-        """Update the device_data based on the selected battery."""
-        selected_battery = self.battery_var.get()
-        if selected_battery == "Battery 1":
+        """Update the controls based on the selected battery."""
+        self.selected_battery = self.battery_var.get()
+        if self.selected_battery == "Battery 1":
             self.device_data = device_data_battery_1
-            self.battery_status_flags = device_data_battery_1
-        elif selected_battery == "Battery 2":
+            self.battery_status_flags = battery_1_status_flags
+            self.charger_control_var = self.charger_control_var_battery_1
+            self.discharger_control_var = self.discharger_control_var_battery_1
+        elif self.selected_battery == "Battery 2":
             self.device_data = device_data_battery_2
-            self.battery_status_flags = device_data_battery_2
-        
-        # Optionally, refresh the dashboard or other UI elements
-        self.show_dashboard()
+            self.battery_status_flags = battery_2_status_flags
+            self.charger_control_var = self.charger_control_var_battery_2
+            self.discharger_control_var = self.discharger_control_var_battery_2
+            self.check_battery_log_for_cycle_count()
+
+        if self.selected_button == self.dashboard_button:
+            self.show_dashboard()
+        elif self.selected_button == self.info_button:
+            self.show_info()
+        elif self.selected_button == self.control_button:
+            self.show_control()
+        elif self.selected_button == self.report_button:
+            self.show_report()
+
 
     def show_dashboard(self):
         self.clear_content_frame()
-        self.auto_refresh()
+        # self.auto_refresh()
 
         # Create a Frame for the battery info details at the bottom
         info_frame = ttk.Labelframe(self.content_frame, text="Battery Information", bootstyle="dark", borderwidth=10, relief="solid")
@@ -471,8 +498,16 @@ class CanBatteryInfo:
         
             # Function to handle OK button click
             def handle_ok():
-                device_data_battery_1['cycle_count'] = cycle_count_var.get()
-                update_cycle_count_in_excel(device_data_battery_1['serial_number'],device_data_battery_1['cycle_count'])
+                # Get the selected battery from the dropdown
+                if self.selected_battery == "Battery 1":
+                    # Update cycle count for Battery 1
+                    device_data_battery_1['cycle_count'] = cycle_count_var.get()
+                    update_cycle_count_in_excel(device_data_battery_1['serial_number'], device_data_battery_1['cycle_count'])
+                elif self.selected_battery == "Battery 2":
+                    # Update cycle count for Battery 2
+                    device_data_battery_2['cycle_count'] = cycle_count_var.get()
+                    update_cycle_count_in_excel(device_data_battery_2['serial_number'], device_data_battery_2['cycle_count'])
+
                 input_window.destroy()  # Close the input window
                 self.show_dashboard()
         
@@ -654,33 +689,50 @@ class CanBatteryInfo:
         self.reset_icon = self.load_icon(os.path.join(self.assets_path, "reset.png"))
         self.activate_icon = self.load_icon(os.path.join(self.assets_path, "activate.png"))
 
-        # Row 0: Charging On/Off Label and Checkbutton
-        check_label1 = ttk.Label(right_control_frame, text="Charging On/Off:", font=("Helvetica", 12), anchor="center")
-        check_label1.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+        if self.selected_battery == 'Battery 1':
+            # Charger Control
+            charger_control_label = ttk.Label(right_control_frame, text="Charging On/Off", font=("Helvetica", 12))
+            charger_control_label.grid(row=0, column=0, padx=10, pady=5)
+            charger_control_button = ttk.Checkbutton(
+                right_control_frame,
+                variable=self.charger_control_var,
+                bootstyle="success-round-toggle" if self.charger_control_var.get() else "danger-round-toggle",
+                command=lambda: self.toggle_button_style(self.discharger_control_var_battery_1, charger_control_button, 'charge', self.selected_battery)
+            )
+            charger_control_button.grid(row=0, column=1, padx=10, pady=5)
 
-        self.charger_control_var = tk.BooleanVar()
-        self.charger_control_var.set(self.charge_fet_status)
-        check_button1 = ttk.Checkbutton(
-            right_control_frame,
-            variable=self.charger_control_var,
-            bootstyle="success-round-toggle" if self.charger_control_var.get() else "danger-round-toggle",
-            command=lambda: self.toggle_button_style(self.charger_control_var, check_button1, 'charge')
-        )
-        check_button1.grid(row=0, column=1, padx=10, pady=5, sticky="e")
-
-        # Row 1: Discharging On/Off Label and Checkbutton
-        check_label2 = ttk.Label(right_control_frame, text="Discharging On/Off:", font=("Helvetica", 12), anchor="center")
-        check_label2.grid(row=1, column=0, padx=10, pady=5, sticky="w")
-
-        self.discharger_control_var = tk.BooleanVar()
-        self.discharger_control_var.set(self.discharge_fet_status)
-        check_button2 = ttk.Checkbutton(
-            right_control_frame,
-            variable=self.discharger_control_var,
-            bootstyle="success-round-toggle" if self.discharger_control_var.get() else "danger-round-toggle",
-            command=lambda: self.toggle_button_style(self.discharger_control_var, check_button2, 'discharge')
-        )
-        check_button2.grid(row=1, column=1, padx=10, pady=5, sticky="e")
+            # Discharger Control
+            discharger_control_label = ttk.Label(right_control_frame, text="Discharging On/Off", font=("Helvetica", 12))
+            discharger_control_label.grid(row=1, column=0, padx=10, pady=5)
+            discharger_control_button = ttk.Checkbutton(
+                right_control_frame,
+                variable=self.discharger_control_var,
+                bootstyle="success-round-toggle" if self.discharger_control_var.get() else "danger-round-toggle",
+                command=lambda: self.toggle_button_style(self.charger_control_var_battery_1, discharger_control_button, 'discharge', self.selected_battery)
+            )
+            discharger_control_button.grid(row=1, column=1, padx=10, pady=5)
+        elif self.selected_battery == 'Battery 2':
+            # Charger Control
+            charger_control_label = ttk.Label(right_control_frame, text="Charging On/Off", font=("Helvetica", 12))
+            charger_control_label.grid(row=0, column=0, padx=10, pady=5)
+            charger_control_button = ttk.Checkbutton(
+                right_control_frame,
+                variable=self.charger_control_var,
+                bootstyle="success-round-toggle" if self.charger_control_var.get() else "danger-round-toggle",
+                command=lambda: self.toggle_button_style(self.discharger_control_var_battery_2, charger_control_button, 'charge', self.selected_battery)
+            )
+            charger_control_button.grid(row=0, column=1, padx=10, pady=5)
+    
+            # Discharger Control
+            discharger_control_label = ttk.Label(right_control_frame, text="Discharging On/Off", font=("Helvetica", 12))
+            discharger_control_label.grid(row=1, column=0, padx=10, pady=5)
+            discharger_control_button = ttk.Checkbutton(
+                right_control_frame,
+                variable=self.discharger_control_var,
+                bootstyle="success-round-toggle" if self.discharger_control_var.get() else "danger-round-toggle",
+                command=lambda: self.toggle_button_style(self.charger_control_var_battery_2, discharger_control_button, 'discharge', self.selected_battery)
+            )
+            discharger_control_button.grid(row=1, column=1, padx=10, pady=5)
 
         # Row 2: BMS Reset Button
         self.bms_reset_button = ctk.CTkButton(
@@ -716,11 +768,11 @@ class CanBatteryInfo:
             testing_frame = ttk.Labelframe(load_frame, text="Testing Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
             testing_frame.grid(row=1, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
 
-            test_button = ttk.Button(testing_frame, text="Set 50A and Turn ON Load", command=set_l1_50a_and_turn_on)
+            test_button = ttk.Button(testing_frame, text="Set 50A and Turn ON Load", command=self.testing_mode_load)
             test_button.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
             # Turn Off Load Button
-            turn_off_button = ttk.Button(testing_frame, text="Turn OFF Load", command=custom_turn_off)
+            turn_off_button = ttk.Button(testing_frame, text="Turn OFF Load", command=self.load_off)
             turn_off_button.grid(row=0, column=1, columnspan=2, padx=10, pady=10, sticky="ew")
 
         elif selected_mode == "Maintenance Mode":
@@ -728,11 +780,11 @@ class CanBatteryInfo:
             maintenance_frame = ttk.Labelframe(load_frame, text="Maintenance Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
             maintenance_frame.grid(row=1, column=0,columnspan=4, padx=10, pady=10, sticky="nsew")
 
-            maintenance_button = ttk.Button(maintenance_frame, text="Set 100A and Turn ON Load", command=set_l1_100a_and_turn_on)
+            maintenance_button = ttk.Button(maintenance_frame, text="Set 100A and Turn ON Load", command=self.maintains_mode_load)
             maintenance_button.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
             # Turn Off Load Button
-            turn_off_button = ttk.Button(maintenance_frame, text="Turn OFF Load", command=custom_turn_off)
+            turn_off_button = ttk.Button(maintenance_frame, text="Turn OFF Load", command=self.load_off)
             turn_off_button.grid(row=0, column=1, columnspan=2, padx=10, pady=10, sticky="ew")
     
 
@@ -747,6 +799,10 @@ class CanBatteryInfo:
             """Saves the custom current value and sets it to the Chroma device."""
             custom_value = self.custom_current_entry.get()
             if custom_value.isdigit():  # Basic validation to ensure it's a number
+                if self.selected_battery == "Battery 1":
+                    start_fetching_voltage(battery_no=1,load_value=int(custom_value))
+                elif self.selected_battery == "Battery 2":
+                     start_fetching_voltage(battery_no=2,load_value=int(custom_value))
                 set_custom_l1_value(int(custom_value))
             else:
                 print("Invalid input: Please enter a valid number.")
@@ -763,6 +819,7 @@ class CanBatteryInfo:
 
         def toggle_load():
             if self.load_status.get():
+                stop_fetching_voltage()
                 custom_turn_off  # Call the Turn OFF function
                 toggle_button.config(text="Turn ON Load", bootstyle="success")  # Change to green when OFF
                 self.load_status.set(False)  # Update state to OFF
@@ -788,6 +845,31 @@ class CanBatteryInfo:
 
         # Highlight the control button in the side menu
         self.select_button(self.control_button)
+
+    def maintains_mode_load(self):
+        if self.selected_battery == "Battery 1":
+            start_fetching_voltage(battery_no=1,load_value=100)
+        elif self.selected_battery == "Battery 2":
+             start_fetching_voltage(battery_no=2,load_value=100)
+        set_l1_100a_and_turn_on()
+
+    def custom_mode_load(self):
+        if self.selected_battery == "Battery 1":
+            start_fetching_voltage(battery_no=1,load_value=100)
+        elif self.selected_battery == "Battery 2":
+             start_fetching_voltage(battery_no=2,load_value=100)
+        set_l1_100a_and_turn_on()
+
+    def testing_mode_load(self):
+        if self.selected_battery == "Battery 1":
+            start_fetching_voltage(battery_no=1,load_value=50)
+        elif self.selected_battery == "Battery 2":
+             start_fetching_voltage(battery_no=2,load_value=50)
+        set_l1_50a_and_turn_on()
+
+    def load_off(self):
+        stop_fetching_voltage()
+        custom_turn_off()
 
     def connect_device(self):
         """Connect to the Chroma device."""
@@ -874,7 +956,6 @@ class CanBatteryInfo:
 
     def show_info(self, event=None):
         self.clear_content_frame()
-        # self.auto_refresh()
 
         # Determine if we are in Testing Mode or Maintenance Mode
         selected_mode = self.mode_var.get()
@@ -889,14 +970,6 @@ class CanBatteryInfo:
         control_frame = ttk.Labelframe(self.content_frame, text="Battery Data Controls", bootstyle="dark", borderwidth=5, relief="solid")
         control_frame.pack(fill="x", expand=True, padx=5, pady=1)
 
-        # auto_refresh_checkbox = ttk.Checkbutton(
-        #     control_frame, 
-        #     text="Auto Refresh", 
-        #     variable=self.auto_refresh_var, 
-        #     width=12, 
-        #     command=self.auto_refresh  # Link the checkbox command to start/stop auto-refresh
-        # )
-        # auto_refresh_checkbox.pack(side="left", padx=5, pady=1, fill="x", expand=True)
 
         self.refresh_button = ctk.CTkButton(control_frame, text="Refresh", image=self.refresh_icon, compound="left", command=self.refresh_info, width=6, fg_color="#5188d4",
             hover_color="#4263cc")
@@ -1053,58 +1126,23 @@ class CanBatteryInfo:
         self.battery_status_label.grid(row=row, column=column, padx=5, pady=2, sticky="w")
 
     def auto_refresh(self):
-        print(f"Auto-refresh mode: {'Testing Mode' if self.limited else 'Maintenance Mode'}")
-        # if self.auto_refresh_var.get():
-        #     asyncio.run(update_device_data())
         asyncio.run(update_device_data())
-        # Check if the info_table widget still exists before trying to clear it
-        if self.info_table.winfo_exists():
-            # Clear the existing table rows
-            for item in self.info_table.get_children():
-                self.info_table.delete(item)
-        else:
-            print("info_table does not exist anymore.")
-            return  # Exit the function if the widget does not exist
 
-        # Check if Testing Mode is active
-        if self.limited:
-            # Insert limited data for Testing Mode
-            limited_data_keys = [
-                'device_name', 
-                'serial_number', 
-                'manufacturer_name', 
-                'cycle_count',
-                'remaining_capacity', 
-                'temperature', 
-                'current', 
-                'voltage', 
-                'charging_current', 
-                'charging_voltage', 
-                'charging_battery_status', 
-                'rel_state_of_charge'
-            ]
-            for index, key in enumerate(limited_data_keys):
-                name = ' '.join(word.title() for word in key.split('_'))
-                value = self.device_data.get(key, 'N/A')
-                unit = unit_mapping.get(key, '')
-                self.info_table.insert('', 'end', values=(name, value, unit), tags=('evenrow' if index % 2 == 0 else 'oddrow'))
-        else:
-            # Insert full data for Maintenance Mode
-            for index, (key, value) in enumerate(self.device_data.items()):
-                name = ' '.join(word.title() for word in key.split('_'))
-                unit = unit_mapping.get(key, '')
-                self.info_table.insert('', 'end', values=(name, value, unit), tags=('evenrow' if index % 2 == 0 else 'oddrow'))
+        if self.selected_battery == "Battery 1":
+            self.device_data = device_data_battery_1
+            self.battery_status_flags = battery_1_status_flags
+        elif self.selected_battery == "Battery 2":
+            self.device_data = device_data_battery_2
+            self.battery_status_flags = battery_2_status_flags
 
-        # Update the battery status flags
-        if self.limited:
-            limited_status_flags = {
-                "Over Temperature Alarm": battery_status_flags.get('over_temperature_alarm'),
-                "Fully Charged": battery_status_flags.get('fully_charged'),
-                "Fully Discharged": battery_status_flags.get('fully_discharged')
-            }
-            self.display_status_labels(self.status_frame, limited_status_flags)
-        else:
-            self.display_status_labels(self.status_frame, battery_status_flags)
+        if self.selected_button == self.dashboard_button:
+            self.show_dashboard()
+        elif self.selected_button == self.info_button:
+            self.show_info()
+        elif self.selected_button == self.control_button:
+            self.show_control()
+        elif self.selected_button == self.report_button:
+            self.show_report()
 
         # Schedule the next refresh
         self.master.after(1000, self.auto_refresh)
@@ -1286,44 +1324,73 @@ class CanBatteryInfo:
         else:
             return "info"  # Default style if gauge_type is unknown
  
-    def toggle_button_style(self, var, button, control_type):
-        charge_on = self.charger_control_var.get()
-        discharge_on = self.discharger_control_var.get()
+    def toggle_button_style(self, var, button, control_type, active_battery):
+        """
+        Toggle button style and control charging/discharging for the given active battery.
 
-        # Ensure only one operation is active at a time
+        Parameters:
+        - var: The BooleanVar tracking the state of the toggle (True/False).
+        - button: The button object whose style will be updated.
+        - control_type: 'charge' or 'discharge' to specify the type of control.
+        - active_battery: 'Battery 1' or 'Battery 2' to specify which battery is being controlled.
+        """
+        # Determine which battery's control to operate on
+        if active_battery == "Battery 1":
+            charge_on = self.charger_control_var_battery_1.get()
+            discharge_on = self.discharger_control_var_battery_1.get()
+        elif active_battery == "Battery 2":
+            charge_on = self.charger_control_var_battery_2.get()
+            discharge_on = self.discharger_control_var_battery_2.get()
+
+        # Ensure only one operation (charge/discharge) is active at a time
         if control_type == 'charge':
             if charge_on and discharge_on:
                 messagebox.showwarning("Warning", "Please turn off discharging before enabling charging.")
                 var.set(False)
                 return
-            self.charge_fet_status = charge_on
-            if charge_on:
-                pcan_write_control('charge_on')
-                self.discharger_control_var.set(False)  # Turn off discharging
-            else:
-                pcan_write_control('both_off' if not discharge_on else 'discharge_on')
+            if active_battery == "Battery 1":
+                self.charge_fet_status_battery_1 = charge_on
+                if charge_on:
+                    pcan_write_control('charge_on', battery_no=1)
+                    start_fetching_current(battery_no=1)
+                    self.discharger_control_var_battery_1.set(False)  # Turn off discharging
+                else:
+                    pcan_write_control('both_off', battery_no=1)
+                    stop_fetching_current()
+            elif active_battery == "Battery 2":
+                self.charge_fet_status_battery_2 = charge_on
+                if charge_on:
+                    pcan_write_control('charge_on', battery_no=2)
+                    start_fetching_current(battery_no=2)
+                    self.discharger_control_var_battery_2.set(False)  # Turn off discharging
+                else:
+                    pcan_write_control('both_off', battery_no=2)
         elif control_type == 'discharge':
-            if discharge_on and charge_on:
+            if charge_on and discharge_on:
                 messagebox.showwarning("Warning", "Please turn off charging before enabling discharging.")
                 var.set(False)
                 return
-            self.discharge_fet_status = discharge_on
-            if discharge_on:
-                pcan_write_control('discharge_on')
-                self.charger_control_var.set(False)  # Turn off charging
-            else:
-                pcan_write_control('both_off' if not charge_on else 'charge_on')
+            if active_battery == "Battery 1":
+                self.discharge_fet_status_battery_1 = discharge_on
+                if discharge_on:
+                    pcan_write_control('discharge_on', battery_no=1)
+                    self.charger_control_var_battery_1.set(False)  # Turn off charging
+                else:
+                    pcan_write_control('both_off', battery_no=1)
+            elif active_battery == "Battery 2":
+                self.discharge_fet_status_battery_2 = discharge_on
+                if discharge_on:
+                    pcan_write_control('discharge_on', battery_no=2)
+                    self.charger_control_var_battery_2.set(False)  # Turn off charging
+                else:
+                    pcan_write_control('both_off', battery_no=2)
 
         # Update button styles
         button.config(bootstyle="success round-toggle" if var.get() else "danger round-toggle")
 
         # Show alert message
-        if control_type == 'charge':
-            action = "Charging" if charge_on else "Charging turned off"
-        else:
-            action = "Discharging" if discharge_on else "Discharging turned off"
-
-        messagebox.showinfo("Action", f"{action} function activated. Please wait for 10 seconds.")
+        action = "Charging" if control_type == 'charge' else "Discharging"
+        messagebox.showinfo("Action", f"{action} function for {active_battery} activated. Please wait for 10 seconds.")
 
         # Disable the button for 10 seconds
         button.config(state=tk.DISABLED)
@@ -1404,7 +1471,7 @@ class CanBatteryInfo:
         """
         # Define the folder and file path for the battery log
         folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_Logs")
-        file_path = os.path.join(folder_path, "Battery_Log.xlsx")
+        file_path = os.path.join(folder_path, "Can_Log.xlsx")
 
         # Check if the file exists
         if not os.path.exists(file_path):
