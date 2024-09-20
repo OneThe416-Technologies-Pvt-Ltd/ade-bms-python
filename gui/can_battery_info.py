@@ -34,6 +34,8 @@ class CanBatteryInfo:
         self.discharger_control_var_battery_1 = tk.BooleanVar(value=False)
         self.discharger_control_var_battery_2 = tk.BooleanVar(value=False)
 
+        self.is_connected = True  # Initialize is_connected to True by default
+
         # Track the selected battery
         self.selected_battery = "Battery 1"
 
@@ -207,7 +209,8 @@ class CanBatteryInfo:
             self.discharge_fet_status = True
         else:
             self.discharge_fet_status = False
-         
+        
+        self.auto_refresh()
         self.show_dashboard()
 
         # Bind the window resize event to adjust frame sizes dynamically
@@ -240,7 +243,6 @@ class CanBatteryInfo:
 
     def show_dashboard(self):
         self.clear_content_frame()
-        # self.auto_refresh()
 
         # Create a Frame for the battery info details at the bottom
         info_frame = ttk.Labelframe(self.content_frame, text="Battery Information", bootstyle="dark", borderwidth=10, relief="solid")
@@ -798,12 +800,12 @@ class CanBatteryInfo:
         def save_custom_value():
             """Saves the custom current value and sets it to the Chroma device."""
             custom_value = self.custom_current_entry.get()
+            print(f"{custom_value} load value")
             if custom_value.isdigit():  # Basic validation to ensure it's a number
                 if self.selected_battery == "Battery 1":
                     start_fetching_voltage(battery_no=1,load_value=int(custom_value))
                 elif self.selected_battery == "Battery 2":
                      start_fetching_voltage(battery_no=2,load_value=int(custom_value))
-                set_custom_l1_value(int(custom_value))
             else:
                 print("Invalid input: Please enter a valid number.")
 
@@ -820,7 +822,6 @@ class CanBatteryInfo:
         def toggle_load():
             if self.load_status.get():
                 stop_fetching_voltage()
-                custom_turn_off  # Call the Turn OFF function
                 toggle_button.config(text="Turn ON Load", bootstyle="success")  # Change to green when OFF
                 self.load_status.set(False)  # Update state to OFF
             else:
@@ -851,25 +852,24 @@ class CanBatteryInfo:
             start_fetching_voltage(battery_no=1,load_value=100)
         elif self.selected_battery == "Battery 2":
              start_fetching_voltage(battery_no=2,load_value=100)
-        set_l1_100a_and_turn_on()
 
-    def custom_mode_load(self):
-        if self.selected_battery == "Battery 1":
-            start_fetching_voltage(battery_no=1,load_value=100)
-        elif self.selected_battery == "Battery 2":
-             start_fetching_voltage(battery_no=2,load_value=100)
-        set_l1_100a_and_turn_on()
+    # def custom_mode_load(self):
+    #     if self.selected_battery == "Battery 1":
+    #         start_fetching_voltage(battery_no=1,load_value=100)
+    #     elif self.selected_battery == "Battery 2":
+    #          start_fetching_voltage(battery_no=2,load_value=100)
+    #     set_l1_100a_and_turn_on()
 
     def testing_mode_load(self):
         if self.selected_battery == "Battery 1":
             start_fetching_voltage(battery_no=1,load_value=50)
         elif self.selected_battery == "Battery 2":
-             start_fetching_voltage(battery_no=2,load_value=50)
-        set_l1_50a_and_turn_on()
+             start_fetching_voltage(battery_no=2,load_value=50)()
 
     def load_off(self):
-        stop_fetching_voltage()
         custom_turn_off()
+        stop_fetching_voltage()
+        
 
     def connect_device(self):
         """Connect to the Chroma device."""
@@ -944,15 +944,23 @@ class CanBatteryInfo:
 
     def on_disconnect(self):
         self.mode_var.set("Testing Mode")
-        pcan_write_control('both_off',1)
+        if device_data_battery_2['serial_number'] != 0:
+            pcan_write_control('both_off',1)
+            pcan_write_control('both_off',2)
+        else:
+            pcan_write_control('both_off',1)
         time.sleep(1)
         pcan_uninitialize()
+        # Cancel the scheduled auto-refresh task
+        if hasattr(self, 'auto_refresh_task'):
+            self.master.after_cancel(self.auto_refresh_task)
+            print("Auto-refresh stopped.")
+
         self.first_time_dashboard = True
         self.main_frame.pack_forget()
         self.main_window.show_main_window()
         # Perform disconnection logic here (example: print disconnect message)
         print("Disconnecting...")
-        # self.update_widgets()
 
     def show_info(self, event=None):
         self.clear_content_frame()
@@ -1126,26 +1134,18 @@ class CanBatteryInfo:
         self.battery_status_label.grid(row=row, column=column, padx=5, pady=2, sticky="w")
 
     def auto_refresh(self):
-        asyncio.run(update_device_data())
+        if self.is_connected:  # Only refresh if the device is connected
+            asyncio.run(update_device_data())
 
-        if self.selected_battery == "Battery 1":
-            self.device_data = device_data_battery_1
-            self.battery_status_flags = battery_1_status_flags
-        elif self.selected_battery == "Battery 2":
-            self.device_data = device_data_battery_2
-            self.battery_status_flags = battery_2_status_flags
+            if self.selected_battery == "Battery 1":
+                self.device_data = device_data_battery_1
+                self.battery_status_flags = battery_1_status_flags
+            elif self.selected_battery == "Battery 2":
+                self.device_data = device_data_battery_2
+                self.battery_status_flags = battery_2_status_flags
 
-        if self.selected_button == self.dashboard_button:
-            self.show_dashboard()
-        elif self.selected_button == self.info_button:
-            self.show_info()
-        elif self.selected_button == self.control_button:
-            self.show_control()
-        elif self.selected_button == self.report_button:
-            self.show_report()
-
-        # Schedule the next refresh
-        self.master.after(1000, self.auto_refresh)
+            # Schedule the next refresh and store the task ID in self.auto_refresh_task
+            self.auto_refresh_task = self.master.after(1000, self.auto_refresh)
 
     def refresh_info(self):
         asyncio.run(update_device_data())

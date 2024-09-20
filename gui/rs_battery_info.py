@@ -7,6 +7,7 @@ from ttkbootstrap.constants import *
 from PIL import Image, ImageTk
 Image.CUBIC = Image.BICUBIC
 import datetime
+import time
 import asyncio
 from tkinter import messagebox
 from openpyxl import Workbook
@@ -49,15 +50,8 @@ class RSBatteryInfo:
         self.main_frame = ttk.Frame(self.master)
         self.main_frame.pack(fill="both", expand=True)
 
-        if self.rs232_flag:
-            self.device_data = rs232_device_data
-            print("RS232 data updated")
-        elif self.rs422_flag:
-            self.device_data = rs422_device_data
-            print("RS422 data updated")
-            
         active_protocol = get_active_protocol()
-
+        print(f"{active_protocol} protocol")
         # Step 3: Update the flags based on the active protocol
         if active_protocol == "RS-232":
             self.rs232_flag = True
@@ -65,6 +59,17 @@ class RSBatteryInfo:
         elif active_protocol == "RS-422":
             self.rs232_flag = False
             self.rs422_flag = True
+
+        print(f"{self.rs232_flag} self.rs232_flag")
+        print(f"{self.rs422_flag} self.rs422_flag")
+
+        if self.rs232_flag:
+            self.device_data = rs232_device_data
+            print("RS232 data updated")
+        elif self.rs422_flag:
+            self.device_data = rs422_device_data
+            print("RS422 data updated")
+
         
         # Create the side menu frame with 1/4 width of the main window
         self.side_menu_frame = ttk.Frame(self.main_frame, bootstyle="info")
@@ -134,7 +139,7 @@ class RSBatteryInfo:
         self.help_button = ttk.Button(
             self.side_menu_frame,
             text=" Help    ",
-            command=lambda: self.select_button(self.help_button,self.show_help),
+            command=lambda: self.select_button(self.help_button),
             image=self.help_icon,
             compound="left",  # Place the icon to the left of the text
             bootstyle="info"
@@ -168,17 +173,6 @@ class RSBatteryInfo:
         # Step 1: Check if refresh is still active
         if not self.refresh_active:
             return  # Exit if the refresh has been stopped
-
-        # Step 2: Get the active protocol from pcomm.py
-        active_protocol = get_active_protocol()
-
-        # Step 3: Update the flags based on the active protocol
-        if active_protocol == "RS-232":
-            self.rs232_flag = True
-            self.rs422_flag = False
-        elif active_protocol == "RS-422":
-            self.rs232_flag = False
-            self.rs422_flag = True
 
         # Step 4: Update device data based on the selected protocol
         if self.rs232_flag:
@@ -678,141 +672,222 @@ class RSBatteryInfo:
     def show_control(self):
         """Show the load control screen."""
         self.clear_content_frame()
-
+    
         load_frame = ttk.Frame(self.content_frame, borderwidth=10, relief="solid")
         load_frame.grid(row=0, column=0, columnspan=8, rowspan=8, padx=10, pady=10, sticky="nsew")
-
-        # Section: Right Control Frame (Change to Grid Layout)
-        right_control_frame = ttk.Labelframe(load_frame, text="Controls", bootstyle="dark", borderwidth=5, relief="solid")
-        right_control_frame.grid(row=0, column=1, rowspan=1,columnspan=3, padx=5, pady=5, sticky="nsew")  # Positioned to the right
-
-        if self.rs232_flag:
-            ttk.Label(right_control_frame, text="BUS1 On/Off").grid(row=0, column=0, padx=5, pady=5)
-            bus1_control_status = ttk.Button(right_control_frame, text="OFF", bootstyle="danger")
-            bus1_control_status.grid(row=0, column=1, padx=5, pady=5)
-
-            ttk.Label(right_control_frame, text="BUS2 On/Off").grid(row=1, column=0, padx=5, pady=5)
-            bus2_control_status = ttk.Button(right_control_frame, text="OFF", bootstyle="danger")
-            bus2_control_status.grid(row=1, column=1, padx=5, pady=5)
-
-            ttk.Label(right_control_frame, text="Charger On/Off").grid(row=2, column=0, padx=5, pady=5)
-            charger_control_status = ttk.Button(right_control_frame, text="OFF", bootstyle="danger")
-            charger_control_status.grid(row=2, column=1, padx=5, pady=5)
-            def toggle_output_relay():
-                if rs232_write['cmd_byte_1'] == 0x00:
-                    rs232_write['cmd_byte_1'] = 0xF0  # Set to 0x08 when turning ON
-                    output_relay_control_status.config(text="ON", bootstyle="success")  # Update button text and style
-                    print("Output Relay ON")
-                else:
-                    rs232_write['cmd_byte_1'] = 0x00  # Reset to 0x00 when turning OFF
-                    output_relay_control_status.config(text="OFF", bootstyle="danger")  # Update button text and style
-                    print("Output Relay OFF")
-
-            ttk.Label(right_control_frame, text="Output Relay On/Off").grid(row=3, column=0, padx=5, pady=5)
-            output_relay_control_status = ttk.Button(right_control_frame, text="OFF", bootstyle="danger", command=toggle_output_relay)
-            output_relay_control_status.grid(row=3, column=1, padx=5, pady=5)
-
-            ttk.Label(right_control_frame, text="Reset").grid(row=4, column=0, padx=5, pady=5)
-            reset_button = ttk.Button(right_control_frame, text="RESET", bootstyle="danger")
-            reset_button.grid(row=4, column=1, padx=5, pady=5)
-
-        # Section:  Device Connection
+    
+        # Section: Device Connection
         device_connect_frame = ttk.Labelframe(load_frame, bootstyle='dark', text="Connection", padding=10, borderwidth=10, relief="solid")
-        device_connect_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
-
+        device_connect_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew", columnspan=2)
+    
         # Connect Button
         self.connect_button = ttk.Button(device_connect_frame, text="Connect to Chroma", command=self.connect_device)
         self.connect_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-
+    
         # Status Label
         self.status_label = ttk.Label(device_connect_frame, text="Status: Disconnected")
         self.status_label.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
+        # Function to toggle Bus 1
+        def toggle_bus1():
+            if rs232_write['cmd_byte_1'] & 0x01 == 0:  # If Bus 1 is OFF (Bit 0 = 0)
+                rs232_write['cmd_byte_1'] |= 0x01  # Set Bit 0 to 1 to turn ON Bus 1
+                time.sleep(3)
+                bus1_status = self.device_data.get('bus1_status', 0)
+                if bus1_status == 1:
+                    bus1_control_status.config(text="ON", bootstyle="success")
+                else:
+                    bus1_control_status.config(text="OFF", bootstyle="danger")
+            else:
+                rs232_write['cmd_byte_1'] &= 0xFE  # Reset Bit 0 to 0 to turn OFF Bus 1
+                time.sleep(3)
+                bus1_status = self.device_data.get('bus1_status', 0)
+                if bus1_status == 1:
+                    bus1_control_status.config(text="ON", bootstyle="success")
+                else:
+                    bus1_control_status.config(text="OFF", bootstyle="danger")
+            print(f"Bus 1 Status: {rs232_write['cmd_byte_1']:08b}")
+
+        # Function to toggle Bus 2
+        def toggle_bus2():
+            if rs232_write['cmd_byte_1'] & 0x02 == 0:  # If Bus 2 is OFF (Bit 1 = 0)
+                rs232_write['cmd_byte_1'] |= 0x02  # Set Bit 1 to 1 to turn ON Bus 2
+                time.sleep(3)
+                bus2_status = self.device_data.get('bus2_status', 0)
+                if bus2_status == 1:
+                    bus2_control_status.config(text="ON", bootstyle="success")
+                else:
+                    bus2_control_status.config(text="OFF", bootstyle="danger")
+            else:
+                rs232_write['cmd_byte_1'] &= 0xFD  # Reset Bit 1 to 0 to turn OFF Bus 2
+                time.sleep(3)
+                bus2_status = self.device_data.get('bus2_status', 0)
+                if bus2_status == 0:
+                    bus2_control_status.config(text="OFF", bootstyle="danger")
+                else:
+                    bus2_control_status.config(text="ON", bootstyle="success")
+            print(f"Bus 2 Status: {rs232_write['cmd_byte_1']:08b}")
+
+        # Function to toggle Charger
+        def toggle_charger():
+            if rs232_write['cmd_byte_1'] & 0x04 == 0:  # If Charger is OFF (Bit 2 = 0)
+                rs232_write['cmd_byte_1'] |= 0x04  # Set Bit 2 to 1 to turn ON Charger
+                time.sleep(3)
+                charger_status = self.device_data.get('charging_on_off_status', 0)
+                if charger_status == 1:
+                    charger_control_status.config(text="ON", bootstyle="success")
+                else:
+                    charger_control_status.config(text="OFF", bootstyle="danger")
+            else:
+                rs232_write['cmd_byte_1'] &= 0xFB  # Reset Bit 2 to 0 to turn OFF Charger
+                time.sleep(3)
+                charger_status = self.device_data.get('charging_on_off_status', 0)
+                if charger_status == 1:
+                    charger_control_status.config(text="OFF", bootstyle="danger")
+                else:
+                    charger_control_status.config(text="ON", bootstyle="success")
+            print(f"Charger Status: {rs232_write['cmd_byte_1']:08b}")
+
+        # Function to toggle Charger Output Relay
+        def toggle_output_relay():
+            if rs232_write['cmd_byte_1'] & 0x08 == 0:  # If Output Relay is OFF (Bit 3 = 0)
+                rs232_write['cmd_byte_1'] |= 0x08  # Set Bit 3 to 1 to turn ON Output Relay
+                time.sleep(3)
+                charger_relay_status = self.device_data.get('charger_relay_status', 0)
+                if charger_relay_status == 1:
+                    output_relay_control_status.config(text="ON", bootstyle="success")
+                else:
+                    output_relay_control_status.config(text="OFF", bootstyle="danger")
+            else:
+                rs232_write['cmd_byte_1'] &= 0xF7  # Reset Bit 3 to 0 to turn OFF Output Relay
+                time.sleep(3)
+                charger_relay_status = self.device_data.get('charger_relay_status', 0)
+                if charger_relay_status == 0:
+                    output_relay_control_status.config(text="OFF", bootstyle="danger")
+                else:
+                    output_relay_control_status.config(text="ON", bootstyle="success")
+            print(f"Output Relay Status: {rs232_write['cmd_byte_1']:08b}")
+
+        def toggle_reset():
+            # Write the reset command value (0x23) to cmd_byte_2
+            rs232_write['cmd_byte_2'] = 0x23  # Set Byte 2 to the reset command value
+        
+            # Update the reset button UI (could be any relevant UI change)
+            messagebox.showinfo("Reset Triggered", "The reset command has been successfully triggered.")
+            
+            # Simulate sending the reset command and waiting for some time (if necessary)
+            time.sleep(3)  # Short delay to simulate the reset process
+            
+            # You can reset the UI back to normal after the reset process completes
+            reset_button.config(text="RESET", bootstyle="danger")
+            
+            print(f"Reset Command Triggered: {rs232_write['cmd_byte_2']:08b}")
+
+
+        # Section: Charger Control Frame
+        charger_control_frame = ttk.Labelframe(load_frame, text="Charger Controls", bootstyle="dark", borderwidth=5, relief="solid")
+        charger_control_frame.grid(row=0, column=2, padx=5, pady=5, sticky="nsew", columnspan=2)
+    
+        ttk.Label(charger_control_frame, text="Charger On/Off").grid(row=0, column=0, padx=5, pady=5)
+        charger_control_status = ttk.Button(charger_control_frame, text="OFF", bootstyle="danger",command=toggle_charger)
+        charger_control_status.grid(row=0, column=1, padx=5, pady=5)
+    
+        ttk.Label(charger_control_frame, text="Output Relay On/Off").grid(row=1, column=0, padx=5, pady=5)
+        output_relay_control_status = ttk.Button(charger_control_frame, text="OFF", bootstyle="danger", command=toggle_output_relay)
+        output_relay_control_status.grid(row=1, column=1, padx=5, pady=5)
+    
+        # Section: Right Control Frame (BUS Controls)
+        right_control_frame = ttk.Labelframe(load_frame, text="Controls", bootstyle="dark", borderwidth=5, relief="solid")
+        right_control_frame.grid(row=0, column=4, padx=5, pady=5, sticky="nsew", columnspan=2)  # Spans across 2 columns
+    
+        # BUS1 Control
+        ttk.Label(right_control_frame, text="BUS1 On/Off").grid(row=0, column=0, padx=5, pady=5)
+        bus1_control_status = ttk.Button(right_control_frame, text="OFF", bootstyle="danger",command=toggle_bus1)
+        bus1_control_status.grid(row=0, column=1, padx=5, pady=5)
+    
+        # BUS2 Control
+        ttk.Label(right_control_frame, text="BUS2 On/Off").grid(row=1, column=0, padx=5, pady=5)
+        bus2_control_status = ttk.Button(right_control_frame, text="OFF", bootstyle="danger",command=toggle_bus2)
+        bus2_control_status.grid(row=1, column=1, padx=5, pady=5)
+    
+        # Reset Button
+        ttk.Label(right_control_frame, text="Reset").grid(row=2, column=0, padx=5, pady=5)
+        reset_button = ttk.Button(right_control_frame, text="RESET", bootstyle="danger",command=toggle_reset)
+        reset_button.grid(row=2, column=1, padx=5, pady=5)
+    
         # Check the selected mode
         selected_mode = self.mode_var.get()
-
+    
         # Section: Testing Mode
         testing_frame = ttk.Labelframe(load_frame, text="Testing Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
-        testing_frame.grid(row=1, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
+        testing_frame.grid(row=1, column=0, columnspan=6, padx=10, pady=10, sticky="nsew")  # Spanning across 6 columns
         test_button = ttk.Button(testing_frame, text="Set 25A and Turn ON Load", command=set_l1_50a_and_turn_on)
         test_button.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
-
+    
         maintenance_button = ttk.Button(testing_frame, text="Set 50A and Turn ON Load", command=set_l1_100a_and_turn_on)
         maintenance_button.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
+    
         # Turn Off Load Button
         turn_off_button = ttk.Button(testing_frame, text="Turn OFF Load", command=custom_turn_off)
-        turn_off_button.grid(row=0, column=2, columnspan=2, padx=10, pady=10, sticky="ew")
-
+        turn_off_button.grid(row=0, column=2, padx=10, pady=10, sticky="ew")
+    
         # Section: Custom Mode
         custom_frame = ttk.Labelframe(load_frame, text="Custom Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
-        custom_frame.grid(row=3, column=0,columnspan=4, padx=5, pady=5, sticky="nsew")
-
+        custom_frame.grid(row=2, column=0, columnspan=6, padx=5, pady=5, sticky="nsew")  # Spanning across 6 columns
+    
         custom_label = ttk.Label(custom_frame, text="Set Custom Current (A):", font=("Helvetica", 12), width=20, anchor="e")
         custom_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
-
+    
         def save_custom_value():
             """Saves the custom current value and sets it to the Chroma device."""
             custom_value = self.custom_current_entry.get()
             if custom_value.isdigit():  # Basic validation to ensure it's a number
-                if self.selected_battery == "Battery 1":
-                    start_fetching_voltage(battery_no=1,load_value=int(custom_value))
-                elif self.selected_battery == "Battery 2":
-                     start_fetching_voltage(battery_no=2,load_value=int(custom_value))
                 set_custom_l1_value(int(custom_value))
             else:
                 print("Invalid input: Please enter a valid number.")
-
+    
         self.custom_current_entry = ttk.Entry(custom_frame)
         self.custom_current_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
-
+    
         custom_button = ttk.Button(custom_frame, text="Save", command=save_custom_value)
-        custom_button.grid(row=0, column=2, columnspan=1, padx=5, pady=5, sticky="ew")
-
+        custom_button.grid(row=0, column=2, padx=5, pady=5, sticky="ew")
+    
         # Create a toggle button for turning load ON and OFF
         self.load_status = tk.BooleanVar()  # Boolean variable to track load status (ON/OFF)
         self.load_status.set(False)  # Initial state is OFF
-
+    
         def toggle_load():
             if self.load_status.get():
                 stop_fetching_voltage()
-                custom_turn_off  # Call the Turn OFF function
+                custom_turn_off()  # Call the Turn OFF function
                 toggle_button.config(text="Turn ON Load", bootstyle="success")  # Change to green when OFF
                 self.load_status.set(False)  # Update state to OFF
             else:
-                custom_turn_on  # Call the Turn ON function
+                custom_turn_on()  # Call the Turn ON function
                 toggle_button.config(text="Turn OFF Load", bootstyle="danger")  # Change to red when ON
                 self.load_status.set(True)  # Update state to ON
-
+    
         # Toggle button for Load ON/OFF
         toggle_button = ttk.Button(custom_frame, text="Turn ON Load", command=toggle_load, bootstyle='success')
-        toggle_button.grid(row=0, column=3, columnspan=2, padx=5, pady=5, sticky="ew")
-
+        toggle_button.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
+    
         # Make the rows and columns expand as needed for content_frame and load_frame
         self.content_frame.grid_rowconfigure(0, weight=1)
         self.content_frame.grid_rowconfigure(1, weight=1)  # Ensures the load_frame expands fully
         self.content_frame.grid_columnconfigure(0, weight=1)
-
+    
         load_frame.grid_rowconfigure(0, weight=1)  # Device Connection frame
         load_frame.grid_rowconfigure(1, weight=1)  # Testing frame
-        load_frame.grid_rowconfigure(2, weight=1)  # Maintenance frame
-        load_frame.grid_rowconfigure(3, weight=1)  # Custom frame
+        load_frame.grid_rowconfigure(2, weight=1)  # Custom frame
         load_frame.grid_columnconfigure(0, weight=1)  # Ensure columns expand to fill space
-
+    
         # Highlight the control button in the side menu
         self.select_button(self.control_button)
 
     def maintains_mode_load(self):
-        if self.selected_battery == "Battery 1":
-            start_fetching_voltage(battery_no=1,load_value=100)
-        elif self.selected_battery == "Battery 2":
-             start_fetching_voltage(battery_no=2,load_value=100)
         set_l1_50a_and_turn_on()
 
     def testing_mode_load(self):
-        if self.selected_battery == "Battery 1":
-            start_fetching_voltage(battery_no=1,load_value=50)
-        elif self.selected_battery == "Battery 2":
-             start_fetching_voltage(battery_no=2,load_value=50)
         set_l1_25a_and_turn_on()
 
     def load_off(self):
@@ -918,14 +993,19 @@ class RSBatteryInfo:
 
     def on_disconnect(self):
         messagebox.showinfo("Info!", "Connection Disconnect!")
-        stop_communication()
-        # Stop periodic refresh
-        self.refresh_active = False  # Stop the periodic refresh
-        self.main_frame.pack_forget()
-        self.main_window.show_main_window()
-        # Perform disconnection logic here (example: print disconnect message)
-        print("Disconnecting...")
-        # self.update_widgets()
+        self.rs232_flag = False
+        self.rs422_flag = False
+        stop_communication()  # Stop RS-232/422 communication
+
+        self.clear_content_frame()  # Clear the current UI
+        self.refresh_active = False  # Stop periodic refresh
+
+        if self.main_window.rs_battery_info is not None:
+            del self.main_window.rs_battery_info
+            self.main_window.rs_battery_info = None
+    
+        self.main_frame.pack_forget()  # Hide the current window
+        self.main_window.show_main_window()  # Show the main window
 
     def show_info(self, event=None):
         self.clear_content_frame()
@@ -982,6 +1062,8 @@ class RSBatteryInfo:
             ttk.Label(parameters_frame, text="").grid(row=0, column=0, padx=5, pady=5)  # Empty top-left cell
             ttk.Label(parameters_frame, text="Voltage").grid(row=1, column=0, padx=5, pady=5)
             ttk.Label(parameters_frame, text="Temperature").grid(row=2, column=0, padx=5, pady=5)
+            ttk.Label(parameters_frame, text="Status").grid(row=3, column=0, padx=5, pady=5)  # Adding a Status label
+
 
             # Create labels and entries for each BAT (Voltage, Temperature, Status)
             for i in range(7):
@@ -998,6 +1080,11 @@ class RSBatteryInfo:
                 # Temperature label styled like an Entry (with border)
                 charger_current_label = ttk.Label(parameters_frame, text=temp_value, relief="solid", borderwidth=2, width=10, anchor="center")
                 charger_current_label.grid(row=2, column=i+1, padx=5, pady=5)
+
+                cell_status_circle_color = "green" if self.device_data.get('cell_{i+1}_status') == 1 else "red"
+                # Status label with a round dot representing status
+                status_label = ttk.Label(parameters_frame, text="●", font=("Arial", 24), foreground=cell_status_circle_color, anchor="center")
+                status_label.grid(row=3, column=i+1, padx=5, pady=5)
   
 
             # Configure equal weight for the columns to distribute space equally
@@ -1116,17 +1203,7 @@ class RSBatteryInfo:
         if self.rs422_flag:
             # Create a Frame to hold the battery info at the top of the content frame
             rs422_info_frame = ttk.Labelframe(self.content_frame, text="RS-422", bootstyle="dark", borderwidth=5, relief="solid")
-            rs422_info_frame.pack(fill="x", padx=5, pady=5) 
-
-            def toggle_eb1_relay():
-                if rs422_write['cmd_byte_1'] == 0x00:
-                    rs422_write['cmd_byte_1'] = 0x0F
-                    eb1_relay_control_status.config(text="ON", bootstyle="success")  # Update button text and style
-                    print(f"EB1 Relay ON: {rs422_write['cmd_byte_1']}")
-                else:
-                    rs422_write['cmd_byte_1'] = 0x00
-                    eb1_relay_control_status.config(text="OFF", bootstyle="danger")  # Update button text and style
-                    print(f"EB1 Relay OFF: {rs422_write['cmd_byte_1']}")
+            rs422_info_frame.pack(fill="x", padx=5, pady=5)
 
             # Heater Pad/Charger Relay Status Frame
             heater_pad_frame = ttk.Labelframe(rs422_info_frame, text="Heater Pad/Charger Relay Status", bootstyle='dark', borderwidth=5, relief="solid")
@@ -1177,30 +1254,117 @@ class RSBatteryInfo:
             temperature_entry.grid(row=8, column=1, padx=5, pady=35, sticky="ew")
 
             ttk.Label(battery_rs422_frame, text="Channel Selected:").grid(row=8, column=2, padx=5, pady=35, sticky="e")
-            soc_entry = ttk.Label(battery_rs422_frame, text=self.device_data.get('state_oc_charge'), relief="solid", borderwidth=2, width=10, anchor="center")
+            soc_entry = ttk.Label(battery_rs422_frame, text=self.device_data.get('channel_selected'), relief="solid", borderwidth=2, width=10, anchor="center")
             soc_entry.grid(row=8, column=3, padx=5, pady=35, sticky="ew")
+
+            def toggle_eb1_relay():
+                """Toggle EB1 Relay On/Off."""
+                if rs422_write['cmd_byte_1'] & 0x01 == 0:  # If EB1 is OFF (Bit 0 = 0)
+                    rs422_write['cmd_byte_1'] |= 0x01  # Set Bit 0 to 1 to turn ON EB1
+                    self.master.after(3000, lambda: update_relay_status('eb_1', eb1_relay_control_status))
+                else:
+                    rs422_write['cmd_byte_1'] &= 0xFE  # Reset Bit 0 to 0 to turn OFF EB1
+                    self.master.after(3000, lambda: update_relay_status('eb_1', eb1_relay_control_status))
+                print(f"EB1 Relay Status: {rs422_write['cmd_byte_1']}")
+            
+            def toggle_eb2_relay():
+                """Toggle EB2 Relay On/Off."""
+                if rs422_write['cmd_byte_1'] & 0x04 == 0:  # If EB2 is OFF (Bit 2 = 0)
+                    rs422_write['cmd_byte_1'] |= 0x04  # Set Bit 2 to 1 to turn ON EB2
+                    self.master.after(3000, lambda: update_relay_status('eb_2', eb2_relay_control_status))
+                else:
+                    rs422_write['cmd_byte_1'] &= 0xFB  # Reset Bit 2 to 0 to turn OFF EB2
+                    self.master.after(3000, lambda: update_relay_status('eb_2', eb2_relay_control_status))
+                print(f"EB2 Relay Status: {rs422_write['cmd_byte_1']}")
+            
+            def toggle_shutdown():
+                """Toggle Shutdown On/Off."""
+                if rs422_write['cmd_byte_1'] & 0x10 == 0:  # If Shutdown is OFF (Bit 4 = 0)
+                    rs422_write['cmd_byte_1'] |= 0x10  # Set Bit 4 to 1 to turn ON Shutdown
+                    shutdown_control_status.config(text="Shutdown", bootstyle="danger")
+                else:
+                    rs422_write['cmd_byte_1'] &= 0xEF  # Reset Bit 4 to 0 to turn OFF Shutdown
+                    shutdown_control_status.config(text="OFF", bootstyle="success")
+                print(f"Shutdown Status: {rs422_write['cmd_byte_1']}")
+            
+            def toggle_master_slave():
+                """Toggle Master/Slave Mode."""
+                if rs422_write['cmd_byte_1'] & 0x08 == 0:  # If in Slave mode (Bit 3 = 0)
+                    rs422_write['cmd_byte_1'] |= 0x08  # Set Bit 3 to 1 to switch to Master mode
+                    self.master.after(3000, lambda: update_master_slave_status('master'))
+                else:
+                    rs422_write['cmd_byte_1'] &= 0xF7  # Reset Bit 3 to 0 to switch to Slave mode
+                    self.master.after(3000, lambda: update_master_slave_status('slave'))
+                print(f"Master/Slave Status: {rs422_write['cmd_byte_1']}")
+            
+            def update_relay_status(relay_name, control_button):
+                """Update the status of the relay after toggling."""
+                status = self.device_data.get(f'{relay_name}_relay_status')
+                if status == 1:
+                    control_button.config(text="ON", bootstyle="success")
+                else:
+                    control_button.config(text="OFF", bootstyle="danger")
+            
+            def update_master_slave_status(mode):
+                """Update Master/Slave mode button after toggle."""
+                if mode == 'master':
+                    master_slave_control_status.config(text="Master", bootstyle="success")
+                else:
+                    master_slave_control_status.config(text="Slave", bootstyle="danger")
+
+            # def set_eb1_auto_mode():
+            #     # Set EB1 relay to Auto (11 -> 0x03)
+            #     rs422_write['cmd_byte_1'] |= 0x03  # Set bits 0 and 1 to 1 (Auto Mode)
+            #     eb1_relay_control_status.config(text="Auto", bootstyle="info", state="disabled")  # Disable the button and show "Auto" status
+
+            #     eb1_relay_control_status.config(text="OFF", bootstyle="success")
+            #     print(f"EB1 Relay Auto Mode: {rs422_write['cmd_byte_1']}")
+
+            # def set_eb2_auto_mode():
+            #     # Set EB2 relay to Auto (11 -> 0x0C)
+            #     rs422_write['cmd_byte_1'] |= 0x0C  # Set bits 2 and 3 to 1 (Auto Mode)
+            #     eb2_relay_control_status.config(text="Auto", bootstyle="info", state="disabled")  # Disable the button and show "Auto" status
+            #     eb2_relay_control_status.config(text="OFF", bootstyle="success")
+            #     print(f"EB2 Relay Auto Mode: {rs422_write['cmd_byte_1']}")
+
+            # Callback function for when EB1 checkbox is toggled
+            # def on_eb1_checkbox_toggled():
+            #     if eb1_checkbox_var.get():  # If checked, set auto mode and disable the button
+            #         set_eb1_auto_mode()
+            #     else:  # If unchecked, enable the button for manual ON/OFF control
+            #         eb1_relay_control_status.config(state="normal")  # Enable the button back for manual control
+            #         toggle_eb1_relay()
+
+            # # Callback function for when EB2 checkbox is toggled
+            # def on_eb2_checkbox_toggled():
+            #     if eb2_checkbox_var.get():  # If checked, set auto mode and disable the button
+            #         set_eb2_auto_mode()
+            #     else:  # If unchecked, enable the button for manual ON/OFF control
+            #         eb2_relay_control_status.config(state="normal")  # Enable the button back for manual control
+            #         toggle_eb2_relay()
+
 
             right_control_frame = ttk.Labelframe(rs422_info_frame, text="Controls", bootstyle="dark", borderwidth=5, relief="solid")
             right_control_frame.grid(row=2, column=6, columnspan=6, rowspan=9, padx=5, pady=35, sticky="nsew")  # 
 
             ttk.Label(right_control_frame, text="EB1 Relay On/Off").grid(row=0, column=0, padx=5, pady=35)
             eb1_checkbox_var = tk.BooleanVar()
-            ttk.Checkbutton(right_control_frame, text="Auto", variable=eb1_checkbox_var).grid(row=0, column=1, padx=5, pady=35)
+            # ttk.Checkbutton(right_control_frame, text="Auto", variable=eb1_checkbox_var, command=on_eb1_checkbox_toggled).grid(row=0, column=1, padx=5, pady=35)
             eb1_relay_control_status = ttk.Button(right_control_frame, text="OFF", bootstyle="danger",command=toggle_eb1_relay)
             eb1_relay_control_status.grid(row=0, column=2, padx=5, pady=35)
 
             ttk.Label(right_control_frame, text="EB1 Relay On/Off").grid(row=1, column=0, padx=5, pady=35)
             eb2_checkbox_var = tk.BooleanVar()
-            ttk.Checkbutton(right_control_frame, text="Auto", variable=eb2_checkbox_var).grid(row=1, column=1, padx=5, pady=35)
-            eb2_relay_control_status = ttk.Button(right_control_frame, text="OFF", bootstyle="danger")
+            # ttk.Checkbutton(right_control_frame, text="Auto", variable=eb2_checkbox_var, command=on_eb2_checkbox_toggled).grid(row=1, column=1, padx=5, pady=35)
+            eb2_relay_control_status = ttk.Button(right_control_frame, text="OFF", bootstyle="danger",command=toggle_eb2_relay)
             eb2_relay_control_status.grid(row=1, column=2, padx=5, pady=35)
 
             ttk.Label(right_control_frame, text="Shutdown").grid(row=2, column=0, padx=5, pady=5)
-            shutdown_control_status = ttk.Button(right_control_frame, text="Shutdown", bootstyle="danger")
+            shutdown_control_status = ttk.Button(right_control_frame, text="Shutdown", bootstyle="danger",command=toggle_shutdown)
             shutdown_control_status.grid(row=2, column=2, padx=5, pady=35)
 
             ttk.Label(right_control_frame, text="Master/Slave").grid(row=3, column=0, padx=5, pady=5)
-            master_slave_control_status = ttk.Button(right_control_frame, text="Slave", bootstyle="danger")
+            master_slave_control_status = ttk.Button(right_control_frame, text="Slave", bootstyle="danger",command=toggle_master_slave)
             master_slave_control_status.grid(row=3, column=2, padx=5, pady=35)
 
             # Configure column weights to distribute space equally in the battery frame
@@ -1220,267 +1384,6 @@ class RSBatteryInfo:
         self.content_frame.pack(fill="both", expand=True)
             
         self.select_button(self.info_button) 
-
-    def display_status_labels(self, frame, battery_status_flags):
-        max_columns = 3  # Number of columns before wrapping to the next row
-        current_column = 0
-        current_row = 0
-
-        for label_text, flag_value in battery_status_flags.items():
-            transformed_label_text = ' '.join(word.title() for word in label_text.split('_'))
-            if transformed_label_text == "Error Codes":
-                self.create_error_code_label(frame, flag_value, row=current_row, column=current_column)
-            else:
-                created = self.create_status_label(frame, transformed_label_text, flag_value, row=current_row, column=current_column)
-                if created:
-                    current_column += 1
-                    if current_column >= max_columns:
-                        current_column = 0
-                        current_row += 1
-
-        # Ensure that the rows and columns expand evenly
-        for i in range(current_row + 1):
-            frame.grid_rowconfigure(i, weight=1)
-        for j in range(max_columns):
-            frame.grid_columnconfigure(j, weight=1)
-
-    def create_status_label(self, frame, label_text, flag_value, row, column):
-        if label_text == "Charge Fet Test":
-            if flag_value == 1:
-                status_text = "Discharging or At Rest"
-                bootstyle = "inverse-success"
-            else:
-                status_text = "Charging"
-                bootstyle = "inverse-info"
-        elif label_text == "Fully Charged":
-            if flag_value == 1:
-                status_text = "Fully Charged"
-                bootstyle = "inverse-success"
-            else:
-                status_text = "Not Fully Charged"
-                bootstyle = "inverse-danger"
-        elif label_text == "Fully Discharged":
-            if flag_value == 1:
-                status_text = "Fully Discharged"
-                bootstyle = "inverse-danger"
-            else:
-                status_text = "OK"
-                bootstyle = "inverse-success"
-        else:
-            if flag_value != 1:
-                return False  # Skip creating the label if the status is not "Active"
-            status_text = "Active"
-            bootstyle = "inverse-success"
-
-        # Create and place the label
-        self.battery_status_label = ttk.Label(frame, text=f"{label_text}: {status_text}", bootstyle=bootstyle, width=35)
-        self.battery_status_label.grid(row=row, column=column, padx=5, pady=5, sticky="ew")
-
-        # Make the column expand to fill space
-        frame.grid_columnconfigure(column, weight=1)
-
-        return True  # Return True if a label was created
-
-    def create_error_code_label(self, frame, error_code, row, column):
-        # Determine the bootstyle and text based on the error code
-        error_texts = {
-            0: ("OK", "success"),
-            1: ("Busy", "warning"),
-            2: ("Reserved Command", "secondary"),
-            3: ("Unsupported Command", "danger"),
-            4: ("Access Denied", "info"),
-            5: ("Overflow/Underflow", "dark"),
-            6: ("Bad Size", "primary"),
-            7: ("Unknown Error", "danger"),
-        }
-        error_text, bootstyle = error_texts.get(error_code, ("Unknown", "danger"))
-        self.battery_status_label = ttk.Label(frame, text=f"Error Code: {error_text}", bootstyle=f"inverse-{bootstyle}", width=40)
-        self.battery_status_label.grid(row=row, column=column, padx=5, pady=2, sticky="w")
-
-    def auto_refresh(self):
-        print(f"Auto-refresh mode: {'Testing Mode' if self.limited else 'Maintenance Mode'}")
-        if self.auto_refresh_var.get():
-            asyncio.run(update_device_data())
-
-        # Check if the info_table widget still exists before trying to clear it
-        if self.info_table.winfo_exists():
-            # Clear the existing table rows
-            for item in self.info_table.get_children():
-                self.info_table.delete(item)
-        else:
-            print("info_table does not exist anymore.")
-            return  # Exit the function if the widget does not exist
-
-        # Check if Testing Mode is active
-        if self.limited:
-            # Insert limited data for Testing Mode
-            limited_data_keys = [
-                'device_name', 
-                'serial_number', 
-                'manufacturer_name', 
-                'manual_cycle_count',
-                'remaining_capacity', 
-                'temperature', 
-                'current', 
-                'voltage', 
-                'charging_current', 
-                'charging_voltage', 
-                'charging_battery_status', 
-                'rel_state_of_charge'
-            ]
-            for index, key in enumerate(limited_data_keys):
-                name = name_mapping.get(key, key)
-                value = device_data.get(key, 'N/A')
-                unit = unit_mapping.get(key, '')
-                self.info_table.insert('', 'end', values=(name, value, unit), tags=('evenrow' if index % 2 == 0 else 'oddrow'))
-        else:
-            # Insert full data for Maintenance Mode
-            for index, (key, value) in enumerate(device_data.items()):
-                name = name_mapping.get(key, key)
-                unit = unit_mapping.get(key, '')
-                self.info_table.insert('', 'end', values=(name, value, unit), tags=('evenrow' if index % 2 == 0 else 'oddrow'))
-
-        # Update the battery status flags
-        if self.limited:
-            limited_status_flags = {
-                "Over Temperature Alarm": battery_status_flags.get('over_temperature_alarm'),
-                "Fully Charged": battery_status_flags.get('fully_charged'),
-                "Fully Discharged": battery_status_flags.get('fully_discharged')
-            }
-            self.display_status_labels(self.status_frame, limited_status_flags)
-        else:
-            self.display_status_labels(self.status_frame, battery_status_flags)
-
-        # Schedule the next refresh
-        self.master.after(5000, self.auto_refresh)
-
-    def refresh_info(self):
-        asyncio.run(update_device_data())
-        # Clear the existing table rows
-        for item in self.info_table.get_children():
-            self.info_table.delete(item)
-
-        # Check if Testing Mode is active
-        if self.limited:
-            # Insert limited data for Testing Mode
-            limited_data_keys = [
-                'device_name', 
-                'serial_number', 
-                'manufacturer_name', 
-                'manual_cycle_count',
-                'remaining_capacity', 
-                'temperature', 
-                'current', 
-                'voltage', 
-                'charging_current', 
-                'charging_voltage', 
-                'charging_battery_status', 
-                'rel_state_of_charge'
-            ]
-            for index, key in enumerate(limited_data_keys):
-                name = name_mapping.get(key, key)
-                value = device_data.get(key, 'N/A')
-                unit = unit_mapping.get(key, '')
-                self.info_table.insert('', 'end', values=(name, value, unit), tags=('evenrow' if index % 2 == 0 else 'oddrow'))
-        else:
-            # Insert full data for Maintenance Mode
-            for index, (key, value) in enumerate(device_data.items()):
-                name = name_mapping.get(key, key)
-                unit = unit_mapping.get(key, '')
-                self.info_table.insert('', 'end', values=(name, value, unit), tags=('evenrow' if index % 2 == 0 else 'oddrow'))
-        # Update the battery status flags
-        if self.limited:
-            limited_status_flags = {
-                "Over Temperature Alarm": battery_status_flags.get('over_temperature_alarm'),
-                "Fully Charged": battery_status_flags.get('fully_charged'),
-                "Fully Discharged": battery_status_flags.get('fully_discharged')
-            }
-            self.display_status_labels(self.status_frame, limited_status_flags)
-        else:
-            self.display_status_labels(self.status_frame, battery_status_flags)
-    
-    def start_logging(self):
-        self.logging_active = True
-        # Disable the Start Logging button and enable the Stop Logging button
-        self.start_logging_button.configure(state=tk.DISABLED)
-        self.stop_logging_button.configure(state=tk.NORMAL)
-
-        # Create the folder path
-        folder_path = os.path.join(os.path.expanduser("~"), "Documents", "ADE Log Folder")
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
-
-        # Create a timestamped file name
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        file_name = f"CAN_Connector_Log_{device_data['charging_battery_status']}_{timestamp}.xlsx"
-        self.file_path = os.path.join(folder_path, file_name)
-
-        # Create a new Excel workbook and worksheet
-        self.workbook = Workbook()
-        self.sheet = self.workbook.active
-        self.sheet.title = "BMS Data"
-
-        # Write the headers (first two columns for date and time, then the device names)
-        headers = ["Date", "Time"] + [name_mapping.get(key, key) for key in device_data.keys()]
-        self.sheet.append(headers)
-
-        # Start the logging loop
-        self.logging_active = True
-        self.log_data()
-
-    def log_data(self):
-        if self.logging_active:
-            # Update device data
-            asyncio.run(update_device_data())
-
-            for item in self.info_table.get_children():
-                self.info_table.delete(item)
-
-            # Repopulate the table with updated data
-            for index, (key, value) in enumerate(device_data.items()):
-                name = name_mapping.get(key, key)
-                unit = unit_mapping.get(key, key)
-                self.info_table.insert('', 'end', values=(name, value, unit), tags=('evenrow' if index % 2 == 0 else 'oddrow'))
-
-            # Get the current date and time
-            current_datetime = datetime.datetime.now()
-            date = current_datetime.strftime("%Y-%m-%d")
-            time = current_datetime.strftime("%H:%M:%S")
-
-            # Collect the row data: date, time, and device values
-            row_data = [date, time] + [device_data[key] for key in device_data.keys()]
-
-            # Write the row data to the Excel sheet
-            self.sheet.append(row_data)
-
-            # Save the workbook after each update
-            self.workbook.save(self.file_path)
-
-            self.log_interval = int(self.timer_value.get()) * 1000
-
-            # Schedule the next log
-            self.master.after(self.log_interval, self.log_data)
-    
-    def stop_logging(self):
-        # Stop logging process and update button states
-        self.logging_active = False
-        # Disable the Stop Logging button and enable the Start Logging button
-        self.stop_logging_button.configure(state=tk.DISABLED)
-        self.start_logging_button.configure(state=tk.NORMAL)
-
-        self.logging_active = False  # Stop the logging loop
-        if hasattr(self, 'workbook'):
-            self.workbook.save(self.file_path)  # Ensure the final save
-            self.workbook.close()  # Close the workbook
-        folder_path = os.path.dirname(self.file_path)
-        os.startfile(folder_path)
-
-    def folder_open(self):
-        folder_path = os.path.join(os.path.expanduser("~"), "Documents", "ADE Log Folder")
-        if os.path.exists(folder_path):
-            os.startfile(folder_path)
-        else:
-            messagebox.showwarning("Folder Not Found", f"The folder '{folder_path}' does not exist.")
 
     def get_gauge_style(self, value, gauge_type):
         if gauge_type == "bus_1_voltage_after_diode":

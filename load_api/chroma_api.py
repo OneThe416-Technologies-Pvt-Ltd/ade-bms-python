@@ -113,6 +113,7 @@ def set_l1_50a_and_turn_on():
     is_test=False
     is_maintains = True
     result = set_current(50)
+    print(f'{result} load')
     if "Error" not in result:
         turn_load_on()
         print("Load set to 50A and turned on.")
