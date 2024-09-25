@@ -21,8 +21,8 @@ class CanBatteryInfo:
         self.master = master
         self.main_window = main_window
         self.selected_button = None  # Track the currently selected button
-
-        self.center_window(1200, 600)  # Center the window with specified dimensions
+        self.master.resizable(True, False)
+        # self.center_window(1200, 600)  # Center the window with specified dimensions
 
         # Calculate one-fourth of the main window width for the side menu
         self.side_menu_width_ratio = 0.20  # 20% for side menu
@@ -210,7 +210,7 @@ class CanBatteryInfo:
         else:
             self.discharge_fet_status = False
         
-        self.auto_refresh()
+        # self.auto_refresh()
         self.show_dashboard()
 
         # Bind the window resize event to adjust frame sizes dynamically
@@ -802,10 +802,7 @@ class CanBatteryInfo:
             custom_value = self.custom_current_entry.get()
             print(f"{custom_value} load value")
             if custom_value.isdigit():  # Basic validation to ensure it's a number
-                if self.selected_battery == "Battery 1":
-                    start_fetching_voltage(battery_no=1,load_value=int(custom_value))
-                elif self.selected_battery == "Battery 2":
-                     start_fetching_voltage(battery_no=2,load_value=int(custom_value))
+                set_custom_l1_value(int(custom_value))
             else:
                 print("Invalid input: Please enter a valid number.")
 
@@ -821,11 +818,11 @@ class CanBatteryInfo:
 
         def toggle_load():
             if self.load_status.get():
-                stop_fetching_voltage()
+                turn_load_off
                 toggle_button.config(text="Turn ON Load", bootstyle="success")  # Change to green when OFF
                 self.load_status.set(False)  # Update state to OFF
             else:
-                custom_turn_on  # Call the Turn ON function
+                turn_load_on
                 toggle_button.config(text="Turn OFF Load", bootstyle="danger")  # Change to red when ON
                 self.load_status.set(True)  # Update state to ON
 
@@ -847,29 +844,6 @@ class CanBatteryInfo:
         # Highlight the control button in the side menu
         self.select_button(self.control_button)
 
-    def maintains_mode_load(self):
-        if self.selected_battery == "Battery 1":
-            start_fetching_voltage(battery_no=1,load_value=100)
-        elif self.selected_battery == "Battery 2":
-             start_fetching_voltage(battery_no=2,load_value=100)
-
-    # def custom_mode_load(self):
-    #     if self.selected_battery == "Battery 1":
-    #         start_fetching_voltage(battery_no=1,load_value=100)
-    #     elif self.selected_battery == "Battery 2":
-    #          start_fetching_voltage(battery_no=2,load_value=100)
-    #     set_l1_100a_and_turn_on()
-
-    def testing_mode_load(self):
-        if self.selected_battery == "Battery 1":
-            start_fetching_voltage(battery_no=1,load_value=50)
-        elif self.selected_battery == "Battery 2":
-             start_fetching_voltage(battery_no=2,load_value=50)()
-
-    def load_off(self):
-        custom_turn_off()
-        stop_fetching_voltage()
-        
 
     def connect_device(self):
         """Connect to the Chroma device."""
@@ -950,12 +924,11 @@ class CanBatteryInfo:
         else:
             pcan_write_control('both_off',1)
         time.sleep(1)
-        pcan_uninitialize()
         # Cancel the scheduled auto-refresh task
         if hasattr(self, 'auto_refresh_task'):
             self.master.after_cancel(self.auto_refresh_task)
             print("Auto-refresh stopped.")
-
+        pcan_uninitialize()
         self.first_time_dashboard = True
         self.main_frame.pack_forget()
         self.main_window.show_main_window()

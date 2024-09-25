@@ -21,8 +21,8 @@ class RSBatteryInfo:
         self.main_window = main_window
         self.selected_button = None  # Track the currently selected button
 
-        self.center_window(1200, 600)  # Center the window with specified dimensions
-
+        # self.center_window(1200, 600)  # Center the window with specified dimensions
+        self.master.resizable(True, False)
         # Calculate one-fourth of the main window width for the side menu
         self.side_menu_width_ratio = 0.20  # 20% for side menu
         self.update_frame_sizes()  # Set initial size
@@ -858,12 +858,11 @@ class RSBatteryInfo:
     
         def toggle_load():
             if self.load_status.get():
-                stop_fetching_voltage()
-                custom_turn_off()  # Call the Turn OFF function
+                turn_load_off
                 toggle_button.config(text="Turn ON Load", bootstyle="success")  # Change to green when OFF
                 self.load_status.set(False)  # Update state to OFF
             else:
-                custom_turn_on()  # Call the Turn ON function
+                turn_load_on  # Call the Turn ON function
                 toggle_button.config(text="Turn OFF Load", bootstyle="danger")  # Change to red when ON
                 self.load_status.set(True)  # Update state to ON
     
@@ -891,8 +890,7 @@ class RSBatteryInfo:
         set_l1_25a_and_turn_on()
 
     def load_off(self):
-        stop_fetching_voltage()
-        custom_turn_off()
+        turn_load_off
 
     def find_device(self):
         """Find available devices."""
@@ -1000,12 +998,12 @@ class RSBatteryInfo:
         self.clear_content_frame()  # Clear the current UI
         self.refresh_active = False  # Stop periodic refresh
 
-        if self.main_window.rs_battery_info is not None:
-            del self.main_window.rs_battery_info
-            self.main_window.rs_battery_info = None
+        # if self.main_window.rs_battery_info is not None:
+        #     del self.main_window.rs_battery_info
+        #     self.main_window.rs_battery_info = None
     
-        self.main_frame.pack_forget()  # Hide the current window
-        self.main_window.show_main_window()  # Show the main window
+        self.main_frame.pack_forget()
+        self.main_window.show_main_window()
 
     def show_info(self, event=None):
         self.clear_content_frame()

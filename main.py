@@ -57,8 +57,10 @@ class MainWindow:
             self.rs_battery_info.main_frame.pack_forget()
         
         self.notebook.pack_forget()
-        # Set the desired size for the battery info window
-        self.center_window(1200, 600)
+        # Maximize the window
+        self.master.overrideredirect(False)  # Ensure window decorations (close, min, max) are shown
+        self.master.state('zoomed')  # Maximize the window to full screen
+
         if not self.can_battery_info:
             self.can_battery_info = CanBatteryInfo(self.master, self)  # Pass the reference to the MainWindow
         else:
@@ -72,24 +74,13 @@ class MainWindow:
             self.can_battery_info.main_frame.pack_forget()
         
         self.notebook.pack_forget()
-        # Set the desired size for the battery info window
-        self.center_window(1200, 600)
+        # Maximize the window
+        self.master.overrideredirect(False)  # Ensure window decorations (close, min, max) are shown
+        self.master.state('zoomed')  # Maximize the window to full screen
         if not self.rs_battery_info:
             self.rs_battery_info = RSBatteryInfo(self.master, self)  # Pass the reference to the MainWindow
         else:
             self.rs_battery_info.main_frame.pack(fill="both", expand=True)
-        
-        # Show the dashboard by default
-        # self.rs_battery_info.show_dashboard()
-
-        # Path to the .exe file
-        #exe_path = os.path.join(base_dir, 'C:\Program Files\PostgreSQL\16\pgAdmin 4\runtime\pgAdmin4.exe')  # Replace with the actual path to the .exe file
-        # exe_path = r'C:\Program Files\PostgreSQL\16\pgAdmin 4\runtime\pgAdmin4.exe'
-        # # Open the .exe file
-        # try:
-        #     subprocess.Popen(exe_path)  # This will open the .exe file
-        # except Exception as e:
-        #     messagebox.showerror("Error", f"Failed to open the .exe file: {e}")
 
     def show_main_window(self):
         if self.can_battery_info:
@@ -98,7 +89,9 @@ class MainWindow:
             self.rs_battery_info.main_frame.pack_forget()
         
         # Set the desired size for the main window when showing the notebook again
-        self.center_window(500, 400)
+        self.master.state('normal')  # Reset from maximized to normal window size
+        self.center_window(500, 400)  # Set the window to a specific size (500x400)
+        self.master.resizable(False, False)  # Disable window resizing
         self.notebook.pack(fill="both", expand=True)
 
             
