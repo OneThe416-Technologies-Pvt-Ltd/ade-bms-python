@@ -1,11 +1,12 @@
 import serial
 import threading
-import asyncio
 import struct
 from openpyxl import Workbook, load_workbook
 import datetime
-from fpdf import FPDF
 import os
+from tkinter import messagebox
+import pandas as pd
+import helpers.pdf_generator as pdf_generator  # Config helper
 
 control=None
 rs_232_flag=False
@@ -196,6 +197,7 @@ def read_rs232_data():
                         print(f"Valid RS232 data block found from index {i} to {i+63}.")
                         # Pass the valid block to update the device data
                         update_rs232_device_data(valid_block)
+                        log_rs_data(rs232_device_data)
                         return  # Exit after finding and processing the valid block
             print("No valid RS232 data block found in the received 256 bytes.")
         else:
@@ -508,318 +510,233 @@ def get_active_protocol():
         return "RS-232"
     elif rs_422_flag:
         return "RS-422"
+
 def set_active_protocol(selected_flag):
     global rs_422_flag, rs_232_flag
     if selected_flag == "RS-232":
         rs_232_flag = True
     elif selected_flag == "RS-422":
         rs_422_flag = True
-    
-# async def fetch_current(battery_no):
-#     global charging_start_time, is_fetching_current
-#     print(f"Starting to fetch current for battery {battery_no}...")
-    
-#     # Keep fetching the current value asynchronously
-#     while is_fetching_current:
-#         try:
-#             # Call the pcan_write_read method asynchronously
-#             print(f"Calling pcan_write_read for current on battery {battery_no}")
-#             await asyncio.to_thread(pcan_write_read, 'current', battery_no)
+
+
+
+
+def log_rs_data(update_rs_data):
+    """
+    Log RS232 data to an Excel file. If the serial number exists, do nothing;
+    if it doesn't exist, append a new row with default values.
+    """
+    try:
+        # Define the path for the RS232 data Excel file inside the AppData directory
+        folder_path = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database")
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+
+        # Define the log file name
+        file_name = "rs_data.xlsx"
+        file_path = os.path.join(folder_path, file_name)
+
+        # Create or load workbook
+        if os.path.exists(file_path):
+            try:
+                workbook = load_workbook(file_path)
+                sheet = workbook.active
+            except Exception as e:
+                print(f"Error loading the Excel file: {str(e)}")
+                messagebox.showerror("Error", f"Failed to load the Excel file: {str(e)}. Recreating the file.")
+                workbook = Workbook()
+                sheet = workbook.active
+                sheet.title = "RS232 Data"
+                # Add headers for RS232 data
+                headers = [
+                    "SI No", "Date", "Time", "Project", "Device Name", "Manufacturer Name", 
+                    "Serial Number", "Cycle Count", "Full Charge Capacity", "Charging Date", 
+                    "OCV Before Charging", "Discharging Date", "OCV Before Discharging"
+                ]
+                sheet.append(headers)
+        else:
+            # File does not exist, so create it
+            workbook = Workbook()
+            sheet = workbook.active
+            sheet.title = "RS232 Data"
+            # Add headers for RS232 data
+            headers = [
+                "SI No", "Date", "Time", "Project", "Device Name", "Manufacturer Name", 
+                "Serial Number", "Cycle Count", "Full Charge Capacity", "Charging Date", 
+                "OCV Before Charging", "Discharging Date", "OCV Before Discharging"
+            ]
+            sheet.append(headers)
+
+        # Log the current RS232 data
+        current_datetime = datetime.datetime.now()
+        date = current_datetime.strftime("%Y-%m-%d")
+        time = current_datetime.strftime("%H:%M:%S")
+        serial_number = update_rs_data.get('serial_number', 'N/A')
+
+        # Check if the serial number exists in the file
+        serial_number_column = 7  # Assuming Serial Number is in column G (7th column)
+        serial_found = False
+
+        for row in range(2, sheet.max_row + 1):  # Start at 2 to skip the header
+            if sheet.cell(row=row, column=serial_number_column).value == serial_number:
+                serial_found = True
+                print(f"Serial number {serial_number} already exists. No action taken.")
+                break
+
+        if not serial_found:
+            # If serial number is not found, add a new row with default values
+            next_row = sheet.max_row + 1
+            rs_data = [
+                next_row - 1,  # SI No
+                date,  # Date
+                time,  # Time
+                update_rs_data.get('project', ''),  # Project
+                update_rs_data.get('device_name', 'BT-70939APH'),  # Device Name
+                update_rs_data.get('manufacturer_name', 'Bren-Tronics'),  # Manufacturer Name
+                serial_number,  # Serial Number
+                int(update_rs_data.get('cycle_count', 0)),  # Ensure Cycle Count is an int
+                103,  # Ensure Full Charge Capacity is a float
+                update_rs_data.get('charging_date', date),  # Charging Date
+                float(update_rs_data.get('ocv_before_charging', 0.0)),  # Ensure OCV Before Charging is a float
+                update_rs_data.get('discharging_date', date),  # Discharging Date
+                float(update_rs_data.get('ocv_before_discharging', 0.0))  # Ensure OCV Before Discharging is a float
+            ]
+            sheet.append(rs_data)
+
+        # Save the Excel file
+        workbook.save(file_path)
+        workbook.close()
+        print(f"RS232 data logged in {file_path}.")
+
+    except Exception as e:
+        print(f"An error occurred while updating the Excel file: {str(e)}")
+        messagebox.showerror("Error", f"An error occurred while updating the Excel file: {str(e)}")
+
+
+
+def get_latest_rs_data(serial_number):
+    """
+    Retrieves the most recent RS232 data for the specified serial number.
+    """
+    # Path to the RS232 data Excel file
+    rs_data_file = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database", "rs_data.xlsx")
+
+    if not os.path.exists(rs_data_file):
+        messagebox.showerror("Error", "No RS232 data file found. Please log RS232 data first.")
+        return None
+
+    # Load the existing workbook and access the first sheet
+    workbook = load_workbook(rs_data_file)
+    sheet = workbook.active
+
+    # Find the serial number column (assuming it's the 7th column, adjust if necessary)
+    serial_number_column = 7  # Serial Number is the 7th column (G column)
+
+    # Search for the serial number in the rows and store the data if found
+    serial_found = False
+    latest_data = {}
+
+    for row in range(2, sheet.max_row + 1):  # Start from the second row to skip headers
+        current_serial_number = sheet.cell(row=row, column=serial_number_column).value
+        if current_serial_number == serial_number:
+            serial_found = True
+            print(f"Serial Number {serial_number} found in row {row}")
+
+            # Retrieve the headers from the first row
+            headers = [sheet.cell(row=1, column=col).value for col in range(1, sheet.max_column + 1)]
+            # Retrieve the values for the matching row
+            values = [sheet.cell(row=row, column=col).value for col in range(1, sheet.max_column + 1)]
             
-#             # Get the current value based on the battery number
-#             current_value = None
-#             if battery_no == 1:
-#                 current_value = device_data_battery_1['charging_current']
-#             elif battery_no == 2:
-#                 current_value = device_data_battery_2['charging_current']
+            # Map headers to values and print for debugging
+            latest_data = dict(zip(headers, values))
+            for header, value in latest_data.items():
+                print(f"{header}: {value}")  # Debug print to ensure correct values are fetched
+            break
 
-#             # Log the current value retrieved
-#             print(f"Retrieved current value for battery {battery_no}: {current_value}")
-            
-#             # If current is greater than 0, start tracking charging time
-#             if current_value is not None and current_value > 0:
-#                 print(f"Battery {battery_no} is charging with current {current_value}")
-                
-#                 # If this is the first time fetching, set the start time
-#                 if charging_start_time is None:
-#                     charging_start_time = datetime.datetime.now()
-#                     print(f"Charging started for battery {battery_no} at {charging_start_time}")
-            
-#             # Stop if current drops to 0 or below, calculate the charging time
-#             elif current_value is not None and current_value <= 0:
-#                 if charging_start_time is not None:
-#                     charging_end_time = datetime.datetime.now()
-#                     charging_duration = charging_end_time - charging_start_time
-#                     print(f"Charging stopped for battery {battery_no} at {charging_end_time}")
-#                     print(f"Total charging duration: {charging_duration}")
+    if not serial_found:
+        messagebox.showwarning("Warning", f"Serial number {serial_number} not found in the RS232 data.")
+        return None
 
-#                     # Update charging duration in the CAN log
-#                     update_charging_duration_in_can_log(
-#                         device_data_battery_1['serial_number'] if battery_no == 1 else device_data_battery_2['serial_number'],
-#                         charging_duration
-#                     )
-#                 else:
-#                     print(f"No charging start time recorded for battery {battery_no}")
-
-#                 # Reset the charging start time and stop the loop
-#                 charging_start_time = None
-#                 print(f"Stopping fetch for battery {battery_no}")
-#                 is_fetching_current = False
-#                 break
-
-#         except Exception as e:
-#             print(f"Error fetching current for battery {battery_no}: {e}")
-        
-#         # Delay before fetching again
-#         print(f"Sleeping for 500ms before next fetch for battery {battery_no}")
-#         await asyncio.sleep(0.5)  # Sleep for 500ms asynchronously before trying again
+    return latest_data
 
 
-# def start_fetching_current(battery_no):
-#     global is_fetching_current
-#     # Ensure the asyncio event loop is running
-#     start_asyncio_event_loop()
+
+def update_cycle_count_in_rs_data(serial_number, new_cycle_count):
+    """
+    Update the cycle count for a specific device identified by its serial number
+    in the RS232 Data Excel file.
+    """
+    # Define the folder and file path for the RS232 data file
+    folder_path = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database")
+    file_path = os.path.join(folder_path, "rs_data.xlsx")
+
+    # Check if the file exists
+    if not os.path.exists(file_path):
+        messagebox.showerror("Error", "RS232 data file not found.")
+        return
+
+    # Open the existing Excel file
+    workbook = load_workbook(file_path)
+    sheet = workbook.active
+
+    # Loop through the rows to find the correct row by Serial Number
+    serial_number_column = 7  # Assuming Serial Number is in column G (7th column)
+    cycle_count_column = 8    # Assuming Cycle Count is in column H (8th column)
+
+    for row in range(2, sheet.max_row + 1):  # Start at 2 to skip the header
+        if sheet.cell(row=row, column=serial_number_column).value == serial_number:
+            # Update the Cycle Count value in the corresponding row
+            sheet.cell(row=row, column=cycle_count_column).value = new_cycle_count
+            break
+    else:
+        messagebox.showwarning("Warning", f"Serial number {serial_number} not found.")
+        return
+
+    # Save the updated Excel file
+    workbook.save(file_path)
+    messagebox.showinfo("Success", f"Cycle count updated successfully for Serial Number {serial_number}.")
+
+
+def update_excel_and_download_pdf(data):
+    """
+    Get the updated values from the form, update the Excel file, and generate a PDF.
+    """
+    # Define the path to the RS232 data Excel file
+    rs_data_file = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database", "rs_data.xlsx")
+
+    # Load the existing data
+    try:
+        df_rs_data = pd.read_excel(rs_data_file)
+    except FileNotFoundError:
+        messagebox.showerror("Error", f"{rs_data_file} not found.")
+        return
     
-#     # Start fetching in the event loop
-#     if not is_fetching_current:
-#         is_fetching_current = True
-#         asyncio.run_coroutine_threadsafe(fetch_current(battery_no), asyncio.get_event_loop())
+    # Assuming the serial number is unique, update the corresponding row
+    serial_number = data[2]  # serial_number is the second element in the array
+    df_rs_data['Serial Number'] = df_rs_data['Serial Number'].astype(str).str.strip()
+    df_rs_data['OCV Before Charging'] = df_rs_data['OCV Before Charging'].astype(float)
+    df_rs_data['OCV Before Discharging'] = df_rs_data['OCV Before Discharging'].astype(float)
+    index = df_rs_data[df_rs_data['Serial Number'] == serial_number].index
+    print(f"{df_rs_data['Serial Number']} test {serial_number}")
+    print(f"{index} index")
+    if not index.empty:
+        # Update the values in the DataFrame
+        df_rs_data.loc[index[0], 'Project'] = str(data[0])  # Ensure it's a string
+        df_rs_data.loc[index[0], 'Device Name'] = str(data[1])  # Ensure it's a string
+        df_rs_data.loc[index[0], 'Manufacturer Name'] = str(data[3])  # Ensure it's a string
+        df_rs_data.loc[index[0], 'Serial Number'] = int(data[2])  # Ensure it's a string
+        df_rs_data.loc[index[0], 'Cycle Count'] = int(data[4])  # Convert to int
+        df_rs_data.loc[index[0], 'Full Charge Capacity'] = float(data[5])  # Convert to float
+        df_rs_data.loc[index[0], 'Charging Date'] = str(data[6])  # Ensure it's a string
+        df_rs_data.loc[index[0], 'OCV Before Charging'] = float(data[7])  # Convert to float
+        df_rs_data.loc[index[0], 'Discharging Date'] = str(data[8])  # Ensure it's a string
+        df_rs_data.loc[index[0], 'OCV Before Discharging'] = float(data[9])  # Convert to float
 
+        # Save the updated DataFrame back to the Excel file
+        df_rs_data.to_excel(rs_data_file, index=False)
+        messagebox.showinfo("Success", "Data updated successfully.")
+    else:
+        messagebox.showwarning("Warning", "Serial Number not found in the Excel file.")
 
-# def stop_fetching_current():
-#     # Stop fetching current
-#     global charging_start_time,is_fetching_current   
-#     device_data_battery_1['charging_current'] = 0  # Reset the start time
-#     if charging_start_time is None:
-#         is_fetching_current = False
-
-
-# def update_charging_duration_in_can_log(serial_number, charging_duration):
-#     """
-#     Update the charging date and duration for a specific battery identified by its serial number
-#     in the CAN Log Excel file (Can_Log.xlsx).
-#     """
-#     # Define the log file path for Can_Log.xlsx
-#     folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_Logs")
-#     file_path = os.path.join(folder_path, "Can_Log.xlsx")
-
-#     # Load existing workbook or create a new one if the file does not exist
-#     if os.path.exists(file_path):
-#         workbook = load_workbook(file_path)
-#         sheet = workbook.active
-#     else:
-#         print("Log file not found.")
-#         return
-
-#     # Find the row corresponding to the battery's serial number
-#     serial_number_column = 8  # Assuming Serial Number is in the 8th column (H)
-#     charging_duration_column = 12  # Charging Duration in the 12th column (L)
-#     charging_date_column = 13  # Charging Date in the 13th column (M)
-
-#     found = False
-
-#     for row in range(2, sheet.max_row + 1):
-#         if sheet.cell(row=row, column=serial_number_column).value == serial_number:
-#             # Found the row, retrieve previous duration and add the new one
-#             previous_duration = sheet.cell(row=row, column=charging_duration_column).value or 0
-#             total_duration = previous_duration + (charging_duration.total_seconds() / 60)  # Convert to minutes
-#             total_duration = round(total_duration, 2)
-
-#             # Update the charging duration and date in the corresponding row
-#             sheet.cell(row=row, column=charging_duration_column).value = total_duration
-#             sheet.cell(row=row, column=charging_date_column).value = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-#             found = True
-#             break
-
-#     if not found:
-#         print(f"Serial number {serial_number} not found in the log.")
-
-#     # Save the updated Excel file
-#     workbook.save(file_path)
-#     print(f"Updated charging duration and date for Serial Number {serial_number} in Can_Log.xlsx.")
-
-
-# async def fetch_voltage(battery_no,load_value):
-#     global discharging_start_time, is_fetching_voltage, ocv
-#     if load_value == 50:
-#         print(f"Starting to fetch current for battery {battery_no}...")
-#         # Keep fetching the current value asynchronously
-#         while is_fetching_voltage:
-#             try:
-#                 # Call the pcan_write_read method asynchronously (commented out, replace with actual call)
-#                 print(f"Calling pcan_write_read for current on battery {battery_no}")
-#                 await asyncio.to_thread(pcan_write_read, 'voltage', battery_no)
-
-#                 # Get the current voltage based on the battery number
-#                 voltage_value = None
-#                 if battery_no == 1:
-#                     ocv = device_data_battery_1['charging_voltage']
-#                     voltage_value = device_data_battery_1['voltage']
-#                 elif battery_no == 2:
-#                     ocv = device_data_battery_2['charging_voltage']
-#                     voltage_value = device_data_battery_2['voltage']
-
-#                 # Log the current value retrieved
-#                 print(f"Retrieved current value for battery {battery_no}: {voltage_value}")
-
-#                 # Start tracking discharging process
-#                 if voltage_value is not None and voltage_value > 0:
-#                     print(f"Battery {battery_no} is discharging with voltage {voltage_value}")
-#                     print(f"Discharging started for battery {battery_no} at {discharging_start_time}")
-#                     print(f"Open-circuit voltage (OCV): {ocv}")
-#                     voltage_value_0s = device_data_battery_1['voltage'] if battery_no == 1 else device_data_battery_2['voltage']
-#                     # Capture voltage at 0 seconds
-#                     print(f"Voltage at 0 seconds: {voltage_value}")
-
-#                     # Wait for 15 seconds and capture voltage
-#                     time.sleep(15)
-#                     voltage_value_15s = device_data_battery_1['voltage'] if battery_no == 1 else device_data_battery_2['voltage']
-#                     print(f"Voltage at 15 seconds: {voltage_value_15s}")
-
-#                     # Wait for another 15 seconds (total 30 seconds) and capture voltage
-#                     time.sleep(15)
-#                     voltage_value_30s = device_data_battery_1['voltage'] if battery_no == 1 else device_data_battery_2['voltage']
-#                     print(f"Voltage at 30 seconds: {voltage_value_30s}")
-        
-#                     # Update discharging duration in the CAN log
-#                     update_discharging_duration_in_can_log(
-#                         device_data_battery_1['serial_number'] if battery_no == 1 else device_data_battery_2['serial_number'],
-#                         0, load_value, voltage_value_0s=voltage_value_0s,voltage_value_15s=voltage_value_15s,voltage_value_30s=voltage_value_30s
-#                     )
-#                     # Reset the discharging start time and stop the loop
-#                     discharging_start_time = None
-#                     print(f"Stopping fetch for battery {battery_no}")
-#                     is_fetching_voltage = False
-
-#             except Exception as e:
-#                 print(f"Error fetching current for battery {battery_no}: {e}")
-#                 is_fetching_voltage = False
-#                 break
-
-#             except Exception as e:
-#                 print(f"Error fetching current for battery {battery_no}: {e}")
-#     else:
-#         print(f"Starting to fetch current for battery {battery_no}...")
-#         # Keep fetching the current value asynchronously
-#         while is_fetching_voltage:
-#             try:
-#                 # Call the pcan_write_read method asynchronously
-#                 print(f"Calling pcan_write_read for current on battery {battery_no}")
-#                 # await asyncio.to_thread(pcan_write_read, 'current', battery_no)
-#                 # Get the current value based on the battery number
-#                 voltage_value = None
-#                 if battery_no == 1:
-#                     ocv=device_data_battery_1['charging_voltage']
-#                     voltage_value = device_data_battery_1['voltage']
-#                 elif battery_no == 2:
-#                     voltage_value = device_data_battery_2['voltage']
-#                 # Log the current value retrieved
-#                 print(f"Retrieved current value for battery {battery_no}: {voltage_value}")
-#                 # If current is greater than 0, start tracking charging time
-#                 if voltage_value is not None and voltage_value > 0:
-#                     print(f"Battery {battery_no} is charging with voltage {voltage_value}")
-#                     # If this is the first time fetching, set the start time
-#                     if discharging_start_time is None:
-#                         discharging_start_time = datetime.datetime.now()
-#                         print(f"Charging started for battery {battery_no} at {discharging_start_time}")
-#                 # Stop if current drops to 0 or below, calculate the charging time
-#                 elif voltage_value is not None and voltage_value <= 21:
-#                     if discharging_start_time is not None:
-#                         discharging_end_time = datetime.datetime.now()
-#                         discharging_duration = discharging_end_time - discharging_start_time
-#                         print(f"Charging stopped for battery {battery_no} at {discharging_end_time}")
-#                         print(f"Total charging duration: {discharging_duration}")
-#                         # Update charging duration in the CAN log
-#                         update_discharging_duration_in_can_log(
-#                             device_data_battery_1['serial_number'] if battery_no == 1 else device_data_battery_2['serial_number'],
-#                             discharging_duration,load_value
-#                         )
-#                     else:
-#                         print(f"No charging start time recorded for battery {battery_no}")
-#                     # Reset the charging start time and stop the loop
-#                     discharging_start_time = None
-#                     print(f"Stopping fetch for battery {battery_no}")
-#                     is_fetching_voltage = False
-#                     break
-#             except Exception as e:
-#                 print(f"Error fetching current for battery {battery_no}: {e}")
-#             # Delay before fetching again
-#             print(f"Sleeping for 500ms before next fetch for battery {battery_no}")
-#             await asyncio.sleep(0.5)  # Sleep for 500ms asynchronously before trying again
-
-
-# def start_fetching_voltage(battery_no,load_value):
-#     global is_fetching_voltage
-#     # Ensure the asyncio event loop is running
-#     start_asyncio_event_loop()
-    
-#     # Start fetching in the event loop
-#     if not is_fetching_voltage:
-#         is_fetching_voltage = True
-#         asyncio.run_coroutine_threadsafe(fetch_voltage(battery_no,load_value), asyncio.get_event_loop())
-
-
-# def stop_fetching_voltage():
-#     # Stop fetching current
-#     global discharging_start_time,is_fetching_voltage   
-#     device_data_battery_1['voltage'] = 0  # Reset the start time
-#     if discharging_start_time is None:
-#         is_fetching_voltage = False
-
-
-# def update_discharging_duration_in_can_log(serial_number, discharging_duration,load_value,voltage_value_0s=0,voltage_value_15s=0,voltage_value_30s=0):
-#     """
-#     Update the charging date and duration for a specific battery identified by its serial number
-#     in the CAN Log Excel file (Can_Log.xlsx).
-#     """
-#     # Define the log file path for Can_Log.xlsx
-#     folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_Logs")
-#     file_path = os.path.join(folder_path, "Can_Log.xlsx")
-
-#     # Load existing workbook or create a new one if the file does not exist
-#     if os.path.exists(file_path):
-#         workbook = load_workbook(file_path)
-#         sheet = workbook.active
-#     else:
-#         print("Log file not found.")
-#         return
-
-#     # Find the row corresponding to the battery's serial number
-#     serial_number_column = 8  # Assuming Serial Number is in the 8th column (H)
-#     ocv_column = 14
-#     current_load_column = 15
-#     discharging_duration_column = 16  # Charging Duration in the 12th column (L)
-#     voltage_value_0s_column = 17
-#     voltage_value_15s_column = 18
-#     voltage_value_30s_column = 19
-#     discharging_date_column = 20  # Charging Date in the 13th column (M)
-
-#     found = False
-
-#     for row in range(2, sheet.max_row + 1):
-#         if sheet.cell(row=row, column=serial_number_column).value == serial_number:
-#             # Found the row, retrieve previous duration and add the new one
-#             previous_duration = sheet.cell(row=row, column=discharging_duration_column).value or 0
-#             if discharging_duration == 0:
-#                 total_duration = 0
-#             else:
-#                 total_duration = previous_duration + (discharging_duration.total_seconds() / 60)  # Convert to minutes
-#                 total_duration = round(total_duration, 2)
-
-#             # Update the charging duration and date in the corresponding row
-#             sheet.cell(row=row, column=discharging_duration_column).value = total_duration
-#             sheet.cell(row=row, column=discharging_date_column).value = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-#             sheet.cell(row=row, column=ocv_column).value = ocv
-#             sheet.cell(row=row, column=current_load_column).value = load_value
-#             sheet.cell(row=row, column=voltage_value_0s_column).value = voltage_value_0s
-#             sheet.cell(row=row, column=voltage_value_15s_column).value = voltage_value_15s
-#             sheet.cell(row=row, column=voltage_value_30s_column).value = voltage_value_30s
-#             found = True
-#             break
-
-#     if not found:
-#         print(f"Serial number {serial_number} not found in the log.")
-
-#     # Save the updated Excel file
-#     workbook.save(file_path)
-#     print(f"Updated charging duration and date for Serial Number {serial_number} in Can_Log.xlsx.")
+    # # Generate the PDF with the updated values
+    pdf_generator.create_rs_report_pdf(serial_number,"RS232")

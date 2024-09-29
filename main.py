@@ -7,7 +7,7 @@ from gui.rs_connect import RSConnection
 from gui.can_battery_info import CanBatteryInfo
 from gui.rs_battery_info import RSBatteryInfo
 from gui.splash_screen import SplashScreen
-
+from helpers.config import *
 
 # Get the base directory of the script
 base_dir = os.path.dirname(__file__)
@@ -19,6 +19,9 @@ class MainWindow:
         self.center_window(500, 400)  # Center the window with the given width and height
         self.master.iconbitmap(os.path.join(base_dir, 'assets/logo/drdo_icon.ico'))
         self.master.resizable(False, False)
+
+        # Load configuration settings when the window initializes
+        load_config()
         
         # Create a notebook (tab container)
         self.notebook = ttk.Notebook(self.master)

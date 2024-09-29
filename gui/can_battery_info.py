@@ -2,178 +2,193 @@
 import customtkinter as ctk
 import tkinter as tk
 import os
+import pandas as pd
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from PIL import Image, ImageTk
-Image.CUBIC = Image.BICUBIC
+Image.CUBIC = Image.BICUBIC  # Image resizing method
 import datetime
 import threading
 import time
 import asyncio
 from tkinter import messagebox
 from openpyxl import Workbook
-from pcan_api.custom_pcan_methods import *
-from load_api.chroma_api import *
+from pcan_api.custom_pcan_methods import *  # Custom PCAN methods for CAN communication
+from load_api.chroma_api import *  # Custom API for Chroma communication
+import helpers.config as config  # Config helper
 
 
 class CanBatteryInfo:
     def __init__(self, master, main_window=None):
-        self.master = master
-        self.main_window = main_window
-        self.selected_button = None  # Track the currently selected button
-        self.master.resizable(True, False)
-        # self.center_window(1200, 600)  # Center the window with specified dimensions
+        """Initialize the CanBatteryInfo class."""
+        self.master = master  # Parent window
+        self.main_window = main_window  # Reference to the main application window
 
-        # Calculate one-fourth of the main window width for the side menu
+        # Setup the window and initialize variables
+        self.selected_button = None  # Track the currently selected side menu button
+        self.master.resizable(True, False)  # Allow horizontal resizing only
+
+        # Calculate and set the side menu width as a ratio of the window width
         self.side_menu_width_ratio = 0.20  # 20% for side menu
-        self.update_frame_sizes()  # Set initial size
+        self.update_frame_sizes()  # Set initial frame sizes
 
-        # Variables to store control states for each battery
-        self.charger_control_var_battery_1 = tk.BooleanVar(value=False)  # Default to False
-        self.charger_control_var_battery_2 = tk.BooleanVar(value=False)
-        self.discharger_control_var_battery_1 = tk.BooleanVar(value=False)
-        self.discharger_control_var_battery_2 = tk.BooleanVar(value=False)
+        # Boolean variables to track battery states
+        self.check_discharge_max = tk.BooleanVar()  # Track if max discharge is selected
+        self.show_dynamic_fields_var = tk.BooleanVar()  # Track if dynamic fields are shown
 
-        self.is_connected = True  # Initialize is_connected to True by default
+        # Initialize Chroma device connection state
+        self.is_connected = False
+        self.load_status = tk.BooleanVar(value=False)  # Track load ON/OFF state across modes
+        self.testing_load_status = tk.BooleanVar(value=False)  # Testing mode specific state
+        self.maintenance_load_status = tk.BooleanVar(value=False)  # Maintenance mode specific
+        self.custom_load_status = tk.BooleanVar(value=False)  # Custom mode specific state
 
-        # Track the selected battery
-        self.selected_battery = "Battery 1"
+        # Track connection status string
+        self.connection_status_var = tk.StringVar(value="Disconnected")
 
-         # Default to Battery 1
+        # Battery selection control variables
+        self.charger_control_var_battery_1 = tk.BooleanVar(value=False)  # Charger for Battery 1
+        self.charger_control_var_battery_2 = tk.BooleanVar(value=False)  # Charger for Battery 2
+        self.discharger_control_var_battery_1 = tk.BooleanVar(value=False)  # Discharger for Battery 1
+        self.discharger_control_var_battery_2 = tk.BooleanVar(value=False)  # Discharger for Battery 2
+
+        # Set the default battery and tracking variables
+        self.selected_battery = "Battery 1"  # Default battery selection
         self.charger_control_var = self.charger_control_var_battery_1
         self.discharger_control_var = self.discharger_control_var_battery_1
 
-        self.logging_active = False
-        # Initialize the limited attribute to avoid AttributeError
-        self.limited = False
+        self.logging_active = False  # Track whether logging is active
+        self.limited = False  # Flag to show limited or full data
+        self.first_time_dashboard = False  # Track if it's the first time the dashboard is shown
+        self.mode_var = tk.StringVar(value="Testing")  # Mode variable (Testing by default)
 
-        self.first_time_dashboard = False
-        self.mode_var = tk.StringVar(value="Testing Mode")
-         # Directory paths
+        # Set the path for images and assets
         base_path = os.path.dirname(os.path.abspath(__file__))
         self.assets_path = os.path.join(base_path, "../assets/images/")
 
-        style = ttk.Style() 
-        # Configure the Labelframe title font to be bold
-        style.configure("TLabelframe.Label", font=("Helvetica", 10, "bold")) 
+        # Style configuration for GUI components
+        style = ttk.Style()
+        style.configure("TLabelframe.Label", font=("Helvetica", 10, "bold"))  # Bold Labelframe titles
 
-        self.style = ttk.Style()
-        self.configure_styles()
+        self.device_data = None  # Variable to store device data
+        self.battery_status_flags = None  # Variable to store battery status flags
+        self.device_data = device_data_battery_1  # Initially set to Battery 1 data
+        self.battery_status_flags = battery_1_status_flags  # Battery 1 status flags
 
-        self.device_data = None
-        self.battery_status_flags = None  
+        self.check_battery_log_for_cycle_count()  # Check if the battery log contains cycle count
 
-        self.device_data = device_data_battery_1
-        self.battery_status_flags = battery_1_status_flags
-
-        self.check_battery_log_for_cycle_count()
-
-        # Create the main container frame
+        # Create the main frame container for the GUI
         self.main_frame = ttk.Frame(self.master)
         self.main_frame.pack(fill="both", expand=True)
 
-        # Create the side menu frame with 1/4 width of the main window
-        self.side_menu_frame = ttk.Frame(self.main_frame, bootstyle="info")
+        # Create the side menu and content frames
+        self.side_menu_frame = ttk.Frame(self.main_frame, bootstyle="info")  # Side menu frame
         self.side_menu_frame.place(x=0, y=0, width=self.side_menu_width, relheight=1.0)
 
-        # Create the content frame on the right side with the remaining 3/4 width
-        self.content_frame = ttk.Frame(self.main_frame, bootstyle="light")
+        self.content_frame = ttk.Frame(self.main_frame, bootstyle="light")  # Content frame for displaying data
         self.content_frame.place(x=self.side_menu_width, y=0, width=self.content_frame_width, relheight=1.0)
 
-        # Load and resize icons using Pillow
+        # Load icons for side menu buttons
         self.disconnect_icon = self.load_icon_menu(os.path.join(self.assets_path, "disconnect_button.png"))
         self.control_icon = self.load_icon_menu(os.path.join(self.assets_path, "load_icon.png"))
-        self.controls_icon = self.load_icon_menu(os.path.join(self.assets_path, "settings.png"))
+        self.config_icon = self.load_icon_menu(os.path.join(self.assets_path, "settings.png"))
         self.info_icon = self.load_icon_menu(os.path.join(self.assets_path, "info.png"))
         self.help_icon = self.load_icon_menu(os.path.join(self.assets_path, "help.png"))
         self.dashboard_icon = self.load_icon_menu(os.path.join(self.assets_path, "menu.png"))
         self.download_icon = self.load_icon_menu(os.path.join(self.assets_path, "download.png"))
 
+        # Create side menu labels and buttons
         self.side_menu_heading = ttk.Label(
             self.side_menu_frame,
             text="ADE BMS",
             font=("Courier New", 18, "bold"),
-            bootstyle="inverse-info",  # Optional: change color style
+            bootstyle="inverse-info",  # Change color style
             anchor="center"
         )
         self.side_menu_heading.pack(fill="x", pady=(10, 20))
 
-        self.dashboard_button =  ttk.Button(
+        # Add dashboard, control, info, report, and help buttons to the side menu
+        self.dashboard_button = ttk.Button(
             self.side_menu_frame,
-            text=" Dashboard",
+            text=" Dashboard     ",
             command=lambda: self.select_button(self.dashboard_button, self.show_dashboard),
             image=self.dashboard_icon,
-            compound="left",  # Place the icon to the left of the text
+            compound="left",  # Icon on the left
             bootstyle="info"
         )
         self.dashboard_button.pack(fill="x", pady=5)
 
+        # Control button in the side menu
         self.control_button = ttk.Button(
             self.side_menu_frame,
-            text=" Control       ",
-            command=lambda: self.select_button(self.control_button,self.show_control),
+            text=" Control          ",
+            command=lambda: self.select_button(self.control_button, self.show_control),
             image=self.control_icon,
-            compound="left",  # Place the icon to the left of the text
+            compound="left",  # Icon on the left
             bootstyle="info"
         )
         self.control_button.pack(fill="x", pady=2)
 
+        # Info button in the side menu
         self.info_button = ttk.Button(
             self.side_menu_frame,
-            text=" Info             ",
+            text=" Info                ",
             command=lambda: self.select_button(self.info_button, self.show_info),
             image=self.info_icon,
-            compound="left",  # Place the icon to the left of the text
+            compound="left",  # Icon on the left
             bootstyle="info"
         )
         self.info_button.pack(fill="x", pady=5)
 
+        # Report button in the side menu
         self.report_button = ttk.Button(
             self.side_menu_frame,
-            text=" Report         ",
-            command=lambda: self.select_button(self.report_button,self.show_report),
+            text=" Report            ",
+            command=lambda: self.select_button(self.report_button, self.show_report),
             image=self.download_icon,
-            compound="left",  # Place the icon to the left of the text
+            compound="left",  # Icon on the left
             bootstyle="info"
         )
         self.report_button.pack(fill="x", pady=2)
 
+        # Additional configuration and help buttons (conditionally displayed)
+        if self.limited:
+            self.config_button = ttk.Button(
+                self.side_menu_frame,
+                text=" Configuration",
+                command=lambda: self.select_button(self.config_button, self.show_config),
+                image=self.config_icon,
+                compound="left",  # Icon on the left
+                bootstyle="info"
+            )
+            self.config_button.pack(fill="x", pady=2)
+
         self.help_button = ttk.Button(
             self.side_menu_frame,
-            text=" Help            ",
-            command=lambda: self.select_button(self.help_button),
+            text=" Help                ",
+            command=lambda: self.select_button(self.help_button, self.show_help),
             image=self.help_icon,
-            compound="left",  # Place the icon to the left of the text
+            compound="left",  # Icon on the left
             bootstyle="info"
         )
-        self.help_button.pack(fill="x", pady=(0,10))
+        self.help_button.pack(fill="x", pady=(0, 10))
 
-        # Mode Label
-        self.mode_label = ttk.Label(
-            self.side_menu_frame,
-            bootstyle="inverse-info",
-            text="Mode:",
-        )
-        self.mode_label.pack(pady=(110, 5),padx=(0,5))
+        # Mode selection dropdown
+        self.mode_label = ttk.Label(self.side_menu_frame, bootstyle="inverse-info", text="Mode:")
+        self.mode_label.pack(pady=(110, 5), padx=(0, 5))
 
         # Mode Dropdown
         self.mode_dropdown = ttk.Combobox(
             self.side_menu_frame,
             textvariable=self.mode_var,
-            values=["Testing Mode", "Maintenance Mode"],
+            values=["Testing", "Maintenance"],
             state="readonly"
         )
         self.mode_dropdown.pack(padx=(5, 20))
-        self.mode_dropdown.bind("<<ComboboxSelected>>", self.update_info)
+        self.mode_dropdown.bind("<<ComboboxSelected>>", self.update_mode)
 
-        # Add Battery Selection Label (conditionally displayed)
-        self.battery_selection_label = ttk.Label(
-            self.side_menu_frame,
-            text="Select Battery:",
-            bootstyle="inverse-info"
-        )
-        
-        # Add Battery Selection Dropdown (conditionally displayed)
+        # Battery selection dropdown (conditionally displayed based on the data)
+        self.battery_selection_label = ttk.Label(self.side_menu_frame, text="Select Battery:", bootstyle="inverse-info")
         self.battery_var = tk.StringVar(value="Battery 1")  # Default to Battery 1
         self.battery_dropdown = ttk.Combobox(
             self.side_menu_frame,
@@ -182,38 +197,39 @@ class CanBatteryInfo:
             state="readonly"
         )
         self.battery_dropdown.bind("<<ComboboxSelected>>", self.update_battery_selection)
-    
+
         if device_data_battery_2['serial_number'] == 0:
+            # Hide battery selection if only Battery 1 is available
             self.battery_selection_label.pack_forget()
             self.battery_dropdown.pack_forget()
         else:
+            # Show battery selection if both batteries are available
             self.battery_selection_label.pack(pady=(10, 5))
             self.battery_dropdown.pack(padx=(5, 20), pady=(0, 10))
 
-        # Disconnect button
+        # Disconnect button in the side menu
         self.disconnect_button = ttk.Button(
             self.side_menu_frame,
             text=" Disconnect",
             command=lambda: self.select_button(self.disconnect_button, self.on_disconnect),
             image=self.disconnect_icon,
-            compound="left",  # Place the icon to the left of the text
+            compound="left",  # Icon on the left
             bootstyle="danger"
         )
-        self.disconnect_button.pack(side="bottom",pady=20)
+        self.disconnect_button.pack(side="bottom", pady=20)
 
-        if(self.battery_status_flags.get('charge_fet_test') == 0):
+        # Check battery status flags and current to set charge and discharge FET statuses
+        if self.battery_status_flags.get('charge_fet_test') == 0:
             self.charge_fet_status = True
         else:
             self.charge_fet_status = False
-        if(device_data['current'] > 0):
+        if self.device_data['current'] > 0:
             self.discharge_fet_status = True
         else:
             self.discharge_fet_status = False
-        
-        # self.auto_refresh()
-        self.show_dashboard()
 
-        # Bind the window resize event to adjust frame sizes dynamically
+        # Show dashboard by default and bind window resize event
+        self.show_dashboard()
         self.master.bind('<Configure>', self.on_window_resize)
     
     def update_battery_selection(self, event=None):
@@ -240,7 +256,6 @@ class CanBatteryInfo:
         elif self.selected_button == self.report_button:
             self.show_report()
 
-
     def show_dashboard(self):
         self.clear_content_frame()
 
@@ -248,28 +263,32 @@ class CanBatteryInfo:
         info_frame = ttk.Labelframe(self.content_frame, text="Battery Information", bootstyle="dark", borderwidth=10, relief="solid")
         info_frame.pack(fill="x", expand=True, padx=5, pady=5)
 
+        # Set consistent padding values
+        padx_val = 2
+        pady_val = 2
+
         # Device Name
-        ttk.Label(info_frame, text="Device Name:", font=("Helvetica", 10, "bold")).pack(side="left", padx=5)
+        ttk.Label(info_frame, text="Device Name :", font=("Helvetica", 10, "bold")).grid(row=0, column=0, sticky="w")
         self.device_name_label = ttk.Label(info_frame, text=self.device_data.get('device_name', 'N/A'), font=("Helvetica", 10))
-        self.device_name_label.pack(side="left", padx=5)
+        self.device_name_label.grid(row=0, column=1, sticky="w")
 
         # Serial Number
-        ttk.Label(info_frame, text="Serial Number:", font=("Helvetica", 10, "bold")).pack(side="left", padx=5)
+        ttk.Label(info_frame, text="Serial Number :", font=("Helvetica", 10, "bold")).grid(row=0, column=2, padx=padx_val, pady=pady_val, sticky="w")
         self.serial_number_label = ttk.Label(info_frame, text=self.device_data.get('serial_number', 'N/A'), font=("Helvetica", 10))
-        self.serial_number_label.pack(side="left", padx=5)
+        self.serial_number_label.grid(row=0, column=3, sticky="w")
 
         # Manufacturer Name
-        ttk.Label(info_frame, text="Manufacturer:", font=("Helvetica", 10, "bold")).pack(side="left", padx=5)
+        ttk.Label(info_frame, text="Manufacturer :", font=("Helvetica", 10, "bold")).grid(row=0, column=4, padx=padx_val, pady=pady_val, sticky="w")
         self.manufacturer_label = ttk.Label(info_frame, text=self.device_data.get('manufacturer_name', 'N/A'), font=("Helvetica", 10))
-        self.manufacturer_label.pack(side="left", padx=5)
+        self.manufacturer_label.grid(row=0, column=5, padx=padx_val, pady=pady_val, sticky="w")
 
-        # Manual Cycle Count
-        ttk.Label(info_frame, text="Cycle Count:", font=("Helvetica", 10, "bold")).pack(side="left", padx=5)
+        # Cycle Count
+        ttk.Label(info_frame, text="Cycle Count :", font=("Helvetica", 10, "bold")).grid(row=0, column=6, padx=padx_val, pady=pady_val, sticky="w")
         self.cycle_count_label = ttk.Label(info_frame, text=self.device_data.get('cycle_count', 'N/A'), font=("Helvetica", 10))
-        self.cycle_count_label.pack(side="left", padx=5)
+        self.cycle_count_label.grid(row=0, column=7, padx=padx_val, pady=pady_val, sticky="w")
 
         # Charging Status
-        ttk.Label(info_frame, text="Charging Status:", font=("Helvetica", 10, "bold")).pack(side="left", padx=5)
+        ttk.Label(info_frame, text="Charging Status :", font=("Helvetica", 10, "bold")).grid(row=0, column=8, padx=padx_val, pady=pady_val, sticky="w")
 
         self.status_var = tk.StringVar()
         charging_bootstyle = 'dark'
@@ -297,10 +316,14 @@ class CanBatteryInfo:
             text=charging_status.capitalize(),  # Display the charging status text
             variable=self.status_var,  # Use the StringVar
             value=charging_status,  # Set the value that matches the current status
-            bootstyle=bootstyle, # Apply the bootstyle based on the charging status
+            bootstyle=bootstyle,  # Apply the bootstyle based on the charging status
         )
-        self.status_indicator.pack(side="left", padx=5)
+        self.status_indicator.grid(row=0, column=9, padx=padx_val, pady=pady_val, sticky="w")
 
+        # Set the column weights for even expansion
+        for col in range(10):
+            info_frame.grid_columnconfigure(col, weight=1)
+        
         # Create a main frame to hold Charging, Discharge, and Battery Health sections
         main_frame = ttk.Frame(self.content_frame)
         main_frame.pack(fill="both", expand=True, padx=5, pady=5)
@@ -417,14 +440,15 @@ class CanBatteryInfo:
         self.discharge_max_value = tk.IntVar(value=100)  # Default max value
 
         # Checkbox to toggle the max value of the discharging current gauge
-        self.check_discharge_max = tk.BooleanVar()
-        discharge_max_checkbox = ttk.Checkbutton(
+        self.discharge_max_checkbox = ttk.Checkbutton(
             discharging_current_frame, 
             text="Set Max to 450A", 
             variable=self.check_discharge_max, 
             command=update_max_value
         )
-        discharge_max_checkbox.pack(pady=(5, 10))
+        selected_mode = self.mode_var.get()
+        if selected_mode == "Maintenance":
+            self.discharge_max_checkbox.pack(pady=(5, 10))
 
         # Discharging Current Gauge
         self.discharging_current_meter = ttk.Meter(
@@ -445,7 +469,7 @@ class CanBatteryInfo:
         # Discharging Voltage (Row 1, Column 1)
         discharging_voltage_frame = ttk.Frame(discharging_frame)
         discharging_voltage_frame.grid(row=1, column=1, padx=70, pady=2, sticky="nsew", columnspan=1)
-        discharging_voltage_label = ttk.Label(discharging_voltage_frame, text="Discharging Voltage", font=("Helvetica", 10, "bold"))
+        discharging_voltage_label = ttk.Label(discharging_voltage_frame, text="Battery Voltage", font=("Helvetica", 10, "bold"))
         discharging_voltage_label.pack(pady=(5, 35))
         discharging_voltage_meter = ttk.Meter(
             master=discharging_voltage_frame,
@@ -453,7 +477,7 @@ class CanBatteryInfo:
             amountused=self.device_data['voltage'],  # Assuming this is the discharging voltage
             meterthickness=10,
             metertype="semi",
-            subtext="Discharging Voltage",
+            subtext="Battery Voltage",
             textright="V",
             amounttotal=100,
             bootstyle=self.get_gauge_style(self.device_data['voltage'], "voltage"),
@@ -470,6 +494,7 @@ class CanBatteryInfo:
 
         # Pack the content_frame itself
         self.content_frame.pack(fill="both", expand=True)
+        update_max_value()
         self.select_button(self.dashboard_button)
 
     def prompt_manual_cycle_count(self):
@@ -504,11 +529,11 @@ class CanBatteryInfo:
                 if self.selected_battery == "Battery 1":
                     # Update cycle count for Battery 1
                     device_data_battery_1['cycle_count'] = cycle_count_var.get()
-                    update_cycle_count_in_excel(device_data_battery_1['serial_number'], device_data_battery_1['cycle_count'])
+                    update_cycle_count_in_can_data(device_data_battery_1['serial_number'], device_data_battery_1['cycle_count'])
                 elif self.selected_battery == "Battery 2":
                     # Update cycle count for Battery 2
                     device_data_battery_2['cycle_count'] = cycle_count_var.get()
-                    update_cycle_count_in_excel(device_data_battery_2['serial_number'], device_data_battery_2['cycle_count'])
+                    update_cycle_count_in_can_data(device_data_battery_2['serial_number'], device_data_battery_2['cycle_count'])
 
                 input_window.destroy()  # Close the input window
                 self.show_dashboard()
@@ -532,146 +557,331 @@ class CanBatteryInfo:
     
     def show_report(self):
         self.clear_content_frame()
-        latest_data = get_latest_battery_log(self.device_data.get('serial_number'))
+        latest_data = {}
+        selected_mode = self.mode_var.get()  # Get the selected mode
+        latest_data = get_latest_can_data(self.device_data['serial_number'])
+        # Container for the content
+        main_frame = ttk.Frame(self.content_frame)
+        main_frame.grid(row=0, column=0, columnspan=12, rowspan=6, padx=10, pady=10, sticky="nsew")
 
-        # Create the main container LabelFrame
-        main_frame = ttk.LabelFrame(self.content_frame, text="Report", borderwidth=5)
-        main_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+        # Configure the content frame for expansion and add equal space on both sides
+        self.content_frame.grid_columnconfigure(0, weight=1)  # Allow the content frame to expand
+        self.content_frame.grid_rowconfigure(0, weight=1)     # Allow the main_frame to expand vertically
 
-        # Configure the grid for centering the main_frame within content_frame
-        self.content_frame.grid_rowconfigure(0, weight=1)
-        self.content_frame.grid_columnconfigure(0, weight=1)
+        # Configure the main_frame for equal spacing
+        main_frame.grid_columnconfigure(0, weight=1)
+        main_frame.grid_columnconfigure(1, weight=2)
+        main_frame.grid_columnconfigure(2, weight=1)
 
-        # Configure the main_frame with 4 rows and 4 columns
-        main_frame.grid_rowconfigure((0, 1, 2, 3, 4), weight=1)
-        main_frame.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
+        # Row 0: View Reports Button
+        generate_button = ttk.Button(main_frame, text="View Reports", command=self.show_report)
+        generate_button.grid(row=0, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
 
-        # Button to open the folder with PDF files (aligned to the top-right)
-        open_folder_button = ttk.Button(main_frame, text="View Battery Reports", command=open_pdf_folder)
-        open_folder_button.grid(row=0, column=11, padx=10, pady=10, sticky="ne")
-
-        # Battery Info Frame (row 1-2, col 0-2)
-        battery_info_frame = ttk.LabelFrame(main_frame, text="Battery Info", borderwidth=10)
-        battery_info_frame.grid(row=1, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
+        # Battery Info Frame (row 1-2, col 0-2 inside the main_frame)
+        battery_info_frame = ttk.LabelFrame(main_frame, text="Battery Info", borderwidth=5)
+        battery_info_frame.grid(row=1, column=0, columnspan=2, padx=10, pady=5, sticky="nsew")
 
         # Add a Label for the Project Dropdown
-        ttk.Label(battery_info_frame, text="Project").grid(row=0, column=1, columnspan=2, padx=10, pady=10, sticky="e")
+        ttk.Label(battery_info_frame, text="Project").grid(row=0, column=0, padx=10, pady=10, sticky="e")
 
         # Add the Combobox for the Project Dropdown
-        project_options = ["TAPAS", "ARCHER", "SETB"]  # List of project options
+        project_options = config.config_values['can_config']['projects']
         project_combobox = ttk.Combobox(battery_info_frame, values=project_options, state="readonly")  # Dropdown with readonly state
-        project_combobox.grid(row=0, column=3, columnspan=2, padx=10, pady=10, sticky="w")
+        project_combobox.grid(row=0, column=1, padx=10, pady=10, sticky="w")
         project_combobox.set("Select a Project")
 
         # Add individual fields for Battery Info
-        ttk.Label(battery_info_frame, text="Device Name").grid(row=1,  column=1,columnspan=2, padx=10, pady=10, sticky="e")
+        ttk.Label(battery_info_frame, text="Device Name").grid(row=0,  column=2, padx=10, pady=10, sticky="e")
         device_name_entry = ttk.Entry(battery_info_frame)
         device_name_entry.insert(0, str(latest_data.get("Device Name", "")))
-        device_name_entry.grid(row=1, column=3,columnspan=2, padx=10, pady=10, sticky="w")
+        device_name_entry.grid(row=0, column=3, padx=10, pady=10, sticky="w")
 
-        ttk.Label(battery_info_frame, text="Serial Number").grid(row=2,  column=1,columnspan=2, padx=10, pady=10, sticky="e")
+        ttk.Label(battery_info_frame, text="Serial Number").grid(row=0,  column=4, padx=10, pady=10, sticky="e")
         serial_number_entry = ttk.Entry(battery_info_frame)
-        serial_number_entry.insert(0, str(latest_data.get("Serial Number", "")))
-        serial_number_entry.grid(row=2, column=3,columnspan=2, padx=10, pady=10, sticky="w")
+        serial_number_entry.insert(0, str(latest_data.get("Serial Number",0)))
+        serial_number_entry.grid(row=0, column=5, padx=10, pady=10, sticky="w")
+        serial_number_entry.config(state="readonly")  # Disable editing
 
-        ttk.Label(battery_info_frame, text="Manufacturer Name").grid(row=3,  column=1,columnspan=2, padx=10, pady=10, sticky="e")
+        ttk.Label(battery_info_frame, text="Manufacturer Name").grid(row=1,  column=0, padx=10, pady=10, sticky="e")
         manufacturer_entry = ttk.Entry(battery_info_frame)
         manufacturer_entry.insert(0, str(latest_data.get("Manufacturer Name", "")))
-        manufacturer_entry.grid(row=3, column=3,columnspan=2, padx=10, pady=10, sticky="w")
+        manufacturer_entry.grid(row=1, column=1, padx=10, pady=10, sticky="w")
 
-        ttk.Label(battery_info_frame, text="Cycle Count").grid(row=4,  column=1,columnspan=2, padx=10, pady=10, sticky="e")
+        ttk.Label(battery_info_frame, text="Cycle Count").grid(row=1,  column=2, padx=10, pady=10, sticky="e")
         cycle_count_entry = ttk.Entry(battery_info_frame)
-        cycle_count_entry.insert(0, str(latest_data.get("Cycle Count", "")))
-        cycle_count_entry.grid(row=4, column=3,columnspan=2, padx=10, pady=10, sticky="w")
+        cycle_count_entry.insert(0, str(latest_data.get("Cycle Count",0)))
+        cycle_count_entry.grid(row=1, column=3, padx=10, pady=10, sticky="w")
 
-        ttk.Label(battery_info_frame, text="Battery Capacity").grid(row=5,  column=1,columnspan=2, padx=10, pady=10, sticky="e")
+        ttk.Label(battery_info_frame, text="Battery Capacity").grid(row=1,  column=4, padx=10, pady=10, sticky="e")
         capacity_entry = ttk.Entry(battery_info_frame)
-        capacity_entry.insert(0, str(103))
-        capacity_entry.grid(row=5, column=3,columnspan=2, padx=10, pady=10, sticky="w")
+        capacity_entry.insert(0, str(latest_data.get("Full Charge Capacity",103)))
+        capacity_entry.grid(row=1, column=5, padx=10, pady=10, sticky="w")
         capacity_entry.config(state="readonly")  # Disable editing
 
-        duration, date = fetch_charging_info(self.device_data.get('serial_number'))
+        # Row 3-4: Charging Info Frame
+        charging_frame = ttk.LabelFrame(main_frame, text="Charging Info", borderwidth=5)
+        charging_frame.grid(row=2, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
 
-        # Charging Info Frame (row 1-2, col 2-4)
-        charging_frame = ttk.LabelFrame(main_frame, text="Charging Info", borderwidth=10)
-        charging_frame.grid(row=1, column=4, columnspan=4, padx=10, pady=10, sticky="nsew")
+        ttk.Label(charging_frame, text="Date :").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        charging_date_entry = ttk.Entry(charging_frame)
+        charging_date_entry.insert(0, "09/09/2024")
+        charging_date_entry.grid(row=0, column=0, padx=50, pady=5, sticky="w")
 
-        ttk.Label(charging_frame, text="Duration").grid(row=0, column=1, columnspan=2, padx=10, pady=10, sticky="e")
-        duration_entry = ttk.Entry(charging_frame)
-        duration_entry.insert(0, str(latest_data.get("Charging Duration", 50)))  # Insert the fetched duration or a default message
-        duration_entry.grid(row=0, column=3, columnspan=2, padx=10, pady=10, sticky="w")
+        ttk.Label(charging_frame, text="OCV :").grid(row=0, column=0, padx=200, pady=5, sticky="w")
+        charging_ocv_entry = ttk.Entry(charging_frame)
+        charging_ocv_entry.insert(0, 0)
+        charging_ocv_entry.grid(row=0, column=0, padx=250, pady=5, sticky="w")
 
-        ttk.Label(charging_frame, text="Date").grid(row=2, column=1, columnspan=2, padx=10, pady=10, sticky="e")
-        date_entry = ttk.Entry(charging_frame)
-        date_entry.insert(0, str(latest_data.get("Charging Date", 50)))  # Insert the fetched date or a default message
-        date_entry.grid(row=2, column=3, columnspan=2, padx=10, pady=10, sticky="w")
+        
+        def load_can_charging_data():
+            # Define the path to the CAN charging data Excel file inside the AppData directory
+            can_charging_data_file = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database", "can_charging_data.xlsx")
 
-        # Add individual fields for Discharging Info
-        ttk.Label(charging_frame, text="OCV").grid(row=3, column=1, columnspan=2, padx=10, pady=10, sticky="e")
-        ocv_entry = ttk.Entry(charging_frame)
-        ocv_entry.insert(0, str(latest_data.get("OCV", 0)))
-        ocv_entry.grid(row=3, column=3, columnspan=2, padx=10, pady=10, sticky="w")
+            # Read the Excel file using pandas
+            try:
+                df_can_charging = pd.read_excel(can_charging_data_file)
+            except FileNotFoundError:
+                print(f"Error: {can_charging_data_file} not found.")
+                return
 
-        # # Discharging Info Frame (row 2-3, col 0-4)
-        discharging_frame = ttk.LabelFrame(main_frame, text="Load Test Info", borderwidth=10)
-        discharging_frame.grid(row=1, column=8, columnspan=4, padx=10, pady=10, sticky="nsew")
+            # Retrieve the serial number from self.device_data (assuming it contains a key 'serial_number')
+            device_serial_number = self.device_data.get('serial_number')
 
-        # Add individual fields for Discharging Info
-        ttk.Label(discharging_frame, text="Current Loaded").grid(row=0, column=1, columnspan=2, padx=10, pady=10, sticky="e")
-        discharging_current_loaded_entry = ttk.Entry(discharging_frame)
-        discharging_current_loaded_entry.insert(0, str(latest_data.get("Current Loaded", 50)))
-        discharging_current_loaded_entry.grid(row=0, column=3, columnspan=2, padx=10, pady=10, sticky="w")
+            # Filter the DataFrame where the serial number matches
+            filtered_data = df_can_charging[df_can_charging['Serial Number'] == device_serial_number]
 
-        ttk.Label(discharging_frame, text="Duration").grid(row=1, column=1, columnspan=2, padx=10, pady=10, sticky="e")
-        discharging_duration_entry = ttk.Entry(discharging_frame)
-        discharging_duration_entry.insert(0, str(latest_data.get("Discharging Duration",0)))
-        discharging_duration_entry.grid(row=1, column=3, columnspan=2, padx=10, pady=10, sticky="w")
+            # If no matching serial number is found, you can add a fallback or a message
+            if filtered_data.empty:
+                print(f"No data found for Serial Number: {device_serial_number}")
+                return
 
-        ttk.Label(discharging_frame, text="0th Second Voltage").grid(row=2, column=1, columnspan=2, padx=10, pady=10, sticky="e")
-        zero_second_voltage_entry = ttk.Entry(discharging_frame)
-        zero_second_voltage_entry.insert(0, str(latest_data.get("0th Second Voltage", 0)))
-        zero_second_voltage_entry.grid(row=2, column=3, columnspan=2, padx=10, pady=10, sticky="w")
+            # Clear any existing data in the Treeview
+            for item in charging_table.get_children():
+                charging_table.delete(item)
 
-        ttk.Label(discharging_frame, text="5th Second Voltage").grid(row=3, column=1, columnspan=2, padx=10, pady=10, sticky="e")
-        fifth_second_voltage_entry = ttk.Entry(discharging_frame)
-        fifth_second_voltage_entry.insert(0, str(latest_data.get("5th Second Voltage",0)))
-        fifth_second_voltage_entry.grid(row=3, column=3, columnspan=2, padx=10, pady=10, sticky="w")
+            # Insert the filtered data into the Treeview
+            for _, row in filtered_data.iterrows():
+                charging_table.insert('', 'end', values=(row['Hour'], row['Voltage'], row['Current'], row['Temperature'], row['State of Charge']))
 
-        ttk.Label(discharging_frame, text="30th Second Voltage").grid(row=4, column=1, columnspan=2, padx=10, pady=10, sticky="e")
-        thirtieth_second_voltage_entry = ttk.Entry(discharging_frame)
-        thirtieth_second_voltage_entry.insert(0, str(latest_data.get("30th Second Voltage", 0)))
-        thirtieth_second_voltage_entry.grid(row=4, column=3, columnspan=2, padx=10, pady=10, sticky="w")
 
-        ttk.Label(discharging_frame, text="Date").grid(row=5, column=1, columnspan=2, padx=10, pady=10, sticky="e")
-        discharging_date_entry = ttk.Entry(discharging_frame)
-        discharging_date_entry.insert(0, str(latest_data.get("Discharging Date", 0)))
-        discharging_date_entry.grid(row=5, column=3, columnspan=2, padx=10, pady=10, sticky="w")
 
-        def collect_data_and_generate_report():
-            # Collecting all the data from the fields
-            report_data = {
-                "Project": project_combobox.get(),  # Collecting the project name
-                "Device Name": device_name_entry.get(),
-                "Serial Number": serial_number_entry.get(),
-                "Manufacturer Name": manufacturer_entry.get(),
-                "Cycle Count": cycle_count_entry.get(),
-                "Battery Capacity": capacity_entry.get(),
-                "Charging Duration": duration_entry.get(),
-                "Charging Date": date_entry.get(),
-                "Current Loaded": discharging_current_loaded_entry.get(),
-                "Discharging Duration": discharging_duration_entry.get(),
-                "OCV": ocv_entry.get(),
-                "0th Second Voltage": zero_second_voltage_entry.get(),
-                "5th Second Voltage": fifth_second_voltage_entry.get(),
-                "30th Second Voltage": thirtieth_second_voltage_entry.get(),
-                "Discharging Date": discharging_date_entry.get()
-            }
-            # Call the function to generate the PDF and update Excel
-            generate_pdf_and_update_excel(report_data,self.device_data.get('serial_number'))
+        # Create Treeview for Charging Info Table
+        columns = ('Hour', 'Voltage (V)', 'Current (A)', 'Temperature (°C)', 'State of Charge (%)')
+        charging_table = ttk.Treeview(charging_frame, columns=columns, show='headings', height=5)
 
-        # Generate Button (centered at the bottom, row 4, col 2)
-        generate_button = ttk.Button(main_frame, text="Generate", command=collect_data_and_generate_report)
-        generate_button.grid(row=2, column=4, pady=10, sticky="ew")
+        charging_table.heading('Hour', text='Hour')
+        charging_table.heading('Voltage (V)', text='Voltage (V)')
+        charging_table.heading('Current (A)', text='Current (A)')
+        charging_table.heading('Temperature (°C)', text='Temperature (°C)')
+        charging_table.heading('State of Charge (%)', text='State of Charge (%)')
+
+        charging_table.column('Hour', width=100, anchor='center')
+        charging_table.column('Voltage (V)', width=100, anchor='center')
+        charging_table.column('Current (A)', width=100, anchor='center')
+        charging_table.column('Temperature (°C)', width=150, anchor='center')
+        charging_table.column('State of Charge (%)', width=150, anchor='center')
+
+        # Adding a vertical scrollbar to the charging table
+        scrollbar_charging = ttk.Scrollbar(charging_frame, orient="vertical", command=charging_table.yview)
+        charging_table.configure(yscrollcommand=scrollbar_charging.set)
+
+        charging_table.grid(row=1, column=0, sticky='nsew')
+        scrollbar_charging.grid(row=1, column=1, sticky='ns')
+
+        charging_frame.grid_rowconfigure(1, weight=1)
+        charging_frame.grid_columnconfigure(0, weight=1)
+
+        # Call the function to load CAN charging data from the Excel file
+        load_can_charging_data()
+
+        # Add the Discharge Info Frame based on the mode (Testing vs Maintenance)
+        discharge_info_frame = ttk.LabelFrame(main_frame, text="Discharge Info", borderwidth=5)
+        discharge_info_frame.grid(row=3, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
+
+        ttk.Label(discharge_info_frame, text="Date :").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        discharging_date_entry = ttk.Entry(discharge_info_frame)
+        discharging_date_entry.insert(0, "09/09/2024")
+        discharging_date_entry.grid(row=0, column=0, padx=50, pady=5, sticky="w")
+
+        ttk.Label(discharge_info_frame, text="OCV :").grid(row=0, column=0, padx=200, pady=5, sticky="w")
+        discharging_ocv_entry = ttk.Entry(discharge_info_frame)
+        discharging_ocv_entry.insert(0, 0)
+        discharging_ocv_entry.grid(row=0, column=0, padx=250, pady=5, sticky="w")
+
+        def save_values():
+            # Collect values from the entry boxes into arrays
+            project = project_combobox.get()  # Get the selected project
+            device_name = device_name_entry.get()
+            serial_number = serial_number_entry.get()
+            manufacturer_name = manufacturer_entry.get()
+            cycle_count = cycle_count_entry.get()
+            full_charge_capacity = capacity_entry.get()
+            charging_date = charging_date_entry.get()  # New field
+            ocv_before_charging = charging_ocv_entry.get()  # New field
+            discharging_date = discharging_date_entry.get()  # New field
+            ocv_before_discharging = discharging_ocv_entry.get()  # New field
+
+            # Create an array to hold the values
+            data_to_save = [
+                project,  # Add the project value at the beginning
+                device_name,
+                serial_number,
+                manufacturer_name,
+                cycle_count,
+                full_charge_capacity,
+                charging_date,
+                ocv_before_charging,
+                discharging_date,
+                ocv_before_discharging
+            ]
+
+            # Call the method to update the Excel file
+            update_excel_and_download_pdf(data_to_save)
+
+
+        def load_can_discharging_data():
+            """
+            Load the CAN discharging data from an Excel file and display it in the Treeview.
+            """
+            # Define the path to the CAN discharging data Excel file inside the AppData directory
+            can_discharging_data_file = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database", "can_discharging_data.xlsx")
+
+            # Read the Excel file using pandas
+            try:
+                df_can_discharging = pd.read_excel(can_discharging_data_file)
+            except FileNotFoundError:
+                messagebox.showerror("Error", f"{can_discharging_data_file} not found.")
+                return
+
+            # Retrieve the serial number from self.device_data (assuming it contains a key 'serial_number')
+            device_serial_number = self.device_data.get('serial_number')
+
+            # Filter the DataFrame where the serial number matches
+            filtered_data = df_can_discharging[df_can_discharging['Serial Number'] == device_serial_number]
+
+            # If no matching serial number is found, display a message and return
+            if filtered_data.empty:
+                messagebox.showwarning("No Data", f"No data found for Serial Number: {device_serial_number}")
+                return
+
+            # Clear any existing data in the Treeview
+            for item in discharging_table.get_children():
+                discharging_table.delete(item)
+
+            # Insert the filtered data into the Treeview
+            for _, row in filtered_data.iterrows():
+                try:
+                    discharging_table.insert('', 'end', values=(
+                        row['Hour'], 
+                        float(row['Voltage']), 
+                        float(row['Current']), 
+                        float(row['Temperature']), 
+                        float(row['Load Current'])
+                    ))
+                except ValueError:
+                    print(f"Error processing row: {row}")
+
+            print(f"Data for Serial Number {device_serial_number} loaded successfully.")
+
+        # Create Treeview for Charging Info Table
+        columns = ('Hour', 'Voltage (V)', 'Current (A)', 'Temperature (°C)', 'Load Current (A)')
+        discharging_table = ttk.Treeview(discharge_info_frame, columns=columns, show='headings', height=5)
+
+        discharging_table.heading('Hour', text='Hour')
+        discharging_table.heading('Voltage (V)', text='Voltage (V)')
+        discharging_table.heading('Current (A)', text='Current (A)')
+        discharging_table.heading('Temperature (°C)', text='Temperature (°C)')
+        discharging_table.heading('Load Current (A)', text='Load Current (A)')
+
+        discharging_table.column('Hour', width=100, anchor='center')
+        discharging_table.column('Voltage (V)', width=100, anchor='center')
+        discharging_table.column('Current (A)', width=100, anchor='center')
+        discharging_table.column('Temperature (°C)', width=150, anchor='center')
+        discharging_table.column('Load Current (A)', width=150, anchor='center')
+
+        # Adding a vertical scrollbar to the discharging table
+        scrollbar_discharging = ttk.Scrollbar(discharge_info_frame, orient="vertical", command=discharging_table.yview)
+        discharging_table.configure(yscrollcommand=scrollbar_discharging.set)
+        discharging_table.grid(row=1, column=0, sticky='nsew')
+        scrollbar_discharging.grid(row=1, column=1, sticky='ns')
+
+        discharge_info_frame.grid_rowconfigure(1, weight=1)
+        discharge_info_frame.grid_columnconfigure(0, weight=1)
+
+        def load_can_data():
+            """
+            Load the CAN charging and discharging data from an Excel file and display it.
+            """
+            # Define the path to the CAN data Excel file inside the AppData directory
+            can_data_file = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database", "can_data.xlsx")
+
+            # Read the Excel file using pandas
+            try:
+                df_can_data = pd.read_excel(can_data_file)
+            except FileNotFoundError:
+                messagebox.showerror("Error", f"{can_data_file} not found.")
+                return
+
+            # Retrieve the serial number from self.device_data
+            device_serial_number = self.device_data.get('serial_number')
+
+            # Filter the DataFrame where the serial number matches
+            filtered_data = df_can_data[df_can_data['Serial Number'] == device_serial_number]
+
+            # If no matching serial number is found, display a message and return
+            if filtered_data.empty:
+                messagebox.showwarning("No Data", f"No data found for Serial Number: {device_serial_number}")
+                return
+
+            # Assuming there's only one row per serial number, use the first row for display
+            first_row = filtered_data.iloc[0]
+
+            # Populate individual fields from the data
+            device_name_entry.delete(0, tk.END)
+            device_name_entry.insert(0, str(first_row.get("Device Name", "")))
+
+            serial_number_entry.delete(0, tk.END)
+            serial_number_entry.insert(0, str(first_row.get("Serial Number", "")))
+
+            manufacturer_entry.delete(0, tk.END)
+            manufacturer_entry.insert(0, str(first_row.get("Manufacturer Name", "")))
+
+            cycle_count_entry.delete(0, tk.END)
+            cycle_count_entry.insert(0, str(first_row.get("Cycle Count", "")))
+
+            capacity_entry.config(state="normal")  # Enable field for update
+            capacity_entry.delete(0, tk.END)
+            capacity_entry.insert(0, str(first_row.get("Full Charge Capacity", 0)))
+            capacity_entry.config(state="readonly")  # Disable field after update
+
+            # Charging Info fields
+            charging_ocv_entry.delete(0, tk.END)
+            charging_ocv_entry.insert(0, float(first_row.get("OCV Before Charging", 0)))
+
+            charging_date_entry.delete(0, tk.END)
+            charging_date_entry.insert(0, str(first_row.get("Charging Date", '')))
+            
+            # Discharging Info fields
+            discharging_ocv_entry.delete(0, tk.END)
+            discharging_ocv_entry.insert(0, float(first_row.get("OCV Before Discharging", 0)))
+
+            discharging_date_entry.delete(0, tk.END)
+            discharging_date_entry.insert(0, str(first_row.get("Discharging Date", '')))
+
+        load_can_discharging_data()
+        load_can_data()
+
+        main_frame.grid_rowconfigure(3, weight=1)
+
+        # Row 5: Download Report Button at the bottom
+        download_button = ttk.Button(main_frame, text="Download Report", command=lambda:save_values())
+        download_button.grid(row=4, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
+
+        # Ensure the last row is expanded to push the button to the bottom
+        main_frame.grid_rowconfigure(4, weight=1)
+
+        # Make the content_frame expand
+        self.content_frame.pack(fill="both", expand=True)
 
         # Select the report button (if necessary for your UI)
         self.select_button(self.report_button)
@@ -739,7 +949,7 @@ class CanBatteryInfo:
         # Row 2: BMS Reset Button
         self.bms_reset_button = ctk.CTkButton(
             right_control_frame, text="Reset", image=self.reset_icon, compound="left",
-            command=self.bmsreset, fg_color="#ff6361", hover_color="#d74a49"
+            fg_color="#ff6361", hover_color="#d74a49"
         )
         self.bms_reset_button.grid(row=2, column=0, columnspan=2, padx=10, pady=10, sticky="ew")
 
@@ -761,37 +971,126 @@ class CanBatteryInfo:
         # Status Label
         self.status_label = ttk.Label(device_connect_frame, text="Status: Disconnected")
         self.status_label.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+    
+        # Download Report Button
+        self.download_report_button = ttk.Button(device_connect_frame, text="Download Report", 
+                                                # command=self.download_report
+                                                image=self.download_icon,
+                                                compound="left",
+                                                )
+        self.download_report_button.grid(row=0, column=2, padx=5, pady=10, sticky="ew")
+
+        # Make columns expand to fill space
+        device_connect_frame.grid_columnconfigure(0, weight=1)  # First column (Connect button)
+        device_connect_frame.grid_columnconfigure(1, weight=1)  # Second column (Status Label)
+        device_connect_frame.grid_columnconfigure(2, weight=1)  # Third column (Download Report button)
 
         # Check the selected mode
         selected_mode = self.mode_var.get()
 
-        if selected_mode == "Testing Mode":
+        if selected_mode == "Testing":
             # Section: Testing Mode
-            testing_frame = ttk.Labelframe(load_frame, text="Testing Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
+            testing_frame = ttk.Labelframe(load_frame, text="Testing", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
             testing_frame.grid(row=1, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
 
-            test_button = ttk.Button(testing_frame, text="Set 50A and Turn ON Load", command=self.testing_mode_load)
+            test_button = ttk.Button(testing_frame, text="Set 50A and Turn ON Load", command=set_l1_50a_and_turn_on)
             test_button.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
 
             # Turn Off Load Button
-            turn_off_button = ttk.Button(testing_frame, text="Turn OFF Load", command=self.load_off)
+            turn_off_button = ttk.Button(testing_frame, text="Turn OFF Load", command=turn_load_off)
             turn_off_button.grid(row=0, column=1, columnspan=2, padx=10, pady=10, sticky="ew")
 
-        elif selected_mode == "Maintenance Mode":
+        elif selected_mode == "Maintenance":
             # Section: Maintenance Mode
-            maintenance_frame = ttk.Labelframe(load_frame, text="Maintenance Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
-            maintenance_frame.grid(row=1, column=0,columnspan=4, padx=10, pady=10, sticky="nsew")
+            maintenance_frame = ttk.Labelframe(load_frame, text="Maintenance", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
+            maintenance_frame.grid(row=1, column=0, columnspan=4, padx=10, pady=10, sticky="nsew")
 
-            maintenance_button = ttk.Button(maintenance_frame, text="Set 100A and Turn ON Load", command=self.maintains_mode_load)
-            maintenance_button.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
+            # Add a checkbox for dynamic fields
+            dynamic_fields_checkbox = ttk.Checkbutton(
+                maintenance_frame,
+                text="Dynamic",
+                variable=self.show_dynamic_fields_var,
+                command=self.toggle_dynamic_fields  # Method to show/hide fields
+            )
+            dynamic_fields_checkbox.grid(row=0, column=0, padx=10, pady=10, sticky="w")
 
-            # Turn Off Load Button
-            turn_off_button = ttk.Button(maintenance_frame, text="Turn OFF Load", command=self.load_off)
-            turn_off_button.grid(row=0, column=1, columnspan=2, padx=10, pady=10, sticky="ew")
+            # The "Set 100A and Turn ON Load" button
+            self.maintenance_button = ttk.Button(maintenance_frame, text="Set 100A and Turn ON Load", command=set_l1_100a_and_turn_on)
+            self.maintenance_button.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
+
+            # The "Turn OFF Load" button
+            self.turn_off_button = ttk.Button(maintenance_frame, text="Turn OFF Load", command=turn_load_off)
+            self.turn_off_button.grid(row=1, column=2, padx=10, pady=10, sticky="ew")
+
+            # Frame for dynamic fields (L1, L2, T1, T2, Repeat, Save button)
+            self.dynamic_fields_frame = ttk.Frame(maintenance_frame)
+            self.dynamic_fields_frame.grid(row=1, column=0, columnspan=6, padx=10, pady=10, sticky="nsew")
+
+            # Initially hide the dynamic fields frame
+            self.dynamic_fields_frame.grid_remove()
+
+            # L1 Entry
+            ttk.Label(self.dynamic_fields_frame, text="L1 :").grid(row=0, column=0, padx=10, pady=10, sticky="e")
+            self.l1_entry = ttk.Entry(self.dynamic_fields_frame, width=5)
+            self.l1_entry.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
+
+            # L2 Entry
+            ttk.Label(self.dynamic_fields_frame, text="L2 :").grid(row=0, column=2, padx=10, pady=10, sticky="e")
+            self.l2_entry = ttk.Entry(self.dynamic_fields_frame, width=5)
+            self.l2_entry.grid(row=0, column=3, padx=10, pady=10, sticky="ew")
+
+            # T1 Entry
+            ttk.Label(self.dynamic_fields_frame, text="T1 :").grid(row=0, column=4, padx=10, pady=10, sticky="e")
+            self.t1_entry = ttk.Entry(self.dynamic_fields_frame, width=5)
+            self.t1_entry.grid(row=0, column=5, padx=10, pady=10, sticky="ew")
+
+            # T2 Entry
+            ttk.Label(self.dynamic_fields_frame, text="T2 :").grid(row=0, column=6, padx=10, pady=10, sticky="e")
+            self.t2_entry = ttk.Entry(self.dynamic_fields_frame, width=5)
+            self.t2_entry.grid(row=0, column=7, padx=10, pady=10, sticky="ew")
+
+            # Repeat Entry
+            ttk.Label(self.dynamic_fields_frame, text="Repeat :").grid(row=0, column=8, padx=10, pady=10, sticky="e")
+            self.repeat_entry = ttk.Entry(self.dynamic_fields_frame, width=5)
+            self.repeat_entry.grid(row=0, column=9, padx=10, pady=10, sticky="ew")
+
+            # Save Button
+            save_button = ttk.Button(self.dynamic_fields_frame, text="Save", command=lambda: save_dynamic_fields())
+            save_button.grid(row=0, column=10, padx=10, pady=10, sticky="ew")
+
+            def toggle_load_on_and_off():
+                if self.load_status.get():
+                    turn_load_off()
+                    toggle_button_on.config(text="Turn ON Load", bootstyle="success")  # Change to green when OFF
+                    self.load_status.set(False)  # Update state to OFF
+                else:
+                    turn_load_on()
+                    toggle_button_on.config(text="Turn OFF Load", bootstyle="danger")  # Change to red when ON
+                    self.load_status.set(True)  # Update state to ON
+
+            # Turn ON Load Button (in the same row as dynamic fields)
+            toggle_button_on = ttk.Button(self.dynamic_fields_frame, text="Turn ON Load", command=lambda:toggle_load_on_and_off(), bootstyle='success')
+            toggle_button_on.grid(row=0, column=11, columnspan=2, padx=5, pady=5, sticky="ew")
+
+            
+            def save_dynamic_fields():
+                # Collect values from the entry boxes
+                l1_value = self.l1_entry.get()
+                l2_value = self.l2_entry.get()
+                t1_value = self.t1_entry.get()
+                t2_value = self.t2_entry.get()
+                repeat_value = self.repeat_entry.get()
+
+                # Call the method to set values in Chroma
+                set_dynamic_values(l1_value, l2_value, t1_value, t2_value, repeat_value)
+
+            # Expand columns for even distribution
+            for i in range(11):
+                self.dynamic_fields_frame.grid_columnconfigure(i, weight=1)
     
 
         # Section: Custom Mode
-        custom_frame = ttk.Labelframe(load_frame, text="Custom Mode", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
+        custom_frame = ttk.Labelframe(load_frame, text="Custom", padding=10, borderwidth=10, relief="solid", bootstyle='dark')
         custom_frame.grid(row=3, column=0,columnspan=4, padx=5, pady=5, sticky="nsew")
 
         custom_label = ttk.Label(custom_frame, text="Set Custom Current (A):", font=("Helvetica", 12), width=20, anchor="e")
@@ -809,7 +1108,7 @@ class CanBatteryInfo:
         self.custom_current_entry = ttk.Entry(custom_frame)
         self.custom_current_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
-        custom_button = ttk.Button(custom_frame, text="Save", command=save_custom_value)
+        custom_button = ttk.Button(custom_frame, text="Save", command=save_custom_value())
         custom_button.grid(row=0, column=2, columnspan=1, padx=5, pady=5, sticky="ew")
 
         # Create a toggle button for turning load ON and OFF
@@ -844,13 +1143,321 @@ class CanBatteryInfo:
         # Highlight the control button in the side menu
         self.select_button(self.control_button)
 
-
     def connect_device(self):
         """Connect to the Chroma device."""
         result = find_and_connect()  # This can be the same method or a separate one for specific device connection
         self.status_label.config(text=result)
 
-    def update_info(self, event=None):
+    def show_config(self):
+        """Show the configuration settings page where users can view and update configurations."""
+        self.clear_content_frame()  # Clear the content area before loading the config page
+
+        # Create a frame for the config page content
+        config_frame = ttk.Frame(self.content_frame, borderwidth=10, relief="solid")
+        config_frame.pack(fill="x")
+
+        # Create a new Labelframe for configuration settings
+        config_labelframe = ttk.Labelframe(self.content_frame, text="Configuration Settings", bootstyle="dark", borderwidth=10, relief="solid")
+        config_labelframe.pack(fill="x", padx=10, pady=10)
+
+        # Validation functions for float and int
+        def validate_numeric_input(value):
+            if value == "" or value.isdigit() or value == "-" or value.replace(".", "", 1).isdigit():
+                return True
+            return False
+
+        vcmd = (self.content_frame.register(validate_numeric_input), "%P")
+
+        # Define configuration fields, using values from the config file
+        config_values = {
+            "Logging Time (Mins)": (config.config_values['can_config'].get('logging_time')/60000),
+            "Discharge Max Current (A)": config.config_values['can_config'].get('discharging_current_max'),  # Get value from config file
+            "Discharge Cutoff Voltage (V)": config.config_values['can_config'].get('discharge_cutoff_volt'),
+            "Charge Cutoff Current (A)": config.config_values['can_config'].get('charging_cutoff_curr'),
+            "Charge Cutoff Voltage (V)": config.config_values['can_config'].get('charging_cutoff_volt'),
+            "Charge Cutoff Capacity (%)": config.config_values['can_config'].get('charging_cutoff_capacity'),
+            "Temperature Caution (°C)": config.config_values['can_config'].get('temperature_caution'),
+            "Temperature Alarm (°C)": config.config_values['can_config'].get('temperature_alarm'),
+            "Temperature Critical (°C)": config.config_values['can_config'].get('temperature_critical')
+        }
+
+        # Create labels and entry fields for each config
+        row = 0
+        self.config_entries = {}  # Store entry fields to update values later
+        for config_name, config_value in config_values.items():
+            # Label for each configuration field
+            ttk.Label(config_labelframe, text=f"{config_name}:", font=("Helvetica", 10, "bold")).grid(row=row, column=0, padx=10, pady=5, sticky="e")
+
+            # Entry field for each configuration value
+            config_entry = ttk.Entry(config_labelframe, validate="key", validatecommand=vcmd)
+            config_entry.insert(0, config_value)  # Insert the existing value into the entry
+            config_entry.grid(row=row, column=1, padx=10, pady=5, sticky="ew")
+
+            # Save the entry fields in a dictionary for later access
+            self.config_entries[config_name] = config_entry
+
+            row += 1
+
+        # Add an "Update" button to save the modified values inside the labelframe
+        update_button = ttk.Button(config_labelframe, text="Update Configurations", command=self.update_config_values, bootstyle='success')
+        update_button.grid(row=row, column=0, columnspan=2, padx=10, pady=20, sticky="ew")
+
+        # Make the columns stretch to fill available space
+        config_labelframe.grid_columnconfigure(0, weight=1)
+        config_labelframe.grid_columnconfigure(1, weight=2)
+
+        # Create a new Labelframe for project management
+        project_frame = ttk.Labelframe(self.content_frame, text="Project Management", bootstyle="dark", borderwidth=10, relief="solid")
+        project_frame.pack(fill="x", padx=10, pady=10)
+
+        row += 1
+
+        # Add the Combobox for the Project Dropdown
+        ttk.Label(project_frame, text="Select Project:", font=("Helvetica", 10, "bold")).grid(row=0, column=0, padx=10, pady=5, sticky="e")
+        self.project_var = tk.StringVar()
+        self.project_combobox = ttk.Combobox(project_frame, textvariable=self.project_var, values=config.config_values['can_config']['projects'], state="readonly")
+        self.project_combobox.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+        self.project_combobox.set("Select a Project")
+
+        # Add buttons for Add, Edit, and Delete project
+        add_project_button = ttk.Button(project_frame, text="Add Project", command=self.add_project, bootstyle='success')
+        add_project_button.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
+        edit_project_button = ttk.Button(project_frame, text="Edit Project", command=self.edit_project)
+        edit_project_button.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
+        delete_project_button = ttk.Button(project_frame, text="Delete Project", command=self.delete_project, bootstyle='danger')
+        delete_project_button.grid(row=2, column=0, columnspan=2, padx=10, pady=5, sticky="ew")
+
+        # Make columns stretch to fill available space
+        project_frame.grid_columnconfigure(0, weight=1)
+        project_frame.grid_columnconfigure(1, weight=2)
+
+    def update_config_values(self):
+        """Update the configuration values and save them to the JSON config file."""
+
+        def determine_number_type(value):
+            """Determine if the value should be an int or float."""
+            try:
+                value_str = str(value)
+                # First, try to convert it to an int
+                if '.' in value_str:
+                    return float(value)  # Return as float
+                else:
+                    return int(value)  # Return as int
+            except ValueError:
+                # If conversion fails, return None
+                return None
+
+        # Retrieve the updated values from the entry fields
+        updated_values = {}
+        for config_name, entry in self.config_entries.items():
+            updated_values[config_name] = entry.get()
+
+        logging_time_mins = updated_values.get('Logging Time (Mins)')
+        if logging_time_mins is not None:
+            try:
+                logging_time_mins = float(logging_time_mins)  # Use float for decimal minutes
+            except ValueError:
+                logging_time_mins = 0.01  # Set to None if conversion fails
+        # Update the configuration values in the config file with dynamic type handling
+        config.config_values['can_config']['logging_time'] = determine_number_type((logging_time_mins * 60) * 1000)
+        config.config_values['can_config']['discharging_current_max'] = determine_number_type(updated_values['Discharge Max Current (A)'])
+        config.config_values['can_config']['discharge_cutoff_volt'] = determine_number_type(updated_values['Discharge Cutoff Voltage (V)'])
+        config.config_values['can_config']['charging_cutoff_curr'] = determine_number_type(updated_values['Charge Cutoff Current (A)'])
+        config.config_values['can_config']['charging_cutoff_volt'] = determine_number_type(updated_values['Charge Cutoff Voltage (V)'])
+        config.config_values['can_config']['charging_cutoff_capacity'] = determine_number_type(updated_values['Charge Cutoff Capacity (%)'])
+        config.config_values['can_config']['temperature_caution'] = determine_number_type(updated_values['Temperature Caution (°C)'])
+        config.config_values['can_config']['temperature_alarm'] = determine_number_type(updated_values['Temperature Alarm (°C)'])
+        config.config_values['can_config']['temperature_critical'] = determine_number_type(updated_values['Temperature Critical (°C)'])
+
+        # Save the updated configuration to the config file
+        config.save_config()
+
+        # Optionally show a message to the user indicating that the config has been updated
+        messagebox.showinfo("Success", "Configuration updated and saved successfully.")
+    
+    def add_project(self):
+        """Add a new project to the CAN project list using a custom input window."""
+
+        # Create a new top-level window for input
+        input_window = tk.Toplevel(self.master)
+        input_window.title("Add Project")
+
+        # Calculate the position for the window to be centered
+        screen_width = self.master.winfo_screenwidth()
+        screen_height = self.master.winfo_screenheight()
+        window_width = 300
+        window_height = 150
+        x = (screen_width // 2) - (window_width // 2)
+        y = (screen_height // 2) - (window_height // 2)
+
+        # Set the geometry of the window directly in the center
+        input_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        input_window.transient(self.master)  # Set to always be on top of the parent window
+        input_window.grab_set()  # Make the input window modal
+
+        # Create and pack the widgets
+        label = ttk.Label(input_window, text="Enter New Project Name:", font=("Helvetica", 12))
+        label.pack(pady=10)
+
+        project_name_var = tk.StringVar()  # Use StringVar to store the project name
+        entry = ttk.Entry(input_window, textvariable=project_name_var)
+        entry.pack(pady=5)
+
+        # Function to handle OK button click
+        def handle_ok():
+            new_project_name = project_name_var.get().strip()
+            if new_project_name and new_project_name not in config.config_values['can_config']['projects']:
+                config.config_values['can_config']['projects'].append(new_project_name)
+                config.save_config()  # Save the config with the new project
+                self.project_combobox['values'] = config.config_values['can_config']['projects']  # Update the combobox options
+                self.project_combobox.set(new_project_name)  # Select the newly added project
+                input_window.destroy()  # Close the input window
+            elif new_project_name in config.config_values['can_config']['projects']:
+                messagebox.showwarning("Duplicate Project", f"Project '{new_project_name}' already exists.")
+            else:
+                messagebox.showwarning("Invalid Input", "Project name cannot be empty.")
+
+        # OK Button
+        ok_button = ttk.Button(input_window, text="OK", command=handle_ok)
+        ok_button.pack(pady=10)
+
+        # Focus the input window and entry
+        input_window.focus()
+        entry.focus_set()
+
+        # Bind the Return key to trigger the OK button
+        input_window.bind('<Return>', lambda event: handle_ok())
+
+    def edit_project(self):
+        """Edit the selected project name using a custom input window."""
+        selected_project = self.project_combobox.get()
+
+        # Check if a project is selected
+        if not selected_project or selected_project == "Select a Project":
+            messagebox.showwarning("No Project Selected", "Please select a project to edit.")
+            return
+
+        # Create a new top-level window for input
+        input_window = tk.Toplevel(self.master)
+        input_window.title("Edit Project")
+
+        # Calculate the position for the window to be centered
+        screen_width = self.master.winfo_screenwidth()
+        screen_height = self.master.winfo_screenheight()
+        window_width = 300
+        window_height = 150
+        x = (screen_width // 2) - (window_width // 2)
+        y = (screen_height // 2) - (window_height // 2)
+
+        # Set the geometry of the window directly in the center
+        input_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        input_window.transient(self.master)  # Set to always be on top of the parent window
+        input_window.grab_set()  # Make the input window modal
+
+        # Create and pack the widgets
+        label = ttk.Label(input_window, text=f"Edit Project Name ({selected_project}):", font=("Helvetica", 12))
+        label.pack(pady=10)
+
+        project_name_var = tk.StringVar(value=selected_project)  # Pre-fill with current project name
+        entry = ttk.Entry(input_window, textvariable=project_name_var)
+        entry.pack(pady=5)
+
+        # Function to handle OK button click
+        def handle_ok():
+            new_project_name = project_name_var.get().strip()
+            if new_project_name and new_project_name not in config.config_values['can_config']['projects']:
+                index = config.config_values['can_config']['projects'].index(selected_project)
+                config.config_values['can_config']['projects'][index] = new_project_name.strip()
+                config.save_config()  # Save the config with the edited project
+                self.project_combobox['values'] = config.config_values['can_config']['projects']  # Update the combobox options
+                self.project_combobox.set(new_project_name.strip())  # Set the newly edited project as selected
+                input_window.destroy()  # Close the input window
+            elif new_project_name in config.config_values['can_config']['projects']:
+                messagebox.showwarning("Duplicate Project", f"Project '{new_project_name}' already exists.")
+            else:
+                messagebox.showwarning("Invalid Input", "Project name cannot be empty.")
+
+        # OK Button
+        ok_button = ttk.Button(input_window, text="OK", command=handle_ok)
+        ok_button.pack(pady=10)
+
+        # Focus the input window and entry
+        input_window.focus()
+        entry.focus_set()
+
+        # Bind the Return key to trigger the OK button
+        input_window.bind('<Return>', lambda event: handle_ok())
+    
+    def delete_project(self):
+        """Delete the selected project from the CAN project list."""
+        selected_project = self.project_combobox.get()
+
+        # Check if a project is selected
+        if not selected_project or selected_project == "Select a Project":
+            messagebox.showwarning("No Project Selected", "Please select a project to delete.")
+            return
+
+        # Proceed with deleting if a project is selected
+        if selected_project in config.config_values['can_config']['projects']:
+            config.config_values['can_config']['projects'].remove(selected_project)
+            config.save_config()  # Save the config with the removed project
+            self.project_combobox['values'] = config.config_values['can_config']['projects']  # Update the combobox options
+            self.project_combobox.set('Select a Project')  # Reset the combobox selection
+            messagebox.showinfo("Deleted project", f"Project {selected_project} deleted successfully")
+
+    def toggle_dynamic_fields(self):
+        if self.show_dynamic_fields_var.get():
+            self.dynamic_fields_frame.grid()  # Show the dynamic fields
+            self.maintenance_button.grid_remove()  # Hide the "Set 100A and Turn ON Load" button
+            self.turn_off_button.grid_remove()  # Hide the "Turn OFF Load" button
+        else:
+            self.dynamic_fields_frame.grid_remove()  # Hide the dynamic fields
+            self.maintenance_button.grid()  # Show the "Set 100A and Turn ON Load" button
+            self.turn_off_button.grid()  # Show the "Turn OFF Load" button
+    
+    def save_dynamic_fields(self):
+        """Save the dynamic field values entered in the L1, L2, T1, T2, and Repeat fields."""
+        # Fetch the values from the entry fields
+        l1_value = self.l1_entry.get()
+        l2_value = self.l2_entry.get()
+        t1_value = self.t1_entry.get()
+        t2_value = self.t2_entry.get()
+        repeat_value = self.repeat_entry.get()
+
+        # Process the values (for now, we will print them as a placeholder)
+        print(f"L1: {l1_value}, L2: {l2_value}, T1: {t1_value}, T2: {t2_value}, Repeat: {repeat_value}")
+
+    def update_mode(self, event=None):
+        """Update the UI components based on the selected mode (Testing or Maintenance)."""
+        selected_mode = self.mode_var.get()
+
+        if selected_mode == "Testing" and self.selected_button == self.dashboard_button:
+            # Hide the checkbox in Testing
+            if hasattr(self, 'discharge_max_checkbox'):
+                self.discharge_max_checkbox.pack_forget()
+        elif selected_mode == "Maintenance" and self.selected_button == self.dashboard_button:
+            if hasattr(self, 'discharge_max_checkbox'):
+                self.discharge_max_checkbox.pack(pady=(5, 10), before=self.discharging_current_meter)
+
+        # Check if we are in Testing or Maintenance
+        if selected_mode == "Maintenance":
+            self.limited = False  # Show full data in Maintenance Mode
+            # Show the Configuration button
+            if not hasattr(self, 'config_button'):  # Ensure the button exists
+                self.config_button = ttk.Button(
+                    self.side_menu_frame,
+                    text=" Configuration",
+                    command=lambda: self.select_button(self.config_button,self.show_config),
+                    image=self.config_icon,
+                    compound="left",  # Place the icon to the left of the text
+                    bootstyle="info"
+                )
+            self.config_button.pack(fill="x", pady=2, before=self.help_button)
+        else:
+            self.limited = True  # Show limited data in Testing
+            # Hide the Configuration button if in Testing
+            if hasattr(self, 'config_button'):
+                self.config_button.pack_forget()
         """Update the Info page content based on the selected mode."""
         if self.selected_button == self.info_button:
             self.show_control()
@@ -858,6 +1465,8 @@ class CanBatteryInfo:
         if self.selected_button == self.control_button:
             self.show_info()
             self.show_control()
+        if self.selected_button == self.config_button:
+            self.show_dashboard()
     
     def configure_styles(self):
             # Configure custom styles
@@ -917,7 +1526,7 @@ class CanBatteryInfo:
             widget.destroy()
 
     def on_disconnect(self):
-        self.mode_var.set("Testing Mode")
+        self.mode_var.set("Testing")
         if device_data_battery_2['serial_number'] != 0:
             pcan_write_control('both_off',1)
             pcan_write_control('both_off',2)
@@ -938,9 +1547,9 @@ class CanBatteryInfo:
     def show_info(self, event=None):
         self.clear_content_frame()
 
-        # Determine if we are in Testing Mode or Maintenance Mode
+        # Determine if we are in Testing or Maintenance
         selected_mode = self.mode_var.get()
-        self.limited = selected_mode == "Testing Mode"   
+        self.limited = selected_mode == "Testing"   
         # Add a new right-side frame for controls     
         self.refresh_icon = self.load_icon(os.path.join(self.assets_path, "refresh.png"))
         self.start_icon = self.load_icon(os.path.join(self.assets_path, "start.png"))
@@ -1385,44 +1994,39 @@ class CanBatteryInfo:
         # Start the cooldown timer
         reenable_button()
 
-    def bmsreset(self):
-        # # Disable the main window
-        # self.master.attributes("-disabled", True)
+    # def bmsreset(self):
+    #     """Show a progress bar at the top of the main window for BMS reset process."""
 
-        # Create a new top-level window for the progress bar without a title bar
-        popup = ctk.CTkToplevel(self.master)
-        popup.title("BMS Reset Progress")
-        popup.geometry("300x100")
-        popup.resizable(False, False)
-        popup.overrideredirect(True)  # Remove the title bar (no minimize or close buttons)
+    #     # Create a frame at the top of the main window for the progress bar
+    #     progress_frame = ctk.CTkFrame(self.master)
+    #     progress_frame.pack(fill="x", padx=20, pady=10)
 
-        # Center the popup window on the screen
-        popup.update_idletasks()
-        x = (self.master.winfo_screenwidth() - popup.winfo_width()) // 2
-        y = (self.master.winfo_screenheight() - popup.winfo_height()) // 2
-        popup.geometry(f'+{x}+{y}')
+    #     # Add a label and progress bar to the frame
+    #     label = ctk.CTkLabel(progress_frame, text="Resetting BMS, please wait...", font=("Helvetica", 12))
+    #     label.pack(pady=5)
 
-        # Add a label and a progress bar to the popup
-        label = ctk.CTkLabel(popup, text="Resetting BMS, please wait...", font=("Helvetica", 12))
-        label.pack(pady=10)
-        progress_bar = ctk.CTkProgressBar(popup, mode="determinate", progress_color="#45a049")
-        progress_bar.pack(fill="x", padx=20, pady=10)
+    #     progress_bar = ctk.CTkProgressBar(progress_frame, mode="determinate", progress_color="#45a049")
+    #     progress_bar.pack(fill="x", padx=20, pady=5)
 
-        # Function to update the progress bar gradually over 15 seconds
-        def update_progress_bar():
-            for i in range(101):  # 0% to 100%
-                progress_bar.set(i / 100)  # Update progress bar value
-                time.sleep(0.15)  # Sleep to simulate progress over time
+    #     # Function to update the progress bar
+    #     def update_progress_bar():
+    #         for i in range(101):  # 0% to 100%
+    #             progress_bar.set(i / 100)  # Update progress bar value
+    #             self.master.update_idletasks()  # Keep the UI responsive
+    #             time.sleep(0.15)  # Simulate progress over time
 
-            popup.destroy()  # Close the popup window
-            # self.master.attributes("-disabled", False)  # Re-enable the main window
+    #     # Call the function to simulate progress
+    #     update_progress_bar()
 
-        # Run the update_progress_bar function in a separate thread to avoid blocking the UI
-        threading.Thread(target=update_progress_bar).start()
+    #     # Perform the BMS reset command
+    #     pcan_write_control('bms_reset')
 
-        # Start the BMS reset process (this can be moved to the update_progress_bar function if needed)
-        pcan_write_control('bms_reset')
-        
+    #     # Remove the progress bar frame after the reset is complete
+    #     progress_frame.destroy()
+
+    #     # Optionally, show a message box or status update after reset
+    #     messagebox.showinfo("Success", "BMS Reset successfully completed.")
+    
     def activate_heater(self):
         # Change the button to indicate the heater is activated
         self.activate_heater_button.configure(text="Heater Activated", fg_color="#4CAF50", hover_color="#45a049")
@@ -1439,16 +2043,16 @@ class CanBatteryInfo:
 
     def check_battery_log_for_cycle_count(self):
         """
-        Check the battery log file to see if the current battery's serial number exists
-        and if the cycle count is 0. If cycle count is 0, show a popup to update it.
+        Check the CAN data log file to see if the current battery's serial number exists
+        and if the cycle count is 0. If the cycle count is 0, show a popup to update it.
         """
-        # Define the folder and file path for the battery log
-        folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_Logs")
-        file_path = os.path.join(folder_path, "Can_Log.xlsx")
+        # Define the folder and file path for the CAN data log
+        folder_path = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database")
+        file_path = os.path.join(folder_path, "can_data.xlsx")
 
         # Check if the file exists
         if not os.path.exists(file_path):
-            messagebox.showerror("Error", "Battery log file not found.")
+            messagebox.showerror("Error", "CAN data log file not found.")
             return False  # Return False if the file doesn't exist
 
         # Open the existing Excel file
@@ -1456,31 +2060,28 @@ class CanBatteryInfo:
         sheet = workbook.active
 
         # Loop through the rows to find the correct row by Serial Number
-        serial_number_column = 8  # Assuming Serial Number is in column H (8th column)
-        cycle_count_column = 10  # Assuming Cycle Count is in column J (10th column)
+        serial_number_column = 7  # Assuming Serial Number is in column G (7th column)
+        cycle_count_column = 8    # Assuming Cycle Count is in column H (8th column)
 
         battery_serial_number = self.device_data.get('serial_number')
 
-        serial_found = False
         for row in range(2, sheet.max_row + 1):  # Start at 2 to skip the header
             if sheet.cell(row=row, column=serial_number_column).value == battery_serial_number:
-                serial_found = True  # Serial number found
+                # Serial number found, check cycle count
                 cycle_count = sheet.cell(row=row, column=cycle_count_column).value
-
-                # If the cycle count is 0, update the dashboard flag and show popup
                 if cycle_count == 0:
-                    print('test')
+                    print('Cycle count is 0, showing update prompt.')
                     self.first_time_dashboard = True
                     self.prompt_manual_cycle_count()  # Show the input dialog for cycle count update
                 else:
-                    print('test1')
+                    print('Cycle count found and not 0.')
                     self.device_data['cycle_count'] = cycle_count
                     self.first_time_dashboard = False
-                break
+                return True  # Exit the loop and return True once serial number is found
 
-        if not serial_found:
-            messagebox.showwarning("Warning", f"Serial number {battery_serial_number} not found.")
-            return False  # Return False if the serial number is not found
+        # If loop completes without finding the serial number
+        messagebox.showwarning("Warning", f"Serial number {battery_serial_number} not found.")
+        return False  # Return False if the serial number is not found
 
-        return True  # Return True if the serial number is found and checked
+
 

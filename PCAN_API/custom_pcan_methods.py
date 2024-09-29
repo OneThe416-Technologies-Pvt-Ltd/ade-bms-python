@@ -3,16 +3,21 @@
 from pcan_api.pcan import *
 from tkinter import messagebox
 import time
-import openpyxl
+import pandas as pd
 import asyncio
 from openpyxl import Workbook, load_workbook
 import datetime
 from fpdf import FPDF
 import os
+import helpers.pdf_generator as pdf_generator  # Config helper
+import helpers.config as config  # Config helper
 
 m_objPCANBasic = PCANBasic()
 m_PcanHandle = 81
 is_fetching_current=False
+
+# Path to store the configuration file (e.g., in the user's home directory)
+CONFIG_FILE_PATH = os.path.join(os.path.expanduser("~"), "device_config.json")
 
 battery_status_flags = {
     "overcharged_alarm": 0,  # Bit 15
@@ -27,6 +32,7 @@ battery_status_flags = {
     "fully_discharged": 0,  # Bit 4
     "error_codes": 0  # Bits 3:0
 }
+
 battery_1_status_flags = {
     "overcharged_alarm": 1,  # Bit 15
     "terminate_charge_alarm": 1,  # Bit 14
@@ -40,6 +46,7 @@ battery_1_status_flags = {
     "fully_discharged": 1,  # Bit 4
     "error_codes": 1  # Bits 3:0
 }
+
 battery_2_status_flags = {
     "overcharged_alarm": 0,  # Bit 15
     "terminate_charge_alarm": 0,  # Bit 14
@@ -149,7 +156,7 @@ device_data = {
 
 device_data_battery_1 = {
             'device_name': "BT-70939APH",
-            'serial_number': 0,
+            'serial_number': 1478,
             'manufacturer_name': "Bren-Tronics",
             'firmware_version': "",
             'battery_status': "",
@@ -158,8 +165,8 @@ device_data_battery_1 = {
             'design_voltage': 0,
             'remaining_capacity': 0,
             'temperature': 0,
-            'current': 0,
-            'voltage': 0,
+            'current': 30,
+            'voltage': 26,
             'avg_current': 0,
             'charging_current': 0,
             'full_charge_capacity': 0,
@@ -179,7 +186,7 @@ device_data_battery_1 = {
 
 device_data_battery_2 = {
             'device_name': "BT-70939APH",
-            'serial_number': 0,
+            'serial_number': 1477,
             'manufacturer_name': "Bren-Tronics",
             'firmware_version': "",
             'battery_status': "",
@@ -189,7 +196,7 @@ device_data_battery_2 = {
             'remaining_capacity': 0,
             'temperature': 0,
             'current': 0,
-            'voltage': 0,
+            'voltage': 24,
             'avg_current': 0,
             'charging_current': 0,
             'full_charge_capacity': 0,
@@ -254,7 +261,7 @@ async def fetch_and_store_data(call_name, key):
 def pcan_initialize(baudrate, hwtype, ioport, interrupt):
     result = m_objPCANBasic.Initialize(m_PcanHandle, baudrate, hwtype, ioport, interrupt)
     if result != PCAN_ERROR_OK:
-        log_battery_data(device_data_battery_1)
+        log_can_data(device_data_battery_1)
         if result == 5120:
             result = 512
         messagebox.showerror("Error!", GetFormatedError(result))
@@ -270,7 +277,7 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
             pcan_write_read('current',2)     
             pcan_write_read('remaining_capacity',2)       
             pcan_write_read('full_charge_capacity',2)
-            log_battery_data(device_data_battery_2)
+            log_can_data(device_data_battery_2)
             pcan_write_read('temperature',1)
             pcan_write_read('firmware_version',1)       
             pcan_write_read('voltage',1)            
@@ -278,7 +285,7 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
             pcan_write_read('current',1)      
             pcan_write_read('remaining_capacity',1)       
             pcan_write_read('full_charge_capacity',1)
-            log_battery_data(device_data_battery_1)
+            log_can_data(device_data_battery_1)
             messagebox.showinfo("Info!", "Device Connected with 2 batterys")
             return True
         elif device_data_battery_1['serial_number'] != 0:
@@ -289,7 +296,7 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
             pcan_write_read('current',1)      
             pcan_write_read('remaining_capacity',1)       
             pcan_write_read('full_charge_capacity',1)
-            log_battery_data(device_data_battery_1)
+            log_can_data(device_data_battery_1)
             messagebox.showinfo("Info!", "Device Connected with 1 batterys")
             return True
         else:
@@ -911,19 +918,19 @@ def update_battery_status_flags_to_default():
         battery_2_status_flags[key] = 0
 
 
-def log_battery_data(update_battery):
+def log_can_data(update_can_data):
     """
-    Log battery data to an Excel file. If the serial number exists, update the row;
-    if it doesn't exist, append a new row with the data.
+    Log CAN data to an Excel file. If the serial number exists, do nothing;
+    if it doesn't exist, append a new row with default values.
     """
     try:
-        # Create or open a folder for logs
-        folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_Logs")
+        # Define the path for the CAN data Excel file inside the AppData directory
+        folder_path = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database")
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
 
         # Define the log file name
-        file_name = "Battery_Log.xlsx"
+        file_name = "can_data.xlsx"
         file_path = os.path.join(folder_path, file_name)
 
         # Create or load workbook
@@ -936,115 +943,90 @@ def log_battery_data(update_battery):
                 messagebox.showerror("Error", f"Failed to load the Excel file: {str(e)}. Recreating the file.")
                 workbook = Workbook()
                 sheet = workbook.active
-                sheet.title = "Battery Log"
-                # Add headers
+                sheet.title = "CAN Data"
+                # Add headers for CAN data
                 headers = [
-                    "SI No", "Date", "Time", "Project", "Duration", "Device Name", "Manufacturer Name",
-                    "Serial Number", "Firmware Version", "Cycle Count", "Full Charge Capacity", "Charging Duration",
-                    "Charging Date", "OCV", "Current Loaded","Discharging Duration", "0th Second Voltage", "5th Second Voltage",
-                    "30th Second Voltage", "Discharging Date"
+                    "SI No", "Date", "Time", "Project", "Device Name", "Manufacturer Name", 
+                    "Serial Number", "Cycle Count", "Full Charge Capacity", "Charging Date", 
+                    "OCV Before Charging", "Discharging Date", "OCV Before Discharging"
                 ]
                 sheet.append(headers)
         else:
             # File does not exist, so create it
             workbook = Workbook()
             sheet = workbook.active
-            sheet.title = "Battery Log"
-            # Add headers
+            sheet.title = "CAN Data"
+            # Add headers for CAN data
             headers = [
-                "SI No", "Date", "Time", "Project", "Duration", "Device Name", "Manufacturer Name",
-                "Serial Number", "Firmware Version", "Cycle Count", "Full Charge Capacity", "Charging Duration",
-                "Charging Date", "OCV", "Current Loaded","Discharging Duration", "0th Second Voltage", "5th Second Voltage",
-                "30th Second Voltage", "Discharging Date"
+                "SI No", "Date", "Time", "Project", "Device Name", "Manufacturer Name", 
+                "Serial Number", "Cycle Count", "Full Charge Capacity", "Charging Date", 
+                "OCV Before Charging", "Discharging Date", "OCV Before Discharging"
             ]
             sheet.append(headers)
 
-        # Log the current battery data
+        # Log the current CAN data
         current_datetime = datetime.datetime.now()
         date = current_datetime.strftime("%Y-%m-%d")
         time = current_datetime.strftime("%H:%M:%S")
-        serial_number = update_battery.get('serial_number', 'N/A')
+        serial_number = update_can_data.get('serial_number', 'N/A')
 
         # Check if the serial number exists in the file
-        serial_number_column = 8  # Assuming Serial Number is in column H (8th column)
-        cycle_count_column = 10    # Assuming Cycle Count is in column J (10th column)
+        serial_number_column = 7  # Assuming Serial Number is in column G (7th column)
         serial_found = False
 
         for row in range(2, sheet.max_row + 1):  # Start at 2 to skip the header
             if sheet.cell(row=row, column=serial_number_column).value == serial_number:
                 serial_found = True
-                sheet.cell(row=row, column=2).value = date  # Update Date
-                sheet.cell(row=row, column=3).value = time  # Update Time
-                sheet.cell(row=row, column=11).value = 103 # Update Project
-                sheet.cell(row=row, column=12).value = 0  # Charging Duration
-                sheet.cell(row=row, column=13).value = date  # Charging Date
-                sheet.cell(row=row, column=14).value = 0  # Update OCV
-                sheet.cell(row=row, column=15).value = 0  # Update Current Loaded
-                sheet.cell(row=row, column=16).value = 0  # Update 0th Discharging Duration
-                sheet.cell(row=row, column=17).value = 0  # Update 0th Second Voltage
-                sheet.cell(row=row, column=18).value = 0  # Update 5th Second Voltage
-                sheet.cell(row=row, column=19).value = 0  # Update 30th Second Voltage
-                sheet.cell(row=row, column=20).value = date  # Update Discharging Date
-                if update_battery.get('cycle_count', 0) == 0:
-                    update_battery['cycle_count'] = sheet.cell(row=row, column=cycle_count_column).value  # Update cycle count if not provided
+                print(f"Serial number {serial_number} already exists. No action taken.")
                 break
 
         if not serial_found:
-            # If serial number is not found, add a new row
+            # If serial number is not found, add a new row with default values
             next_row = sheet.max_row + 1
-            battery_data = [
+            can_data = [
                 next_row - 1,  # SI No
                 date,  # Date
                 time,  # Time
-                'N/A',  # Project
-                0,  # Duration (set to N/A for now)
-                'BT-70939APH',  # Device Name
-                'Bren-Tronics',  # Manufacturer Name
+                update_can_data.get('project', ''),  # Project
+                update_can_data.get('device_name', 'BT-70939APH'),  # Device Name
+                update_can_data.get('manufacturer_name', 'Bren-Tronics'),  # Manufacturer Name
                 serial_number,  # Serial Number
-                'N/A',  # Firmware Version
-                0,  # Cycle Count
-                103,  # Full Charge Capacity
-                0,  # Charging Duration
-                date,  # Charging Date
-                0,  # OCV
-                0,  # Current Loaded
-                0,  # Discharging Duration
-                0,  # 0th Second Voltage
-                0,  # 5th Second Voltage
-                0,  # 30th Second Voltage
-                date  # Discharging Date
+                int(update_can_data.get('cycle_count', 0)),  # Ensure Cycle Count is an int
+                103,  # Ensure Full Charge Capacity is a float
+                update_can_data.get('charging_date', date),  # Charging Date
+                float(update_can_data.get('ocv_before_charging', 0.0)),  # Ensure OCV Before Charging is a float
+                update_can_data.get('discharging_date', date),  # Discharging Date
+                float(update_can_data.get('ocv_before_discharging', 0.0))  # Ensure OCV Before Discharging is a float
             ]
-            sheet.append(battery_data)
+            sheet.append(can_data)
 
         # Save the Excel file
         workbook.save(file_path)
         workbook.close()
-        print(f"Battery data logged or updated in {file_path}")
+        print(f"CAN data logged in {file_path}.")
 
     except Exception as e:
         print(f"An error occurred while updating the Excel file: {str(e)}")
         messagebox.showerror("Error", f"An error occurred while updating the Excel file: {str(e)}")
 
 
-def get_latest_battery_log(serial_number):
+def get_latest_can_data(serial_number):
     """
-    Retrieves the most recent battery log for the specified serial number.
+    Retrieves the most recent CAN data for the specified serial number.
     """
-    # Path to the Excel file
-    folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_Logs")
-    file_name = "Battery_Log.xlsx"
-    file_path = os.path.join(folder_path, file_name)
+    # Path to the CAN data Excel file
+    can_data_file = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database", "can_data.xlsx")
 
-    if not os.path.exists(file_path):
-        messagebox.showerror("Error", "No log file found. Please log battery data first.")
+    if not os.path.exists(can_data_file):
+        messagebox.showerror("Error", "No CAN data file found. Please log CAN data first.")
         return None
 
     # Load the existing workbook and access the first sheet
-    workbook = load_workbook(file_path)
+    workbook = load_workbook(can_data_file)
     sheet = workbook.active
 
-    # Find the serial number column (assuming it's the 8th column, adjust if necessary)
-    serial_number_column = 8  # H column
+    # Find the serial number column (assuming it's the 7th column, adjust if necessary)
+    serial_number_column = 7  # Serial Number is the 7th column (G column)
 
     # Search for the serial number in the rows and store the data if found
     serial_found = False
@@ -1068,24 +1050,25 @@ def get_latest_battery_log(serial_number):
             break
 
     if not serial_found:
-        messagebox.showwarning("Warning", f"Serial number {serial_number} not found in the log.")
+        messagebox.showwarning("Warning", f"Serial number {serial_number} not found in the CAN data.")
         return None
 
     return latest_data
 
 
-def update_cycle_count_in_excel(serial_number, new_cycle_count):
+
+def update_cycle_count_in_can_data(serial_number, new_cycle_count):
     """
-    Update the cycle count for a specific battery identified by its serial number
-    in the Battery Log Excel file.
+    Update the cycle count for a specific device identified by its serial number
+    in the CAN Data Excel file.
     """
-    # Define the folder and file path for the battery log
-    folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_Logs")
-    file_path = os.path.join(folder_path, "Battery_Log.xlsx")
+    # Define the folder and file path for the CAN data file
+    folder_path = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database")
+    file_path = os.path.join(folder_path, "can_data.xlsx")
 
     # Check if the file exists
     if not os.path.exists(file_path):
-        messagebox.showerror("Error", "Battery log file not found.")
+        messagebox.showerror("Error", "CAN data file not found.")
         return
 
     # Open the existing Excel file
@@ -1093,8 +1076,8 @@ def update_cycle_count_in_excel(serial_number, new_cycle_count):
     sheet = workbook.active
 
     # Loop through the rows to find the correct row by Serial Number
-    serial_number_column = 8  # Assuming Serial Number is in column G (7th column)
-    cycle_count_column = 10  # Assuming Cycle Count is in column I (9th column)
+    serial_number_column = 7  # Assuming Serial Number is in column G (7th column)
+    cycle_count_column = 8    # Assuming Cycle Count is in column H (8th column)
 
     for row in range(2, sheet.max_row + 1):  # Start at 2 to skip the header
         if sheet.cell(row=row, column=serial_number_column).value == serial_number:
@@ -1110,108 +1093,49 @@ def update_cycle_count_in_excel(serial_number, new_cycle_count):
     messagebox.showinfo("Success", f"Cycle count updated successfully for Serial Number {serial_number}.")
 
 
-def is_excel_file_open(file_path):
-    """Check if the Excel file is open by trying to open it in write mode."""
-    try:
-        # Attempt to open the file in write mode (this will raise an error if the file is open)
-        with open(file_path, 'a'):
-            return False  # File is not open
-    except PermissionError:
-        return True  # File is open 
-
-
-def generate_pdf_and_update_excel(entries, serial_number):
+def update_excel_and_download_pdf(data):
     """
     Get the updated values from the form, update the Excel file, and generate a PDF.
     """
-    # Print the current entries for debugging
-    for field, value in entries.items():
-        print(f"{field}: {value}")
+    # Define the path to the CAN data Excel file
+    can_data_file = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database", "can_data.xlsx")
 
-    # Define the log file path
-    folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_Logs")
-    file_path = os.path.join(folder_path, "Battery_Log.xlsx")
-
-    if not os.path.exists(file_path):
-        print("File does not exist.")
+    # Load the existing data
+    try:
+        df_can_data = pd.read_excel(can_data_file)
+    except FileNotFoundError:
+        messagebox.showerror("Error", f"{can_data_file} not found.")
         return
+    
+    # Assuming the serial number is unique, update the corresponding row
+    serial_number = data[2]  # serial_number is the second element in the array
+    df_can_data['Serial Number'] = df_can_data['Serial Number'].astype(str).str.strip()
+    df_can_data['OCV Before Charging'] = df_can_data['OCV Before Charging'].astype(float)
+    df_can_data['OCV Before Discharging'] = df_can_data['OCV Before Discharging'].astype(float)
+    index = df_can_data[df_can_data['Serial Number'] == serial_number].index
+    print(f"{df_can_data['Serial Number']} test {serial_number}")
+    print(f"{index} index")
+    if not index.empty:
+        # Update the values in the DataFrame
+        df_can_data.loc[index[0], 'Project'] = str(data[0])  # Ensure it's a string
+        df_can_data.loc[index[0], 'Device Name'] = str(data[1])  # Ensure it's a string
+        df_can_data.loc[index[0], 'Manufacturer Name'] = str(data[3])  # Ensure it's a string
+        df_can_data.loc[index[0], 'Serial Number'] = int(data[2])  # Ensure it's a string
+        df_can_data.loc[index[0], 'Cycle Count'] = int(data[4])  # Convert to int
+        df_can_data.loc[index[0], 'Full Charge Capacity'] = float(data[5])  # Convert to float
+        df_can_data.loc[index[0], 'Charging Date'] = str(data[6])  # Ensure it's a string
+        df_can_data.loc[index[0], 'OCV Before Charging'] = float(data[7])  # Convert to float
+        df_can_data.loc[index[0], 'Discharging Date'] = str(data[8])  # Ensure it's a string
+        df_can_data.loc[index[0], 'OCV Before Discharging'] = float(data[9])  # Convert to float
 
-    # Load the existing Excel workbook and active sheet
-    workbook = load_workbook(file_path)
-    sheet = workbook.active
+        # Save the updated DataFrame back to the Excel file
+        df_can_data.to_excel(can_data_file, index=False)
+        messagebox.showinfo("Success", "Data updated successfully.")
+    else:
+        messagebox.showwarning("Warning", "Serial Number not found in the Excel file.")
 
-    if not serial_number:
-        print("No serial number provided.")
-        return
-
-    serial_number_found = False
-
-    # Map form fields to Excel columns (1-based index)
-    field_to_column_map = {
-        "Si No": 1,
-        "Date": 2,
-        "Time": 3,
-        "Project": 4,  # Added the Project field to the 4th column
-        "Duration": 5,
-        "Device Name": 6,
-        "Manufacturer Name": 7,
-        "Serial Number": 8,
-        "Firmware Version": 9,
-        "Cycle Count": 10,
-        "Full Charge Capacity": 11,  # Corrected column index
-        "Charging Duration": 12,     # Assign valid column index
-        "Charging Date": 13,         # Assign valid column index
-        "OCV": 14,                   # Corrected column index
-        "Current Loaded": 15,  
-        "Discharging Duration": 16,  # Corrected column index
-        "0th Second Voltage": 17,    # Corrected column index
-        "5th Second Voltage": 18,    # Corrected column index
-        "30th Second Voltage": 19,   # Corrected column index
-        "Discharging Date": 20
-    }
-
-    # Check if all necessary columns exist and create them if not
-    for field, column in field_to_column_map.items():
-        if sheet.cell(row=1, column=column).value != field:
-            print(f"Creating missing column for {field} at position {column}")
-            sheet.cell(row=1, column=column).value = field  # Set the header if the column doesn't exist
-
-    # Find the row with the matching serial number
-    for row in range(2, sheet.max_row + 1):
-        current_serial_number = str(sheet.cell(row=row, column=8).value)  # Assuming Serial Number is in column 8
-        if current_serial_number == str(serial_number):  # Make sure both serial numbers are compared as strings
-            serial_number_found = True
-            print(f"Serial Number {serial_number} found in row {row}. Updating values...")
-
-            # Update the values in the Excel file using the mapped columns
-            for field, column in field_to_column_map.items():
-                if field in entries:
-                    new_value = entries[field]
-                    print(f"Updating {field} in row {row}, column {column} with value: {new_value}")
-
-                    # Update numeric fields as numbers and others as text
-                    if field in ["Serial Number", "Cycle Count", "OCV", "Current Loaded", "Charging Duration",
-                                  "Discharging Duration", "0th Second Voltage", "5th Second Voltage",
-                                  "30th Second Voltage"]:
-                        # Convert numeric fields, handle empty values as 0
-                        try:
-                            sheet.cell(row=row, column=column).value = float(new_value) if new_value else 0
-                        except ValueError:
-                            sheet.cell(row=row, column=column).value = 0
-                    else:
-                        sheet.cell(row=row, column=column).value = new_value
-            break
-
-    if not serial_number_found:
-        print(f"Serial number {serial_number} not found in the Excel file.")
-
-    # Save the updated Excel file
-    workbook.save(file_path)
-    workbook.close()
-    print(f"Excel file saved at {file_path}.")
-
-    # Generate the PDF with the updated values
-    create_pdf_summary(serial_number)
+    # # Generate the PDF with the updated values
+    pdf_generator.create_can_report_pdf(serial_number,"CAN")
 
 
 def open_pdf_folder():
@@ -1228,150 +1152,6 @@ def open_pdf_folder():
         os.startfile(folder_path)  # This will open the folder in Windows Explorer
     except Exception as e:
         messagebox.showerror("Error", f"Unable to open folder: {str(e)}")
-
-
-def create_pdf_summary(serial_number):
-    # Retrieve the latest battery log from the Excel file
-    latest_data = get_latest_battery_log(serial_number)
-    if latest_data is None:
-        return  # Stop if no data is found
-
-    # Create a folder path to save the PDF
-    folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_PDFs")
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-
-    # Create a timestamp for the PDF file
-    serial_number = device_data.get('serial_number', 'Unknown')  # Get the serial number or set 'Unknown' if not available
-    date_str = datetime.datetime.now().strftime("%Y-%m-%d")  # Get the current date in YYYY-MM-DD format
-    pdf_filename = f"Battery_Report_{serial_number}_{date_str}.pdf"  # Construct the filename with serial number and date
-    pdf_filepath = os.path.join(folder_path, pdf_filename)
-
-    # Initialize the PDF with smaller margins
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=False)  # Disable automatic page breaks to fit everything on one page
-    pdf.add_page()
-
-    # Add logo (set the path to your logo image)
-    logo_path = os.path.join(os.path.dirname(__file__), "../Assets", "logo", "ade_pdf_logo.jpg")  # Replace with the actual path to your logo
-    logo_width = 60  # Reduce logo width
-    page_width = 210  # Default A4 page width in mm
-    x_position = (page_width - logo_width) / 2
-
-    # Add the logo image, centered
-    try:
-        pdf.image(logo_path, x=x_position, y=10, w=logo_width)  # Adjust x, y, and w as needed
-    except FileNotFoundError:
-        messagebox.showerror("Error", f"Logo not found at {logo_path}")
-        return
-
-    # Set some space after the logo
-    pdf.ln(20)  # Smaller space after the logo
-
-    # Set title and fonts (smaller font size)
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(200, 6, "Aeronautical Development Establishment, Bangalore", ln=True, align='C')
-
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(200, 6, "APS", ln=True, align='C')
-
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(200, 6, "BATTERY REPORT", ln=True, align='C')
-
-    pdf.set_font("Arial", "", 12)
-    pdf.cell(200, 6, f"Generated on: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True)
-
-    # Battery Info
-    pdf.ln(5)
-
-    pdf.set_font("Arial", "", 12)
-    pdf.cell(70, 5, "Project:", 0, 0)
-    pdf.cell(100, 5, str(latest_data.get('Project', 'N/A')), ln=True)
-
-    pdf.set_font("Arial", "", 12)
-    pdf.cell(70, 5, "Device Name:", 0, 0)
-    pdf.cell(100, 5, str(latest_data.get('Device Name', 'N/A')), ln=True)
-
-    pdf.cell(70, 5, "Serial Number:", 0, 0)
-    pdf.cell(100, 5, str(latest_data.get('Serial Number', 'N/A')), ln=True)
-
-    pdf.cell(70, 5, "Manufacturer:", 0, 0)
-    pdf.cell(100, 5, str(latest_data.get('Manufacturer Name', 'N/A')), ln=True)
-
-    pdf.cell(70, 5, "Cycle Count:", 0, 0)
-    pdf.cell(100, 5, str(latest_data.get('Cycle Count', 'N/A')), ln=True)
-
-    pdf.cell(70, 5, "Full Charge Capacity (Ah):", 0, 0)
-    pdf.cell(100, 5, str(latest_data.get('Full Charge Capacity', 'N/A')), ln=True)
-
-    # Charging Information
-    pdf.ln(5)
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(200, 5, "Charging Information", ln=True)
-
-    pdf.set_font("Arial", "", 12)
-    pdf.cell(70, 5, "Charging Duration:", 0, 0)
-    pdf.cell(100, 5, str(latest_data.get('Charging Duration', 'N/A')), ln=True)
-
-    pdf.cell(70, 5, "Charging Date:", 0, 0)
-    pdf.cell(100, 5, str(latest_data.get('Charging Date', 'N/A')), ln=True)
-
-    # Discharging Information
-    pdf.ln(5)
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(200, 5, "Load Test Information", ln=True)
-
-    pdf.set_font("Arial", "", 12)
-    pdf.cell(70, 5, "Current Loaded (A):", 0, 0)
-    pdf.cell(100, 5, str(latest_data.get('Current Loaded', 'N/A')), ln=True)
-
-    pdf.cell(70, 5, "OCV (V):", 0, 0)
-    pdf.cell(100, 5, str(latest_data.get('OCV', 'N/A')), ln=True)
-
-    pdf.cell(70, 5, "0th Second Voltage (V):", 0, 0)
-    pdf.cell(100, 5, str(latest_data.get('0th Second Voltage', 'N/A')), ln=True)
-
-    pdf.cell(70, 5, "5th Second Voltage (V):", 0, 0)
-    pdf.cell(100, 5, str(latest_data.get('5th Second Voltage', 'N/A')), ln=True)
-
-    pdf.cell(70, 5, "30th Second Voltage (V):", 0, 0)
-    pdf.cell(100, 5, str(latest_data.get('30th Second Voltage', 'N/A')), ln=True)
-
-    pdf.cell(70, 5, "Discharge Date:", 0, 0)
-    pdf.cell(100, 5, str(latest_data.get('Discharging Date', 'N/A')), ln=True)
-
-    # Prepared By, Checked By, Approved By
-    pdf.ln(10)
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(70, 5, "Prepared By:", 0, 0)
-    pdf.cell(70, 5, "Checked By:", 0, 0)
-    pdf.cell(70, 5, "Approved By:", 0, 1)
-
-    # Signature, Name, Designation, Date
-    pdf.cell(70, 5, "Signature:", 0, 0)
-    pdf.cell(70, 5, "", 0, 0)
-    pdf.cell(70, 5, "", 0, 1)
-
-    pdf.cell(70, 5, "Name:", 0, 0)
-    pdf.cell(70, 5, "", 0, 0)
-    pdf.cell(70, 5, "", 0, 1)
-
-    pdf.cell(70, 5, "Designation:", 0, 0)
-    pdf.cell(70, 5, "", 0, 0)
-    pdf.cell(70, 5, "", 0, 1)
-
-    pdf.cell(70, 5, "Date:", 0, 0)
-    pdf.cell(70, 5, "", 0, 0)
-    pdf.cell(70, 5, "", 0, 1)
-
-    # Save the PDF to the file
-    pdf.output(pdf_filepath)
-
-    # Notify the user about the saved file
-    messagebox.showinfo("PDF Generated", f"PDF saved successfully to {pdf_filepath}")
-
-    # Open the PDF file automatically after creation
-    os.startfile(pdf_filepath)
 
 
 def log_charging_duration_to_excel(serial_number, charging_start_time, charging_end_time, duration):
@@ -1435,6 +1215,7 @@ def fetch_charging_info(serial_number):
 
 
 async def fetch_current(battery_no):
+        global is_fetching_current  # Declare it as a global variable
         # Keep fetching the current value asynchronously
         while is_fetching_current:
             try:
@@ -1449,16 +1230,139 @@ async def fetch_current(battery_no):
             except Exception as e:
                 print(f"Error fetching current for battery {battery_no}: {e}")
             
-            await asyncio.sleep(0.5)  # Sleep for 500ms asynchronously before trying again
+            await asyncio.sleep(config.config_values['can_config']['logging_time'])  # Sleep for 500ms asynchronously before trying again
 
 
 def start_fetching_current(battery_no):
+    global is_fetching_current  # Declare it as a global variable
     # Start fetching in the event loop
     if not is_fetching_current:
+        if battery_no == 1:
+            update_charging_ocv_in_excel(device_data_battery_1['serial_number'],device_data_battery_1['voltage'])
+        elif battery_no == 2:
+            update_charging_ocv_in_excel(device_data_battery_2['serial_number'],device_data_battery_2['voltage'])
         is_fetching_current = True
         asyncio.create_task(fetch_current(battery_no))
 
 
 def stop_fetching_current():
+    global is_fetching_current  # Declare it as a global variable
     # Stop fetching current
     is_fetching_current = False
+
+def is_excel_file_open(file_path):
+    """Check if the Excel file is open by trying to open it in write mode."""
+    try:
+        # Attempt to open the file in write mode (this will raise an error if the file is open)
+        with open(file_path, 'a'):
+            return False  # File is not open
+    except PermissionError:
+        return True  # File is open 
+
+
+def update_charging_ocv_in_excel(serial_number, ocv_value):
+    """
+    Updates the charging OCV and charging date fields in the CAN data Excel file.
+    
+    Parameters:
+    - serial_number (str): The serial number of the battery.
+    - ocv_value (float): The OCV value before charging.
+    """
+    try:
+        # Define the folder and file path for the CAN data log
+        folder_path = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database")
+        file_path = os.path.join(folder_path, "can_data.xlsx")
+
+        # Load the Excel file
+        if not os.path.exists(file_path):
+            messagebox.showerror("Error", "CAN data log file not found.")
+            return False
+
+        workbook = load_workbook(file_path)
+        sheet = workbook.active
+
+        # Loop through rows to find the correct row by Serial Number
+        serial_number_column = 7  # Assuming Serial Number is in column G (7th column)
+        charging_ocv_column = 11   # Assuming OCV Before Charging is in column K (11th column)
+        charging_date_column = 10   # Assuming Charging Date is in column J (10th column)
+
+        serial_found = False
+        for row in range(2, sheet.max_row + 1):  # Start at 2 to skip the header
+            if sheet.cell(row=row, column=serial_number_column).value == serial_number:
+                serial_found = True
+                # Update the OCV before charging
+                sheet.cell(row=row, column=charging_ocv_column).value = ocv_value
+                # Set the current date as the charging date
+                sheet.cell(row=row, column=charging_date_column).value = datetime.datetime.now().strftime("%Y-%m-%d")
+                print(f"Updated Charging OCV and Date for Serial: {serial_number}")
+                break
+
+        if not serial_found:
+            messagebox.showwarning("Warning", f"Serial number {serial_number} not found.")
+            return False
+
+        # Save the changes to the Excel file
+        workbook.save(file_path)
+        workbook.close()
+        return True
+    
+    except FileNotFoundError:
+        messagebox.showerror("Error", "The Excel file could not be found.")
+    except PermissionError:
+        messagebox.showerror("Error", "The Excel file is currently open. Please close it and try again.")
+    except Exception as e:
+        messagebox.showerror("Error", f"An unexpected error occurred: {str(e)}")
+
+def update_discharging_ocv_in_excel(serial_number, ocv_value):
+    """
+    Updates the discharging OCV and discharging date fields in the CAN data Excel file.
+    
+    Parameters:
+    - serial_number (str): The serial number of the battery.
+    - ocv_value (float): The OCV value before discharging.
+    """
+    try:
+        # Define the folder and file path for the CAN data log
+        folder_path = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database")
+        file_path = os.path.join(folder_path, "can_data.xlsx")
+
+        # Load the Excel file
+        if not os.path.exists(file_path):
+            messagebox.showerror("Error", "CAN data log file not found.")
+            return False
+
+        workbook = load_workbook(file_path)
+        sheet = workbook.active
+
+        # Loop through rows to find the correct row by Serial Number
+        serial_number_column = 7  # Assuming Serial Number is in column G (7th column)
+        discharging_ocv_column = 12  # Assuming OCV Before Discharging is in column L (12th column)
+        discharging_date_column = 13  # Assuming Discharging Date is in column M (13th column)
+
+        serial_found = False
+        for row in range(2, sheet.max_row + 1):  # Start at 2 to skip the header
+            if sheet.cell(row=row, column=serial_number_column).value == serial_number:
+                serial_found = True
+                # Update the OCV before discharging
+                sheet.cell(row=row, column=discharging_ocv_column).value = ocv_value
+                # Set the current date as the discharging date
+                sheet.cell(row=row, column=discharging_date_column).value = datetime.datetime.now().strftime("%Y-%m-%d")
+                print(f"Updated Discharging OCV and Date for Serial: {serial_number}")
+                break
+
+        if not serial_found:
+            messagebox.showwarning("Warning", f"Serial number {serial_number} not found.")
+            return False
+
+        # Save the changes to the Excel file
+        workbook.save(file_path)
+        workbook.close()
+        return True
+    
+    except FileNotFoundError:
+        messagebox.showerror("Error", "The Excel file could not be found.")
+    except PermissionError:
+        messagebox.showerror("Error", "The Excel file is currently open. Please close it and try again.")
+    except Exception as e:
+        messagebox.showerror("Error", f"An unexpected error occurred: {str(e)}")
+
