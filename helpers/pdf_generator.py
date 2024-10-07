@@ -5,6 +5,8 @@ import datetime
 from tkinter import messagebox, filedialog
 
 def create_can_report_pdf(serial_number, protocol):
+    # Get the path to the Documents folder
+    documents_folder = os.path.join(os.path.expanduser("~"), "Documents", "Battery Reports")
     # Define the folder path
     folder_path = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database")
     
@@ -44,18 +46,21 @@ def create_can_report_pdf(serial_number, protocol):
         messagebox.showinfo("No Data", "No data found for the given serial number.")
         return
 
-    # Ask user to select the folder and file name for saving the PDF
-    save_path = filedialog.asksaveasfilename(
-        defaultextension=".pdf",
-        filetypes=[("PDF files", "*.pdf")],
-        initialfile=f"Battery_Report_{serial_number}_{datetime.datetime.now().strftime('%Y-%m-%d')}.pdf"
-        )
-    if not save_path:
-        messagebox.showinfo("Cancelled", "File saving cancelled.")
-        return
-    if not os.access(os.path.dirname(save_path), os.W_OK):
-        messagebox.showerror("Error", "You do not have permission to save in the selected directory.")
-        return
+    # Create project folder based on the "Project" name
+    project_name = str(general_data.iloc[0]["Project"])
+    project_folder = os.path.join(documents_folder, project_name)
+    if not os.path.exists(project_folder):
+        os.makedirs(project_folder)
+
+    # Retrieve the cycle count from the general data
+    cycle_count = str(general_data.iloc[0]["Cycle Count"])
+
+    # Define the PDF save path including the cycle count in the filename
+    save_path = os.path.join(
+        project_folder, 
+        f"Battery_Report_{serial_number}_Cycle_{cycle_count}_{datetime.datetime.now().strftime('%Y-%m-%d')}.pdf"
+    )
+
 
     charging_date = general_data['Charging Date'].iloc[0] if not general_data.empty else 'N/A'
     discharging_date = general_data['Discharging Date'].iloc[0] if not general_data.empty else 'N/A'
@@ -84,7 +89,9 @@ def create_can_report_pdf(serial_number, protocol):
     pdf.set_right_margin(right_margin)
 
     # Logo
-    logo_path = os.path.join(os.path.dirname(__file__), "../Assets", "logo", "ade_pdf_logo.jpg")
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    assets_path = os.path.join(base_path, "../assets/logo/")
+    logo_path = os.path.join(assets_path,"ade_pdf_logo.jpg")
     pdf.image(logo_path, x=80, y=10, w=50)
     pdf.ln(30)  # Space after the logo
 

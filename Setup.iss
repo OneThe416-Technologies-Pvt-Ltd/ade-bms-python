@@ -12,7 +12,7 @@ SolidCompression=yes
 [Files]
 ; Add all the necessary files, including the .exe and any required assets
 Source: "dist\main\ADE BMS.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "dist\main\_internal\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\main\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Include driver files for both Windows 10 and 11
 Source: "drivers\PeakOemDrv.exe"; DestDir: "{app}\drivers"; Flags: ignoreversion
 Source: "drivers\driv_win_uport_v3.3_build_23100317_whql.exe"; DestDir: "{app}\drivers\win10"; Flags: ignoreversion

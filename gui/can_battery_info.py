@@ -37,7 +37,7 @@ class CanBatteryInfo:
         self.show_dynamic_fields_var = tk.BooleanVar()  # Track if dynamic fields are shown
 
         # Initialize Chroma device connection state
-        self.is_connected = False
+        self.is_connected = True
         self.load_status = tk.BooleanVar(value=False)  # Track load ON/OFF state across modes
         self.testing_load_status = tk.BooleanVar(value=False)  # Testing mode specific state
         self.maintenance_load_status = tk.BooleanVar(value=False)  # Maintenance mode specific
@@ -70,6 +70,20 @@ class CanBatteryInfo:
         style = ttk.Style()
         style.configure("TLabelframe.Label", font=("Helvetica", 10, "bold"))  # Bold Labelframe titles
 
+        style = ttk.Style()
+        style.configure("Custom.Treeview",
+                        background="#f0f0f0",  # Set background color
+                        foreground="black",    # Set text color
+                        rowheight=25,          # Set row height
+                        fieldbackground="#f0f0f0")  # Set field background color
+        style.configure("Custom.Treeview.Heading", 
+                        font=("Helvetica", 12, "bold"), 
+                        background="#007f4e",   # Set header background
+                        foreground="white")     # Set header text color
+
+        self.caution_alert_shown = False
+        self.alarm_alert_shown = False
+        self.critical_alert_shown = False
         self.device_data = None  # Variable to store device data
         self.battery_status_flags = None  # Variable to store battery status flags
         self.device_data = device_data_battery_1  # Initially set to Battery 1 data
@@ -166,7 +180,7 @@ class CanBatteryInfo:
         self.help_button = ttk.Button(
             self.side_menu_frame,
             text=" Help                ",
-            command=lambda: self.select_button(self.help_button, self.show_help),
+            command=lambda: self.select_button(self.help_button),
             image=self.help_icon,
             compound="left",  # Icon on the left
             bootstyle="info"
@@ -337,7 +351,7 @@ class CanBatteryInfo:
         charging_current_frame.grid(row=0, column=0, padx=70, pady=2, sticky="nsew", columnspan=1)
         charging_current_label = ttk.Label(charging_current_frame, text="Charging Current", font=("Helvetica", 10, "bold"))
         charging_current_label.pack(pady=(5, 5))
-        charging_current_meter = ttk.Meter(
+        self.charging_current_meter = ttk.Meter(
             master=charging_current_frame,
             metersize=180,
             amountused=self.device_data['charging_current'],
@@ -350,14 +364,14 @@ class CanBatteryInfo:
             stripethickness=10,
             subtextfont='-size 10'
         )
-        charging_current_meter.pack()
+        self.charging_current_meter.pack()
 
         # Charging Voltage (Row 0, Column 1)
         charging_voltage_frame = ttk.Frame(charging_frame)
         charging_voltage_frame.grid(row=0, column=1, padx=70, pady=2, sticky="nsew", columnspan=1)
         charging_voltage_label = ttk.Label(charging_voltage_frame, text="Charging Voltage", font=("Helvetica", 10, "bold"))
         charging_voltage_label.pack(pady=(5, 5))
-        charging_voltage_meter = ttk.Meter(
+        self.charging_voltage_meter = ttk.Meter(
             master=charging_voltage_frame,
             metersize=180,
             amountused=self.device_data['charging_voltage'],
@@ -370,7 +384,7 @@ class CanBatteryInfo:
             stripethickness=10,
             subtextfont='-size 10'
         )
-        charging_voltage_meter.pack()
+        self.charging_voltage_meter.pack()
 
         # Battery Health Section
         battery_health_frame = ttk.Labelframe(main_frame, text="Battery Health", bootstyle='dark', borderwidth=10, relief="solid")
@@ -381,7 +395,7 @@ class CanBatteryInfo:
         temp_frame.pack(padx=10, pady=5, fill="both", expand=True)
         temp_label = ttk.Label(temp_frame, text="Temperature", font=("Helvetica", 10, "bold"))
         temp_label.pack(pady=(10, 10))
-        temp_meter = ttk.Meter(
+        self.temp_meter = ttk.Meter(
             master=temp_frame,
             metersize=180,
             amountused=self.device_data['temperature'],
@@ -394,30 +408,29 @@ class CanBatteryInfo:
             stripethickness=8,
             subtextfont='-size 10'
         )
-        temp_meter.pack()
+        self.temp_meter.pack()
 
         # Capacity (Bottom of Battery Health)
         capacity_frame = ttk.Frame(battery_health_frame)
         capacity_frame.pack(padx=10, pady=5, fill="both", expand=True)
         capacity_label = ttk.Label(capacity_frame, text="Capacity", font=("Helvetica", 10, "bold"))
         capacity_label.pack(pady=(10, 10))
-        full_charge_capacity = self.device_data.get('full_charge_capacity', 0)
-        remaining_capacity = self.device_data.get('remaining_capacity', 0)
-        amountused = (remaining_capacity / full_charge_capacity) * 100 if full_charge_capacity else 0
-        capacity_meter = ttk.Meter(
+        remaining_capacity = self.device_data.get('remaining_capacity')
+        capacity = (remaining_capacity / 103) * 100
+        self.capacity_meter = ttk.Meter(
             master=capacity_frame,
             metersize=180,
-            amountused=round(amountused, 1),
+            amountused=round(capacity, 2),
             meterthickness=10,
             metertype="semi",
             subtext="Capacity",
             textright="%",
             amounttotal=100,
-            bootstyle=self.get_gauge_style(amountused, "capacity"),
+            bootstyle=self.get_gauge_style(capacity, "capacity"),
             stripethickness=8,
             subtextfont='-size 10'
         )
-        capacity_meter.pack()
+        self.capacity_meter.pack()
 
 
         # Discharging Section
@@ -442,7 +455,7 @@ class CanBatteryInfo:
         # Checkbox to toggle the max value of the discharging current gauge
         self.discharge_max_checkbox = ttk.Checkbutton(
             discharging_current_frame, 
-            text="Set Max to 450A", 
+            text="Set Max", 
             variable=self.check_discharge_max, 
             command=update_max_value
         )
@@ -471,7 +484,7 @@ class CanBatteryInfo:
         discharging_voltage_frame.grid(row=1, column=1, padx=70, pady=2, sticky="nsew", columnspan=1)
         discharging_voltage_label = ttk.Label(discharging_voltage_frame, text="Battery Voltage", font=("Helvetica", 10, "bold"))
         discharging_voltage_label.pack(pady=(5, 35))
-        discharging_voltage_meter = ttk.Meter(
+        self.discharging_voltage_meter = ttk.Meter(
             master=discharging_voltage_frame,
             metersize=180,
             amountused=self.device_data['voltage'],  # Assuming this is the discharging voltage
@@ -484,7 +497,7 @@ class CanBatteryInfo:
             stripethickness=10,
             subtextfont='-size 10'
         )
-        discharging_voltage_meter.pack()
+        self.discharging_voltage_meter.pack()
 
         # Configure row and column weights to ensure even distribution
         for i in range(2):
@@ -573,8 +586,12 @@ class CanBatteryInfo:
         main_frame.grid_columnconfigure(1, weight=2)
         main_frame.grid_columnconfigure(2, weight=1)
 
+        def open_report_folder():
+            documents_folder = os.path.join(os.path.expanduser("~"), "Documents", "Battery Reports")
+            os.startfile(documents_folder)
+
         # Row 0: View Reports Button
-        generate_button = ttk.Button(main_frame, text="View Reports", command=self.show_report)
+        generate_button = ttk.Button(main_frame, text="View Reports", command=lambda:open_report_folder())
         generate_button.grid(row=0, column=0, columnspan=3, padx=10, pady=10, sticky="ew")
 
         # Battery Info Frame (row 1-2, col 0-2 inside the main_frame)
@@ -720,6 +737,11 @@ class CanBatteryInfo:
             ocv_before_charging = charging_ocv_entry.get()  # New field
             discharging_date = discharging_date_entry.get()  # New field
             ocv_before_discharging = discharging_ocv_entry.get()  # New field
+
+            # Check if any required field is empty
+            if project == "Select a Project" or not project or not device_name or not serial_number or not manufacturer_name or not cycle_count or not full_charge_capacity:
+                messagebox.showwarning("Missing Information", "Please fill in all the required fields and select a valid project.")
+                return
 
             # Create an array to hold the values
             data_to_save = [
@@ -905,46 +927,46 @@ class CanBatteryInfo:
             # Charger Control
             charger_control_label = ttk.Label(right_control_frame, text="Charging On/Off", font=("Helvetica", 12))
             charger_control_label.grid(row=0, column=0, padx=10, pady=5)
-            charger_control_button = ttk.Checkbutton(
+            self.charge_button_battery_1 = ttk.Checkbutton(
                 right_control_frame,
                 variable=self.charger_control_var,
-                bootstyle="success-round-toggle" if self.charger_control_var.get() else "danger-round-toggle",
-                command=lambda: self.toggle_button_style(self.discharger_control_var_battery_1, charger_control_button, 'charge', self.selected_battery)
+                bootstyle="success-round-toggle" if self.charger_control_var_battery_1.get() else "danger-round-toggle",
+                command=lambda: self.toggle_button_style(self.charger_control_var_battery_1, self.charge_button_battery_1, 'charge', self.selected_battery)
             )
-            charger_control_button.grid(row=0, column=1, padx=10, pady=5)
+            self.charge_button_battery_1.grid(row=0, column=1, padx=10, pady=5)
 
             # Discharger Control
             discharger_control_label = ttk.Label(right_control_frame, text="Discharging On/Off", font=("Helvetica", 12))
             discharger_control_label.grid(row=1, column=0, padx=10, pady=5)
-            discharger_control_button = ttk.Checkbutton(
+            self.discharge_button_battery_1 = ttk.Checkbutton(
                 right_control_frame,
                 variable=self.discharger_control_var,
-                bootstyle="success-round-toggle" if self.discharger_control_var.get() else "danger-round-toggle",
-                command=lambda: self.toggle_button_style(self.charger_control_var_battery_1, discharger_control_button, 'discharge', self.selected_battery)
+                bootstyle="success-round-toggle" if self.discharger_control_var_battery_1.get() else "danger-round-toggle",
+                command=lambda: self.toggle_button_style(self.discharger_control_var_battery_1, self.discharge_button_battery_1, 'discharge', self.selected_battery)
             )
-            discharger_control_button.grid(row=1, column=1, padx=10, pady=5)
+            self.discharge_button_battery_1.grid(row=1, column=1, padx=10, pady=5)
         elif self.selected_battery == 'Battery 2':
             # Charger Control
             charger_control_label = ttk.Label(right_control_frame, text="Charging On/Off", font=("Helvetica", 12))
             charger_control_label.grid(row=0, column=0, padx=10, pady=5)
-            charger_control_button = ttk.Checkbutton(
+            self.charge_button_battery_2 = ttk.Checkbutton(
                 right_control_frame,
                 variable=self.charger_control_var,
-                bootstyle="success-round-toggle" if self.charger_control_var.get() else "danger-round-toggle",
-                command=lambda: self.toggle_button_style(self.discharger_control_var_battery_2, charger_control_button, 'charge', self.selected_battery)
+                bootstyle="success-round-toggle" if self.charger_control_var_battery_2.get() else "danger-round-toggle",
+                command=lambda: self.toggle_button_style(self.charger_control_var_battery_2, self.charge_button_battery_2, 'charge', self.selected_battery)
             )
-            charger_control_button.grid(row=0, column=1, padx=10, pady=5)
+            self.charge_button_battery_2.grid(row=0, column=1, padx=10, pady=5)
     
             # Discharger Control
             discharger_control_label = ttk.Label(right_control_frame, text="Discharging On/Off", font=("Helvetica", 12))
             discharger_control_label.grid(row=1, column=0, padx=10, pady=5)
-            discharger_control_button = ttk.Checkbutton(
+            self.discharge_button_battery_2 = ttk.Checkbutton(
                 right_control_frame,
                 variable=self.discharger_control_var,
-                bootstyle="success-round-toggle" if self.discharger_control_var.get() else "danger-round-toggle",
-                command=lambda: self.toggle_button_style(self.charger_control_var_battery_2, discharger_control_button, 'discharge', self.selected_battery)
+                bootstyle="success-round-toggle" if self.discharger_control_var_battery_2.get() else "danger-round-toggle",
+                command=lambda: self.toggle_button_style(self.discharger_control_var_battery_2, self.discharge_button_battery_2, 'discharge', self.selected_battery)
             )
-            discharger_control_button.grid(row=1, column=1, padx=10, pady=5)
+            self.discharge_button_battery_2.grid(row=1, column=1, padx=10, pady=5)
 
         # Row 2: BMS Reset Button
         self.bms_reset_button = ctk.CTkButton(
@@ -971,14 +993,6 @@ class CanBatteryInfo:
         # Status Label
         self.status_label = ttk.Label(device_connect_frame, text="Status: Disconnected")
         self.status_label.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
-    
-        # Download Report Button
-        self.download_report_button = ttk.Button(device_connect_frame, text="Download Report", 
-                                                # command=self.download_report
-                                                image=self.download_icon,
-                                                compound="left",
-                                                )
-        self.download_report_button.grid(row=0, column=2, padx=5, pady=10, sticky="ew")
 
         # Make columns expand to fill space
         device_connect_frame.grid_columnconfigure(0, weight=1)  # First column (Connect button)
@@ -1108,7 +1122,7 @@ class CanBatteryInfo:
         self.custom_current_entry = ttk.Entry(custom_frame)
         self.custom_current_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
-        custom_button = ttk.Button(custom_frame, text="Save", command=save_custom_value())
+        custom_button = ttk.Button(custom_frame, text="Save", command=lambda:save_custom_value())
         custom_button.grid(row=0, column=2, columnspan=1, padx=5, pady=5, sticky="ew")
 
         # Create a toggle button for turning load ON and OFF
@@ -1117,11 +1131,11 @@ class CanBatteryInfo:
 
         def toggle_load():
             if self.load_status.get():
-                turn_load_off
+                turn_load_off()
                 toggle_button.config(text="Turn ON Load", bootstyle="success")  # Change to green when OFF
                 self.load_status.set(False)  # Update state to OFF
             else:
-                turn_load_on
+                turn_load_on()
                 toggle_button.config(text="Turn OFF Load", bootstyle="danger")  # Change to red when ON
                 self.load_status.set(True)  # Update state to ON
 
@@ -1170,7 +1184,7 @@ class CanBatteryInfo:
 
         # Define configuration fields, using values from the config file
         config_values = {
-            "Logging Time (Mins)": (config.config_values['can_config'].get('logging_time')/60000),
+            "Logging Time (Mins)": config.config_values['can_config'].get('logging_time'),
             "Discharge Max Current (A)": config.config_values['can_config'].get('discharging_current_max'),  # Get value from config file
             "Discharge Cutoff Voltage (V)": config.config_values['can_config'].get('discharge_cutoff_volt'),
             "Charge Cutoff Current (A)": config.config_values['can_config'].get('charging_cutoff_curr'),
@@ -1252,14 +1266,8 @@ class CanBatteryInfo:
         for config_name, entry in self.config_entries.items():
             updated_values[config_name] = entry.get()
 
-        logging_time_mins = updated_values.get('Logging Time (Mins)')
-        if logging_time_mins is not None:
-            try:
-                logging_time_mins = float(logging_time_mins)  # Use float for decimal minutes
-            except ValueError:
-                logging_time_mins = 0.01  # Set to None if conversion fails
         # Update the configuration values in the config file with dynamic type handling
-        config.config_values['can_config']['logging_time'] = determine_number_type((logging_time_mins * 60) * 1000)
+        config.config_values['can_config']['logging_time'] = determine_number_type(updated_values['Logging Time (Mins)'])
         config.config_values['can_config']['discharging_current_max'] = determine_number_type(updated_values['Discharge Max Current (A)'])
         config.config_values['can_config']['discharge_cutoff_volt'] = determine_number_type(updated_values['Discharge Cutoff Voltage (V)'])
         config.config_values['can_config']['charging_cutoff_curr'] = determine_number_type(updated_values['Charge Cutoff Current (A)'])
@@ -1539,6 +1547,9 @@ class CanBatteryInfo:
             print("Auto-refresh stopped.")
         pcan_uninitialize()
         self.first_time_dashboard = True
+        self.caution_alert_shown = False
+        self.alarm_alert_shown = False
+        self.critical_alert_shown = False
         self.main_frame.pack_forget()
         self.main_window.show_main_window()
         # Perform disconnection logic here (example: print disconnect message)
@@ -1716,18 +1727,325 @@ class CanBatteryInfo:
         self.battery_status_label.grid(row=row, column=column, padx=5, pady=2, sticky="w")
 
     def auto_refresh(self):
-        if self.is_connected:  # Only refresh if the device is connected
-            asyncio.run(update_device_data())
+        # asyncio.run(update_device_data())
+        for key, value in device_data_battery_1.items():
+            if key not in ["serial_number", "cycle_count",'full_charge_capacity','charging_current','current','rel_state_of_charge']:  # Skip serial_number and cycle_count
+                if isinstance(value, (int, float)):  # Only update numeric fields
+                    device_data_battery_1[key] = round(value + 10,2)
+        if device_data_battery_2['serial_number'] > 0:
+            for key, value in device_data_battery_2.items():
+                if key not in ["serial_number", "cycle_count",'full_charge_capacity',"charging_current"]:  # Skip serial_number and cycle_count
+                    if isinstance(value, (int, float)):  # Only update numeric fields
+                        device_data_battery_2[key] = round(value + 2.51,2)
+        if self.selected_battery == "Battery 1":
+            self.device_data = device_data_battery_1
+            self.battery_status_flags = battery_1_status_flags
+        elif self.selected_battery == "Battery 2":
+            self.device_data = device_data_battery_2
+            self.battery_status_flags = battery_2_status_flags
 
-            if self.selected_battery == "Battery 1":
-                self.device_data = device_data_battery_1
-                self.battery_status_flags = battery_1_status_flags
-            elif self.selected_battery == "Battery 2":
-                self.device_data = device_data_battery_2
-                self.battery_status_flags = battery_2_status_flags
+        self.update_ui()
+        current_temp = self.device_data['temperature']
+        caution_temp = config.config_values['can_config'].get('temperature_caution')
+        alarm_temp = config.config_values['can_config'].get('temperature_alarm')
+        critical_temp = config.config_values['can_config'].get('temperature_critical')
 
-            # Schedule the next refresh and store the task ID in self.auto_refresh_task
-            self.auto_refresh_task = self.master.after(1000, self.auto_refresh)
+        # Check for Caution Alert
+        if current_temp == caution_temp and not self.caution_alert_shown:
+            messagebox.showwarning("Caution", f"Battery Temperature reached {caution_temp}")
+            self.caution_alert_shown = True  # Mark the alert as shown
+            if self.charger_control_var_battery_1:
+                self.charger_control_var_battery_1.set(False)
+                self.toggle_button_style(tk.BooleanVar(value=False), self.charge_button_battery_1, 'charge', self.selected_battery)
+            elif self.discharger_control_var_battery_1:
+                self.discharger_control_var_battery_1.set(False)
+                self.toggle_button_style(tk.BooleanVar(value=False), self.charge_button_battery_1, 'charge', self.selected_battery)
+        # Check for Alarm Alert
+        elif current_temp == alarm_temp and not self.alarm_alert_shown:
+            messagebox.showwarning("Alarm", f"Battery Temperature reached {alarm_temp}")
+            self.alarm_alert_shown = True  # Mark the alert as shown
+
+        # Check for Critical Alert
+        elif current_temp >= critical_temp and not self.critical_alert_shown:
+            messagebox.showwarning("Critical", f"Battery Temperature reached {current_temp}")
+            self.critical_alert_shown = True  # Mark the alert as shown
+            turn_load_off()
+
+        # Schedule the next refresh and store the task ID in self.auto_refresh_task
+        self.auto_refresh_task = self.master.after(1000, self.auto_refresh)
+
+    def update_ui(self):
+        if self.selected_button == self.dashboard_button:
+            # Update Charging/Discharging Status
+            if self.device_data['charging_current'] > 0:
+                self.status_var.set("charging")
+                self.status_indicator.config(text="Charging", bootstyle="success")
+            elif self.device_data['current'] > 0:
+                self.status_var.set("discharging")
+                self.status_indicator.config(text="Discharging", bootstyle="danger")
+            elif self.device_data['current'] == 0 and self.device_data['charging_current'] == 0:
+                self.status_var.set("off")
+                self.status_indicator.config(text="Off", bootstyle="dark")
+            self.charging_current_meter.configure(amountused=self.device_data['charging_current'], bootstyle=self.get_gauge_style(self.device_data['charging_current'], "charging_current"))
+            self.charging_voltage_meter.configure(amountused=self.device_data['charging_voltage'], bootstyle=self.get_gauge_style(self.device_data['charging_voltage'], "charging_voltage"))
+            self.discharging_current_meter.configure(amountused=self.device_data['current'], bootstyle=self.get_gauge_style(self.device_data['current'], "current"))
+            self.discharging_voltage_meter.configure(amountused=self.device_data['voltage'], bootstyle=self.get_gauge_style(self.device_data['voltage'], "voltage"))
+            self.temp_meter.configure(amountused=self.device_data['temperature'], bootstyle=self.get_gauge_style(self.device_data['temperature'], "temperature"))
+            remaining_capacity = self.device_data.get('remaining_capacity')
+            capacity = (remaining_capacity / 103) * 100
+            self.capacity_meter.configure(amountused=round(capacity, 2), bootstyle=self.get_gauge_style(capacity, "capacity"))
+        elif self.selected_button == self.info_button:
+            selected_mode = self.mode_var.get()
+            for item in self.info_table.get_children():
+                self.info_table.delete(item)
+            if selected_mode == 'Testing':
+                # Insert limited data for Testing Mode
+                limited_data_keys = [
+                    'device_name', 
+                    'serial_number', 
+                    'manufacturer_name', 
+                    'cycle_count',
+                    'remaining_capacity', 
+                    'temperature', 
+                    'current', 
+                    'voltage', 
+                    'charging_current', 
+                    'charging_voltage', 
+                    'charging_battery_status', 
+                    'rel_state_of_charge'
+                ]
+                for index, key in enumerate(limited_data_keys):
+                    name = ' '.join(word.title() for word in key.split('_'))
+                    value = self.device_data.get(key, 'N/A')
+                    unit = unit_mapping.get(key, '')
+                    self.info_table.insert('', 'end', values=(name, value, unit), tags=('evenrow' if index % 2 == 0 else 'oddrow'))
+                limited_status_flags = {
+                    "Over Temperature Alarm": battery_status_flags.get('over_temperature_alarm'),
+                    "Fully Charged": battery_status_flags.get('fully_charged'),
+                    "Fully Discharged": battery_status_flags.get('fully_discharged')
+                }
+                self.display_status_labels(self.status_frame, limited_status_flags)
+            elif selected_mode == 'Maintenance':
+                # Insert full data for Maintenance Mode
+                for key, value in self.device_data.items():
+                    name = ' '.join(word.title() for word in key.split('_'))
+                    unit = unit_mapping.get(key, '')
+                    self.info_table.insert('', 'end', values=(name, value, unit))
+                self.display_status_labels(self.status_frame, battery_status_flags)
+    
+    def update_charging_log_battery_1(self):
+        # Define the directory where your database/excel files are stored
+        DATABASE_DIR = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database")
+        excel_file_path = os.path.join(DATABASE_DIR, "can_charging_data.xlsx")
+
+        # Define column names for the charging data
+        columns = ["Date", "Serial Number", "Hour", "Voltage", "Current", "Temperature", "State of Charge"]
+
+        # Current date and time
+        current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+        current_hour = datetime.datetime.now().strftime("%H:%M:%S")
+
+        # Retrieve data from battery 1
+        battery_1_serial = int(device_data_battery_1['serial_number'])
+        battery_1_voltage = float(device_data_battery_1['charging_voltage'])
+        battery_1_current = float(device_data_battery_1['charging_current'])
+        battery_1_temperature = float(device_data_battery_1['temperature'])
+        battery_1_state_of_charge = int(device_data_battery_1['rel_state_of_charge'])
+
+        data_battery_1 = [
+            current_date,
+            battery_1_serial,
+            current_hour,
+            battery_1_voltage,
+            battery_1_current,
+            battery_1_temperature,
+            battery_1_state_of_charge
+        ]
+
+        # Load existing data from the Excel file, or create a new DataFrame if the file doesn't exist
+        try:
+            df = pd.read_excel(excel_file_path)
+        except FileNotFoundError:
+            df = pd.DataFrame(columns=columns)
+
+        # Add new data for battery 1
+        if battery_1_current < config.config_values['can_config'].get('charging_cutoff_curr') and battery_1_voltage > config.config_values['can_config'].get('charging_cutoff_volt') and battery_1_state_of_charge > config.config_values['can_config'].get('charging_cutoff_capacity'):
+            messagebox.showinfo("Charging Completed","Battery 1 charging has been completed. Please disconnect charger")
+            self.charger_control_var_battery_1.set(False)
+            self.toggle_button_style(tk.BooleanVar(value=False), self.charge_button_battery_1, 'charge', self.selected_battery)
+            return            
+        else:
+            df.loc[len(df)] = data_battery_1
+
+        # Save the updated DataFrame back to the Excel file
+        df.to_excel(excel_file_path, index=False)
+
+        # Schedule the method to run again after 60 seconds (1 minute)
+        self.master.after(1000, self.update_charging_log_battery_1)
+
+    def update_charging_log_battery_2(self):
+        # Define the directory where your database/excel files are stored
+        DATABASE_DIR = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database")
+        excel_file_path = os.path.join(DATABASE_DIR, "can_charging_data.xlsx")
+
+        # Define column names for the charging data
+        columns = ["Date", "Serial Number", "Hour", "Voltage", "Current", "Temperature", "State of Charge"]
+
+        # Current date and time
+        current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+        current_hour = datetime.datetime.now().strftime("%H:%M:%S")
+
+        # Retrieve data from battery 2
+        if device_data_battery_2 and int(device_data_battery_2['serial_number']) > 0:
+            battery_2_serial = int(device_data_battery_2['serial_number'])
+            battery_2_voltage = float(device_data_battery_2['charging_voltage'])
+            battery_2_current = float(device_data_battery_2['charging_current'])
+            battery_2_temperature = float(device_data_battery_2['temperature'])
+            battery_2_state_of_charge = int(device_data_battery_2['rel_state_of_charge'])
+
+            data_battery_2 = [
+                current_date,
+                battery_2_serial,
+                current_hour,
+                battery_2_voltage,
+                battery_2_current,
+                battery_2_temperature,
+                battery_2_state_of_charge
+            ]
+
+            # Load existing data from the Excel file, or create a new DataFrame if the file doesn't exist
+            try:
+                df = pd.read_excel(excel_file_path)
+            except FileNotFoundError:
+                df = pd.DataFrame(columns=columns)
+
+            # Add new data for battery 1
+            if battery_2_current < config.config_values['can_config'].get('charging_cutoff_curr') and battery_2_voltage > config.config_values['can_config'].get('charging_cutoff_volt') and battery_2_state_of_charge > config.config_values['can_config'].get('charging_cutoff_capacity'):
+                messagebox.showinfo("Charging Completed","Battery 2 charging has been completed. Please disconnect charger")
+                self.charger_control_var_battery_2.set(False)
+                self.toggle_button_style(tk.BooleanVar(value=False), self.charge_button_battery_2, 'charge', self.selected_battery)
+                return
+            else:
+                df.loc[len(df)] = data_battery_2
+
+            # Save the updated DataFrame back to the Excel file
+            df.to_excel(excel_file_path, index=False)
+
+        # Schedule the method to run again after 60 seconds (1 minute)
+        self.master.after(1000, self.update_charging_log_battery_2)
+
+    def update_discharging_log_battery_1(self):
+        # Define the directory where your database/excel files are stored
+        DATABASE_DIR = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database")
+
+        # Define the path to the Excel file inside the database directory
+        excel_file_path = os.path.join(DATABASE_DIR, "can_discharging_data.xlsx")
+
+        # Define column names for the discharging data
+        columns = ["Date", "Serial Number", "Hour", "Voltage", "Current", "Temperature", "Load Current"]
+
+        # Current date and time
+        current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+        current_hour = datetime.datetime.now().strftime("%H:%M:%S")
+
+        # Retrieve data from battery 1
+        battery_1_serial = int(device_data_battery_1['serial_number'])
+        battery_1_voltage = float(device_data_battery_1['voltage'])  # Use appropriate key
+        battery_1_current = float(device_data_battery_1['current'])  # Use appropriate key
+        battery_1_temperature = float(device_data_battery_1['temperature'])
+        # battery_1_load_current = float(device_data_battery_1['load_current'])  # Assuming this key exists
+
+        # Check the discharging cutoff conditions
+        if battery_1_voltage > config.config_values['can_config'].get('discharge_cutoff_volt'):
+            # Prepare the data to save for battery 1
+            data_battery_1 = [
+                current_date,
+                battery_1_serial,
+                current_hour,
+                battery_1_voltage,
+                battery_1_current,
+                battery_1_temperature,
+                20
+            ]
+
+            # Load existing data from the Excel file, or create a new DataFrame if the file doesn't exist
+            try:
+                df = pd.read_excel(excel_file_path)
+            except FileNotFoundError:
+                df = pd.DataFrame(columns=columns)
+
+            # Add new data for battery 1
+            df.loc[len(df)] = data_battery_1
+
+            # Save the updated DataFrame back to the Excel file
+            df.to_excel(excel_file_path, index=False)
+
+        # Check if the discharging process should stop
+        if battery_1_current > 0 and battery_1_voltage <= config.config_values['can_config'].get('discharge_cutoff_volt'):
+            # Show messagebox and stop logging
+            messagebox.showinfo("Discharging Completed", "Battery 1 discharging completed. Stopping log.")
+            self.discharger_control_var_battery_1.set(False)
+            turn_load_off()
+            self.toggle_button_style(tk.BooleanVar(value=False), self.discharge_button_battery_1, 'charge', self.selected_battery)
+            return  # Stop the recursion here
+
+        # Call the method again after the repeat interval (5000 ms or 5 seconds)
+        self.master.after(1000, self.update_discharging_log_battery_1)
+
+    # Similarly, for Battery 2
+    def update_discharging_log_battery_2(self):
+        # Define the directory where your database/excel files are stored
+        DATABASE_DIR = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database")
+
+        # Define the path to the Excel file inside the database directory
+        excel_file_path = os.path.join(DATABASE_DIR, "can_discharging_data.xlsx")
+
+        # Define column names for the discharging data
+        columns = ["Date", "Serial Number", "Hour", "Voltage", "Current", "Temperature", "Load Current"]
+
+        # Current date and time
+        current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+        current_hour = datetime.datetime.now().strftime("%H:%M:%S")
+
+        # Retrieve data from battery 2 (only if its serial number is greater than 0)
+        if device_data_battery_2 and int(device_data_battery_2['serial_number']) > 0:
+            battery_2_serial = int(device_data_battery_2['serial_number'])
+            battery_2_voltage = float(device_data_battery_2['discharging_voltage'])  # Use appropriate key
+            battery_2_current = float(device_data_battery_2['discharging_current'])  # Use appropriate key
+            battery_2_temperature = float(device_data_battery_2['temperature'])
+            battery_2_load_current = float(device_data_battery_2['load_current'])  # Assuming this key exists
+
+            # Prepare the data to save for battery 2
+            data_battery_2 = [
+                current_date,
+                battery_2_serial,
+                current_hour,
+                battery_2_voltage,
+                battery_2_current,
+                battery_2_temperature,
+                battery_2_load_current
+            ]
+
+            # Load existing data from the Excel file, or create a new DataFrame if the file doesn't exist
+            try:
+                df = pd.read_excel(excel_file_path)
+            except FileNotFoundError:
+                df = pd.DataFrame(columns=columns)
+
+            # Add new data for battery 2
+            df.loc[len(df)] = data_battery_2
+
+            # Save the updated DataFrame back to the Excel file
+            df.to_excel(excel_file_path, index=False)
+
+        # Check if the discharging process should stop
+        if battery_2_current < 1.0 and battery_2_voltage > 28.9:
+            # Show messagebox and stop logging
+            messagebox.showinfo("Discharging Completed", "Battery 2 discharging completed. Stopping log.")
+            return  # Stop the recursion here
+
+        # Call the method again after the repeat interval (5000 ms or 5 seconds)
+        self.master.after(1000, self.update_discharging_log_battery_2)
 
     def refresh_info(self):
         asyncio.run(update_device_data())
@@ -1760,7 +2078,7 @@ class CanBatteryInfo:
         else:
             # Insert full data for Maintenance Mode
             for index, (key, value) in enumerate(self.device_data.items()):
-                name = ' '.join(word.title() for word in key.split('_'))
+                name = ' '.join(word.title() for word in key.split('z_'))
                 unit = unit_mapping.get(key, '')
                 self.info_table.insert('', 'end', values=(name, value, unit), tags=('evenrow' if index % 2 == 0 else 'oddrow'))
         # Update the battery status flags
@@ -1920,61 +2238,100 @@ class CanBatteryInfo:
         if active_battery == "Battery 1":
             charge_on = self.charger_control_var_battery_1.get()
             discharge_on = self.discharger_control_var_battery_1.get()
+            charge_button = self.charge_button_battery_1  # Assuming you have defined this button elsewhere
+            discharge_button = self.discharge_button_battery_1  # Assuming you have defined this button elsewhere
         elif active_battery == "Battery 2":
             charge_on = self.charger_control_var_battery_2.get()
             discharge_on = self.discharger_control_var_battery_2.get()
+            charge_button = self.charge_button_battery_2  # Assuming you have defined this button elsewhere
+            discharge_button = self.discharge_button_battery_2  # Assuming you have defined this button elsewhere
 
         # Ensure only one operation (charge/discharge) is active at a time
         if control_type == 'charge':
             if charge_on and discharge_on:
                 messagebox.showwarning("Warning", "Please turn off discharging before enabling charging.")
-                var.set(False)
+                if active_battery == "Battery 1":
+                    self.charger_control_var_battery_1.set(False)
+                elif active_battery == "Battery 2":
+                    self.charger_control_var_battery_2.set(False)
                 return
             if active_battery == "Battery 1":
                 self.charge_fet_status_battery_1 = charge_on
                 if charge_on:
+                    update_charging_ocv_in_excel(device_data_battery_1['serial_number'],device_data_battery_1['voltage'])
                     pcan_write_control('charge_on', battery_no=1)
-                    start_fetching_current(battery_no=1)
+                    self.update_charging_log_battery_1()
                     self.discharger_control_var_battery_1.set(False)  # Turn off discharging
                 else:
                     pcan_write_control('both_off', battery_no=1)
-                    stop_fetching_current()
+                    # Stop logging by not calling update_charging_log_battery_1 anymore
+                    self.master.after_cancel(self.update_charging_log_battery_1)  # Cancel the next scheduled logging
+                    # Show a message to indicate that the charger is turned off
+                    print("Charger Turned Off The charger has been turned off for Battery 1. Logging has been stopped.")
             elif active_battery == "Battery 2":
                 self.charge_fet_status_battery_2 = charge_on
                 if charge_on:
+                    update_charging_ocv_in_excel(device_data_battery_2['serial_number'],device_data_battery_2['voltage'])
                     pcan_write_control('charge_on', battery_no=2)
-                    start_fetching_current(battery_no=2)
+                    self.update_charging_log_battery_2()
                     self.discharger_control_var_battery_2.set(False)  # Turn off discharging
                 else:
                     pcan_write_control('both_off', battery_no=2)
+                    # Stop logging by not calling update_charging_log_battery_1 anymore
+                    self.master.after_cancel(self.update_charging_log_battery_2)  # Cancel the next scheduled logging
+                    # Show a message to indicate that the charger is turned off
+                    print("Charger Turned Off The charger has been turned off for Battery 2. Logging has been stopped.")
+
         elif control_type == 'discharge':
             if charge_on and discharge_on:
                 messagebox.showwarning("Warning", "Please turn off charging before enabling discharging.")
-                var.set(False)
+                if active_battery == "Battery 1":
+                    self.discharger_control_var_battery_1.set(False)
+                elif active_battery == "Battery 2":
+                    self.discharger_control_var_battery_2.set(False)
                 return
             if active_battery == "Battery 1":
                 self.discharge_fet_status_battery_1 = discharge_on
                 if discharge_on:
+                    update_discharging_ocv_in_excel(device_data_battery_1['serial_number'],device_data_battery_1['voltage'])
                     pcan_write_control('discharge_on', battery_no=1)
+                    self.update_discharging_log_battery_1()
                     self.charger_control_var_battery_1.set(False)  # Turn off charging
                 else:
                     pcan_write_control('both_off', battery_no=1)
+                    # Stop logging by not calling update_charging_log_battery_1 anymore
+                    self.master.after_cancel(self.update_discharging_log_battery_1)  # Cancel the next scheduled logging
+                    # Show a message to indicate that the charger is turned off
+                    print("Discharger Turned Off The discharging control has been turned off for Battery 1. Logging has been stopped.")
             elif active_battery == "Battery 2":
                 self.discharge_fet_status_battery_2 = discharge_on
                 if discharge_on:
+                    update_discharging_ocv_in_excel(device_data_battery_2['serial_number'],device_data_battery_2['voltage'])
                     pcan_write_control('discharge_on', battery_no=2)
+                    self.update_discharging_log_battery_2()
                     self.charger_control_var_battery_2.set(False)  # Turn off charging
                 else:
                     pcan_write_control('both_off', battery_no=2)
+                     # Stop logging by not calling update_charging_log_battery_1 anymore
+                    self.master.after_cancel(self.update_discharging_log_battery_2)  # Cancel the next scheduled logging
+                    # Show a message to indicate that the charger is turned off
+                    print("Discharger Turned Off The discharging control has been turned off for Battery 2. Logging has been stopped.")
 
         # Update button styles
         button.config(bootstyle="success round-toggle" if var.get() else "danger round-toggle")
 
         # Show alert message
         action = "Charging" if control_type == 'charge' else "Discharging"
-        messagebox.showinfo("Action", f"{action} function for {active_battery} activated. Please wait for 10 seconds.")
+        if var.get():  # If the button is toggled ON (action started)
+            # Update button styles and show start alert
+            button.config(bootstyle="success round-toggle")
+            messagebox.showinfo("Action Started", f"{action} function for {active_battery} started.")
+        else:  # If the button is toggled OFF (action stopped)
+            # Update button styles and show stop alert
+            button.config(bootstyle="danger round-toggle")
+            messagebox.showinfo("Action Stopped", f"{action} function for {active_battery} stopped.")
 
-        # Disable the button for 10 seconds
+        # Disable the button for 10 seconds using threading
         button.config(state=tk.DISABLED)
 
         def reenable_button():
@@ -2031,8 +2388,13 @@ class CanBatteryInfo:
         # Change the button to indicate the heater is activated
         self.activate_heater_button.configure(text="Heater Activated", fg_color="#4CAF50", hover_color="#45a049")
 
-        # Call pcan_write_control to activate the heater
-        pcan_write_control('heater_on')
+        if self.battery_var.get() == "Battery 1":
+            # Call pcan_write_control to activate the heater for Battery 1
+            pcan_write_control('heater_on',1)
+
+        elif self.battery_var.get() == "Battery 2":
+            # Call pcan_write_control to activate the heater for Battery 2
+            pcan_write_control('heater_on',2)
 
         # Start a timer to revert the button after 10 seconds
         self.master.after(10000, self.reset_heater_button)

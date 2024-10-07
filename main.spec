@@ -8,6 +8,7 @@ a = Analysis(
     datas=[('assets/logo/drdo_icon.ico', 'assets/logo'),
     ('assets/images/splash_bg.png', 'assets/images'),
     ('assets/logo/ade_logo.png', 'assets/logo'),
+    ('assets/logo/ade_pdf_logo.jpg', 'assets/logo'),
     ('assets/images/disconnect_button.png', 'assets/images'),
     ('assets/images/load_icon.png', 'assets/images'),
     ('assets/images/settings.png', 'assets/images'),

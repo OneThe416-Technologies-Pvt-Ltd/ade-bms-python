@@ -43,22 +43,22 @@ EXCEL_FILES = {
 default_config = {
     "can_config": {
         "discharging_current_max": 450,
-        "logging_time": 5000,
-        "discharge_cutoff_curr": 21,
-        "charging_cutoff_curr": 450,
-        "charging_cutoff_volt": 5000,
-        "charging_cutoff_capacity": 21,
+        "logging_time": 5,
+        "discharge_cutoff_volt": 21,
+        "charging_cutoff_curr": 1,
+        "charging_cutoff_volt": 28.4,
+        "charging_cutoff_capacity": 95,
         "temperature_caution": 60,
         "temperature_alarm": 80,
         "temperature_critical": 100,
         "projects": ["TAPAS", "ARCHER", "SETB"]  # Default projects for CAN
     },
     "rs_config": {
-        "logging_time": 5000,
-        "discharge_cutoff_curr": 21,
+        "logging_time": 5,
+        "discharge_cutoff_volt": 21,
         "charging_cutoff_curr": 450,
         "charging_cutoff_volt": 5000,
-        "charging_cutoff_capacity": 21,
+        "charging_cutoff_capacity": 95,
         "temperature_caution": 60,
         "temperature_alarm": 80,
         "temperature_critical": 100,
@@ -114,7 +114,7 @@ def save_config():
     print(f"Configuration saved to {CONFIG_FILE_PATH}")
 
 # The rest of the update methods (update_can_config, update_rs_config, etc.) remain unchanged.
-def update_can_config(discharging_current_max=None, logging_time=None, discharge_cutoff_curr=None, 
+def update_can_config(discharging_current_max=None, logging_time=None, discharge_cutoff_volt=None, 
                       charging_cutoff_curr=None, charging_cutoff_volt=None, charging_cutoff_capacity=None,
                       temperature_caution=None, temperature_alarm=None, temperature_critical=None):
     """Update CAN configuration values and save them to the file."""
@@ -122,8 +122,8 @@ def update_can_config(discharging_current_max=None, logging_time=None, discharge
         config_values['can_config']['discharging_current_max'] = discharging_current_max
     if logging_time is not None:
         config_values['can_config']['logging_time'] = logging_time
-    if discharge_cutoff_curr is not None:
-        config_values['can_config']['discharge_cutoff_curr'] = discharge_cutoff_curr
+    if discharge_cutoff_volt is not None:
+        config_values['can_config']['discharge_cutoff_volt'] = discharge_cutoff_volt
     if charging_cutoff_curr is not None:
         config_values['can_config']['charging_cutoff_curr'] = charging_cutoff_curr
     if charging_cutoff_volt is not None:
@@ -140,14 +140,14 @@ def update_can_config(discharging_current_max=None, logging_time=None, discharge
     save_config()
 
 
-def update_rs_config(logging_time=None, discharge_cutoff_curr=None, charging_cutoff_curr=None, 
+def update_rs_config(logging_time=None, discharge_cutoff_volt=None, charging_cutoff_curr=None, 
                      charging_cutoff_volt=None, charging_cutoff_capacity=None, temperature_caution=None,
                      temperature_alarm=None, temperature_critical=None):
     """Update RS configuration values and save them to the file."""
     if logging_time is not None:
         config_values['rs_config']['logging_time'] = logging_time
-    if discharge_cutoff_curr is not None:
-        config_values['rs_config']['discharge_cutoff_curr'] = discharge_cutoff_curr
+    if discharge_cutoff_volt is not None:
+        config_values['rs_config']['discharge_cutoff_volt'] = discharge_cutoff_volt
     if charging_cutoff_curr is not None:
         config_values['rs_config']['charging_cutoff_curr'] = charging_cutoff_curr
     if charging_cutoff_volt is not None:

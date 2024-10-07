@@ -71,6 +71,8 @@ class MainWindow:
         
         # Show the dashboard by default
         self.can_battery_info.show_dashboard()
+
+        self.can_battery_info.auto_refresh()
     
     def show_rs_battery_info(self, event=None):
         if self.can_battery_info:

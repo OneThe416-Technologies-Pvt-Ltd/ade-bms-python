@@ -156,7 +156,7 @@ device_data = {
 
 device_data_battery_1 = {
             'device_name': "BT-70939APH",
-            'serial_number': 1478,
+            'serial_number': 0,
             'manufacturer_name': "Bren-Tronics",
             'firmware_version': "",
             'battery_status': "",
@@ -165,11 +165,11 @@ device_data_battery_1 = {
             'design_voltage': 0,
             'remaining_capacity': 0,
             'temperature': 0,
-            'current': 30,
-            'voltage': 26,
+            'current': 0,
+            'voltage': 0,
             'avg_current': 0,
             'charging_current': 0,
-            'full_charge_capacity': 0,
+            'full_charge_capacity': 103,
             'charging_voltage': 0,
             'at_rate_time_to_full': 0,
             'at_rate_time_to_empty': 0,
@@ -186,7 +186,7 @@ device_data_battery_1 = {
 
 device_data_battery_2 = {
             'device_name': "BT-70939APH",
-            'serial_number': 1477,
+            'serial_number': 0,
             'manufacturer_name': "Bren-Tronics",
             'firmware_version': "",
             'battery_status': "",
@@ -196,10 +196,10 @@ device_data_battery_2 = {
             'remaining_capacity': 0,
             'temperature': 0,
             'current': 0,
-            'voltage': 24,
+            'voltage': 0,
             'avg_current': 0,
             'charging_current': 0,
-            'full_charge_capacity': 0,
+            'full_charge_capacity': 103,
             'charging_voltage': 0,
             'at_rate_time_to_full': 0,
             'at_rate_time_to_empty': 0,
@@ -261,17 +261,17 @@ async def fetch_and_store_data(call_name, key):
 def pcan_initialize(baudrate, hwtype, ioport, interrupt):
     result = m_objPCANBasic.Initialize(m_PcanHandle, baudrate, hwtype, ioport, interrupt)
     if result != PCAN_ERROR_OK:
-        log_can_data(device_data_battery_1)
+        
         if result == 5120:
             result = 512
         messagebox.showerror("Error!", GetFormatedError(result))
-        return True
+        return False
     else:
         pcan_write_read('serial_number',1)
         pcan_write_read('serial_number',2)
         if device_data_battery_2['serial_number'] !=0 and device_data_battery_1['serial_number'] !=0:
             pcan_write_read('temperature',2)
-            pcan_write_read('firmware_version',2)       
+            # pcan_write_read('firmware_version',2)       
             pcan_write_read('voltage',2)            
             pcan_write_read('battery_status',2)       
             pcan_write_read('current',2)     
@@ -279,7 +279,7 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
             pcan_write_read('full_charge_capacity',2)
             log_can_data(device_data_battery_2)
             pcan_write_read('temperature',1)
-            pcan_write_read('firmware_version',1)       
+            # pcan_write_read('firmware_version',1)       
             pcan_write_read('voltage',1)            
             pcan_write_read('battery_status',1)       
             pcan_write_read('current',1)      
@@ -290,7 +290,7 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
             return True
         elif device_data_battery_1['serial_number'] != 0:
             pcan_write_read('temperature',1)
-            pcan_write_read('firmware_version',1)       
+            # pcan_write_read('firmware_version',1)       
             pcan_write_read('voltage',1)            
             pcan_write_read('battery_status',1)       
             pcan_write_read('current',1)      
@@ -529,22 +529,22 @@ def pcan_read():
         swapped_hex = (second_byte << 8) | first_byte
         decimal_value = int(swapped_hex)
 
-        if newMsg.DATA[4] ==  0x00:
-            data_packet = [int(hex(newMsg.DATA[i]), 16) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
-            major_version = data_packet[0]
-            minor_version = data_packet[1]
-            patch_number = (data_packet[3] << 8) | data_packet[2]
-            build_number = (data_packet[5] << 8) | data_packet[4]
+        # if newMsg.DATA[4] ==  0x00:
+        #     data_packet = [int(hex(newMsg.DATA[i]), 16) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
+        #     major_version = data_packet[0]
+        #     minor_version = data_packet[1]
+        #     patch_number = (data_packet[3] << 8) | data_packet[2]
+        #     build_number = (data_packet[5] << 8) | data_packet[4]
 
-            version_string = f"{major_version}.{minor_version}.{patch_number}.{build_number}"
-            if newMsg.DATA[7] == 0x01:
-                device_data_battery_1['firmware_version'] = version_string
-            elif newMsg.DATA[7] == 0x1C:
-                device_data_battery_2['firmware_version'] = version_string
-            else:
-                print("Firmware version is not found")
-        else:
-            convert_data(newMsg, decimal_value)
+        #     version_string = f"{major_version}.{minor_version}.{patch_number}.{build_number}"
+        #     if newMsg.DATA[7] == 0x01:
+        #         device_data_battery_1['firmware_version'] = version_string
+        #     elif newMsg.DATA[7] == 0x1C:
+        #         device_data_battery_2['firmware_version'] = version_string
+        #     else:
+        #         print("Firmware version is not found")
+        # else:
+        convert_data(newMsg, decimal_value)
 
         return result[0]
 
@@ -626,6 +626,17 @@ def convert_data(newMsg, decimal_value):
                     device_data_battery_1['charging_current'] = 0
                 elif newMsg.DATA[7] == 0x23:
                     device_data_battery_2['charging_battery_status'] = "Discharging"
+                    device_data_battery_2['current'] = abs(currentA)
+                    device_data_battery_2['charging_current'] = 0
+                else:
+                    print("Current Not Found")
+            elif currentA == 0:
+                if newMsg.DATA[7] == 0x08:
+                    device_data_battery_1['charging_battery_status'] = "Off"
+                    device_data_battery_1['current'] = abs(currentA)
+                    device_data_battery_1['charging_current'] = 0
+                elif newMsg.DATA[7] == 0x23:
+                    device_data_battery_2['charging_battery_status'] = "Off"
                     device_data_battery_2['current'] = abs(currentA)
                     device_data_battery_2['charging_current'] = 0
                 else:
@@ -717,7 +728,7 @@ def convert_data(newMsg, decimal_value):
             device_data_battery_2['avg_time_to_full'] = round((decimal_value / 1000),1)
         else:
             print("AvgTimeToFull Not Found")
-    elif newMsg.DATA[4] == 0x13:  # ChargingVoltage: mV unsigned
+    elif newMsg.DATA[4] == 0x15:  # ChargingVoltage: mV unsigned
         if newMsg.DATA[7] == 0x13:
             device_data_battery_1['charging_voltage'] = round((decimal_value / 1000),1)
         elif newMsg.DATA[7] == 0x2E:
@@ -892,6 +903,8 @@ def update_device_data_to_default():
             device_data_battery_1[key] = "BT-70939APH"  # Example: Set a specific default device name
         elif key == 'manufacturer_name':
             device_data_battery_1[key] = "Bren-Tronics"  # Example: Set a specific manufacturer name
+        elif key == 'serial_number':
+            device_data_battery_1[key] = 1476  # Example: Set a specific manufacturer name
         elif key == 'charging_battery_status':
             device_data_battery_1[key] = "Off"  # Example: Set a specific charging status
         elif isinstance(device_data[key], str):
@@ -1013,47 +1026,43 @@ def log_can_data(update_can_data):
 def get_latest_can_data(serial_number):
     """
     Retrieves the most recent CAN data for the specified serial number.
+    Returns a dictionary of the latest data if found, otherwise returns an empty dictionary.
     """
     # Path to the CAN data Excel file
     can_data_file = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "database", "can_data.xlsx")
 
     if not os.path.exists(can_data_file):
         messagebox.showerror("Error", "No CAN data file found. Please log CAN data first.")
-        return None
+        return {}
 
     # Load the existing workbook and access the first sheet
-    workbook = load_workbook(can_data_file)
+    workbook = load_workbook(can_data_file, read_only=True)  # Use read-only mode for efficiency
     sheet = workbook.active
 
-    # Find the serial number column (assuming it's the 7th column, adjust if necessary)
-    serial_number_column = 7  # Serial Number is the 7th column (G column)
+    # Serial Number is the 7th column (G column) – adjust if necessary
+    serial_number_column = 7
 
-    # Search for the serial number in the rows and store the data if found
-    serial_found = False
-    latest_data = {}
-
-    for row in range(2, sheet.max_row + 1):  # Start from the second row to skip headers
+    # Iterate over rows to find the matching serial number
+    for row in range(2, sheet.max_row + 1):  # Start from row 2 to skip headers
         current_serial_number = sheet.cell(row=row, column=serial_number_column).value
         if current_serial_number == serial_number:
-            serial_found = True
             print(f"Serial Number {serial_number} found in row {row}")
 
-            # Retrieve the headers from the first row
+            # Retrieve the headers and data row
             headers = [sheet.cell(row=1, column=col).value for col in range(1, sheet.max_column + 1)]
-            # Retrieve the values for the matching row
             values = [sheet.cell(row=row, column=col).value for col in range(1, sheet.max_column + 1)]
-            
-            # Map headers to values and print for debugging
+
             latest_data = dict(zip(headers, values))
+            
+            # Debugging: Log the retrieved data
             for header, value in latest_data.items():
-                print(f"{header}: {value}")  # Debug print to ensure correct values are fetched
-            break
+                print(f"{header}: {value}")
 
-    if not serial_found:
-        messagebox.showwarning("Warning", f"Serial number {serial_number} not found in the CAN data.")
-        return None
+            return latest_data
 
-    return latest_data
+    # If serial number is not found, show a warning
+    messagebox.showwarning("Warning", f"Serial number {serial_number} not found in the CAN data.")
+    return {}
 
 
 
@@ -1108,8 +1117,8 @@ def update_excel_and_download_pdf(data):
         return
     
     # Assuming the serial number is unique, update the corresponding row
-    serial_number = data[2]  # serial_number is the second element in the array
-    df_can_data['Serial Number'] = df_can_data['Serial Number'].astype(str).str.strip()
+    serial_number = int(data[2])  # serial_number is the second element in the array
+    df_can_data['Serial Number'] = df_can_data['Serial Number'].astype(int)
     df_can_data['OCV Before Charging'] = df_can_data['OCV Before Charging'].astype(float)
     df_can_data['OCV Before Discharging'] = df_can_data['OCV Before Discharging'].astype(float)
     index = df_can_data[df_can_data['Serial Number'] == serial_number].index
@@ -1120,7 +1129,7 @@ def update_excel_and_download_pdf(data):
         df_can_data.loc[index[0], 'Project'] = str(data[0])  # Ensure it's a string
         df_can_data.loc[index[0], 'Device Name'] = str(data[1])  # Ensure it's a string
         df_can_data.loc[index[0], 'Manufacturer Name'] = str(data[3])  # Ensure it's a string
-        df_can_data.loc[index[0], 'Serial Number'] = int(data[2])  # Ensure it's a string
+        df_can_data.loc[index[0], 'Serial Number'] = serial_number
         df_can_data.loc[index[0], 'Cycle Count'] = int(data[4])  # Convert to int
         df_can_data.loc[index[0], 'Full Charge Capacity'] = float(data[5])  # Convert to float
         df_can_data.loc[index[0], 'Charging Date'] = str(data[6])  # Ensure it's a string
@@ -1283,8 +1292,8 @@ def update_charging_ocv_in_excel(serial_number, ocv_value):
 
         # Loop through rows to find the correct row by Serial Number
         serial_number_column = 7  # Assuming Serial Number is in column G (7th column)
-        charging_ocv_column = 11   # Assuming OCV Before Charging is in column K (11th column)
         charging_date_column = 10   # Assuming Charging Date is in column J (10th column)
+        charging_ocv_column = 11   # Assuming OCV Before Charging is in column K (11th column)
 
         serial_found = False
         for row in range(2, sheet.max_row + 1):  # Start at 2 to skip the header
@@ -1336,9 +1345,9 @@ def update_discharging_ocv_in_excel(serial_number, ocv_value):
 
         # Loop through rows to find the correct row by Serial Number
         serial_number_column = 7  # Assuming Serial Number is in column G (7th column)
-        discharging_ocv_column = 12  # Assuming OCV Before Discharging is in column L (12th column)
-        discharging_date_column = 13  # Assuming Discharging Date is in column M (13th column)
-
+        discharging_date_column = 12  # Assuming Discharging Date is in column M (13th column)
+        discharging_ocv_column = 13  # Assuming OCV Before Discharging is in column L (12th column)
+        
         serial_found = False
         for row in range(2, sheet.max_row + 1):  # Start at 2 to skip the header
             if sheet.cell(row=row, column=serial_number_column).value == serial_number:
