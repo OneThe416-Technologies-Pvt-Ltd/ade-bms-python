@@ -1,7 +1,7 @@
 [Setup]
 ; Basic setup details
 AppName=ADE BMS Software
-AppVersion=1.0
+AppVersion=1.1
 DefaultDirName={commonpf}\ADE BMS Software
 DefaultGroupName=ADE BMS Software
 OutputDir=output

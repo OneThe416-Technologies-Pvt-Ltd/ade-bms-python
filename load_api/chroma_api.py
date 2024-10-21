@@ -9,6 +9,7 @@ import datetime
 
 rm = pyvisa.ResourceManager()
 chroma = None
+load_current = 0
 is_connected = False
 
 def find_and_connect():
@@ -30,12 +31,13 @@ def find_and_connect():
     messagebox.showwarning("Device Not Found","Chroma device not found")
 def set_current(current):
     """Set the load current on the Chroma device."""
-    global chroma
+    global chroma,load_current
     if chroma:
         try:
             status = chroma.query("STAT:QUES:COND?")
             print(f"Device Status: {status}")
             chroma.write(f"CURR:STAT:L1 {current}\n")
+            load_current=current
             return f"Current set to {current}A"
         except Exception as e:
             return f"Error setting current: {e}"
@@ -47,49 +49,56 @@ def turn_load_on():
     global chroma
     if chroma:
         chroma.write(":LOAD ON\n")
+        print("on")
 
 def turn_load_off():
     """Turn off the load."""
     global chroma
     if chroma:
         chroma.write(":LOAD OFF\n")
+        print("off")
 
 def set_l1_50a_and_turn_on():
-    global chroma
+    global chroma,load_current
     if chroma:
         chroma.write("CURR:STAT:L1 50")
+        load_current=50
         turn_load_on()
         print("Load set to 50A and turned on.")
 
 # Method 2: Set L1 to 100A and turn on the load
 def set_l1_100a_and_turn_on():
-    global chroma
+    global chroma,load_current
     if chroma:
         chroma.write("CURR:STAT:L1 100")
+        load_current=100
         turn_load_on()
         print("Load set to 100A and turned on.")
 
 # Method 3: Set custom L1 value and turn load on or off separately
 def set_custom_l1_value(value):
-    global chroma
+    global chroma,load_current
     print(value,"test")
     if chroma:
         chroma.write(f"CURR:STAT:L1 {value}\n")
+        load_current =value
         print(f"Load set to {value}A.")
 
 
 def set_l1_25a_and_turn_on():
-    global chroma
+    global chroma,load_current
     if chroma:
         chroma.write("CURR:STAT:L1 25")
+        load_current =25
         turn_load_on()
         print("Load set to 25A and turned on.")
 
 # Method 2: Set L1 to 100A and turn on the load
 def set_l1_50a_and_turn_on():
-    global chroma
+    global chroma,load_current
     if chroma:
         chroma.write("CURR:STAT:L1 50")
+        load_current =50
         turn_load_on()
         print("Load set to 50A and turned on.")
 

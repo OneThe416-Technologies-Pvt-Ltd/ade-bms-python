@@ -92,8 +92,8 @@ def create_can_report_pdf(serial_number, protocol):
     base_path = os.path.dirname(os.path.abspath(__file__))
     assets_path = os.path.join(base_path, "../assets/logo/")
     logo_path = os.path.join(assets_path,"ade_pdf_logo.jpg")
-    pdf.image(logo_path, x=80, y=10, w=50)
-    pdf.ln(30)  # Space after the logo
+    pdf.image(logo_path, x=10, y=10, w=190)
+    pdf.ln(50)  # Space after the logo
 
     # Title and Headers
     pdf.set_font("Arial", "B", 14)
@@ -139,7 +139,7 @@ def create_can_report_pdf(serial_number, protocol):
     pdf.ln(5)  # Line break
 
     pdf.set_font("Arial", "", 10)
-    pdf.cell(hour_width, 8, "Hour", border=1)
+    pdf.cell(hour_width, 8, "Mins", border=1)
     pdf.cell(voltage_width, 8, "Voltage (V)", border=1)
     pdf.cell(current_width, 8, "Current (A)", border=1)
     pdf.cell(temperature_width, 8, "Temp (°C)", border=1)
@@ -162,11 +162,11 @@ def create_can_report_pdf(serial_number, protocol):
 
     pdf.set_font("Arial", 'I', 12)
     pdf.cell(100, 10, f'Date: {discharging_date}', ln=False)
-    pdf.cell(0, 10, f'OCV Before Charging: {ocv_before_discharging}', ln=True)
+    pdf.cell(0, 10, f'OCV Before Discharging: {ocv_before_discharging}', ln=True)
     pdf.ln(5)  # Line break
 
     pdf.set_font("Arial", "", 10)
-    pdf.cell(hour_width, 8, "Hour", border=1)
+    pdf.cell(hour_width, 8, "Mins", border=1)
     pdf.cell(voltage_width, 8, "Voltage (V)", border=1)
     pdf.cell(current_width, 8, "Current (A)", border=1)
     pdf.cell(temperature_width, 8, "Temp (°C)", border=1)
