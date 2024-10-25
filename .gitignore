@@ -1,0 +1,53 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
+env/
+venv/
+ENV/
+.venv/
+.ENV/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+*.whl
+
+# Installer logs and files
+*.log
+*.msi
+*.exe
+*.deb
+*.rpm
+*.dmg
+
+# IDE and editor settings
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Python-specific files
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+
+# Tkinter specific
+*.tcl
+*.db
+
+# Configuration files
+*.ini
+*.cfg
+
+# Miscellaneous
+.DS_Store
+*.bak
+*.swp
+*.tmp
