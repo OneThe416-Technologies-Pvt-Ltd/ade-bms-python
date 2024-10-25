@@ -169,7 +169,7 @@ device_data_battery_1 = {
             'voltage': 0,
             'avg_current': 0,
             'charging_current': 0,
-            'full_charge_capacity': 103,
+            'full_charge_capacity': 103.8,
             'charging_voltage': 0,
             'at_rate_time_to_full': 0,
             'at_rate_time_to_empty': 0,
@@ -261,17 +261,18 @@ async def fetch_and_store_data(call_name, key):
 def pcan_initialize(baudrate, hwtype, ioport, interrupt):
     result = m_objPCANBasic.Initialize(m_PcanHandle, baudrate, hwtype, ioport, interrupt)
     if result != PCAN_ERROR_OK:
-        log_can_data(device_data_battery_1)
+        # log_can_data(device_data_battery_1)
         if result == 5120:
             result = 512
         messagebox.showerror("Error!", GetFormatedError(result))
-        return True
+        # return True
+        return False
     else:
         pcan_write_read('serial_number',1)
         pcan_write_read('serial_number',2)
         if device_data_battery_2['serial_number'] !=0 and device_data_battery_1['serial_number'] !=0:
             pcan_write_read('temperature',2)
-            # pcan_write_read('firmware_version',2)       
+            pcan_write_read('firmware_version',2)       
             pcan_write_read('voltage',2)            
             pcan_write_read('battery_status',2)       
             pcan_write_read('current',2)     
@@ -279,7 +280,7 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
             pcan_write_read('full_charge_capacity',2)
             log_can_data(device_data_battery_2)
             pcan_write_read('temperature',1)
-            # pcan_write_read('firmware_version',1)       
+            pcan_write_read('firmware_version',1)       
             pcan_write_read('voltage',1)            
             pcan_write_read('battery_status',1)       
             pcan_write_read('current',1)      
@@ -290,7 +291,7 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
             return True
         elif device_data_battery_1['serial_number'] != 0:
             pcan_write_read('temperature',1)
-            # pcan_write_read('firmware_version',1)       
+            pcan_write_read('firmware_version',1)       
             pcan_write_read('voltage',1)            
             pcan_write_read('battery_status',1)       
             pcan_write_read('current',1)      
@@ -537,9 +538,9 @@ def pcan_read():
         #     build_number = (data_packet[5] << 8) | data_packet[4]
 
         #     version_string = f"{major_version}.{minor_version}.{patch_number}.{build_number}"
-        #     if newMsg.DATA[7] == 0x01:
+        #     if newMsg.DATA[7] == 0x1B:
         #         device_data_battery_1['firmware_version'] = version_string
-        #     elif newMsg.DATA[7] == 0x1C:
+        #     elif newMsg.DATA[7] == 0x32:
         #         device_data_battery_2['firmware_version'] = version_string
         #     else:
         #         print("Firmware version is not found")
@@ -608,7 +609,7 @@ def convert_data(newMsg, decimal_value):
                 decimal_value -= 65536
             currentmA = decimal_value*40
             currentA = currentmA / 1000
-            if currentA > 0:
+            if currentA > 1:
                 if newMsg.DATA[7] == 0x08:
                     device_data_battery_1['charging_battery_status'] = "Charging"
                     device_data_battery_1['current'] = 0
@@ -619,7 +620,7 @@ def convert_data(newMsg, decimal_value):
                     device_data_battery_2['charging_current'] = abs(currentA)
                 else:
                     print("Current Not Found")
-            elif currentA < 0:
+            elif currentA < 1:
                 if newMsg.DATA[7] == 0x08:
                     device_data_battery_1['charging_battery_status'] = "Discharging"
                     device_data_battery_1['current'] = abs(currentA)
@@ -731,6 +732,7 @@ def convert_data(newMsg, decimal_value):
     elif newMsg.DATA[4] == 0x15:  # ChargingVoltage: mV unsigned
         if newMsg.DATA[7] == 0x13:
             device_data_battery_1['charging_voltage'] = round((decimal_value / 1000),1)
+            print(f"Charging Voltage {device_data_battery_1['charging_voltage']}")
         elif newMsg.DATA[7] == 0x2E:
             device_data_battery_2['charging_voltage'] = round((decimal_value / 1000),1)
         else:
@@ -795,7 +797,18 @@ def convert_data(newMsg, decimal_value):
         else:
             print("Serial Number Not Found")
     else:
-        print(f"Result Command Code Not Found : {hex(newMsg.DATA[4])}")
+        data_packet = [int(hex(newMsg.DATA[i]), 16) for i in range(8 if (newMsg.LEN > 8) else newMsg.LEN)]
+        major_version = data_packet[0]
+        minor_version = data_packet[1]
+        patch_number = (data_packet[3] << 8) | data_packet[2]
+        build_number = (data_packet[5] << 8) | data_packet[4]
+        version_string = f"{major_version}.{minor_version}.{patch_number}.{build_number}"
+        if newMsg.DATA[7] == 0x1B:
+            device_data_battery_1['firmware_version'] = version_string
+        elif newMsg.DATA[7] == 0x32:
+            device_data_battery_2['firmware_version'] = version_string
+        else:
+            print("Firmware version is not found")
 
 
 def GetFormatedError(error):

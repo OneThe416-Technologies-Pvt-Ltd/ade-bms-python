@@ -8,13 +8,14 @@ from tkinter import messagebox
 import pandas as pd
 import helpers.pdf_generator as pdf_generator  # Config helper
 
-control=None
+battery_1=None
+battery_2=None
 rs_232_flag=False
 rs_422_flag=False
 rs232_interval_event = None
 rs422_interval_event = None
 
-rs232_device_data ={
+rs232_device_0_data ={
             'battery_id': 1,
             'serial_number': 1,
             'hw_version': 1,
@@ -66,6 +67,58 @@ rs422_device_data ={
             'temperature': 0,
             'channel_selected': 0
 }
+rs232_device_1_data ={
+            'battery_id': 1,
+            'serial_number': 1,
+            'hw_version': 1,
+            'sw_version': 1,
+            'cell_1_voltage': 2,
+            'cell_2_voltage': 2,
+            'cell_3_voltage': 2,
+            'cell_4_voltage': 2,
+            'cell_5_voltage': 2,
+            'cell_6_voltage': 2,
+            'cell_7_voltage': 2,
+            'cell_1_temp': 1,
+            'cell_2_temp': 1,
+            'cell_3_temp': 1,
+            'cell_4_temp': 1,
+            'cell_5_temp': 1,
+            'cell_6_temp': 1,
+            'cell_7_temp': 1,
+            'ic_temp': 25,
+            'bus_1_voltage_before_diode': 0,
+            'bus_2_voltage_before_diode': 0,
+            'bus_1_voltage_after_diode': 0,
+            'bus_2_voltage_after_diode': 0,
+            'bus_1_current_sensor1': 0,
+            'bus_2_current_sensor1': 0,
+            'charger_input_current': 0,
+            'charger_output_current': 0,
+            'charger_output_voltage': 0,
+            'charging_on_off_status': 1,
+            'charger_relay_status': 1,
+            'constant_voltage_mode': 1,
+            'constant_current_mode': 1,
+            'input_under_voltage': 1,
+            'output_over_current': 1,
+            'bus1_status': 1,
+            'bus2_status': 1,
+            'heater_pad': 1,
+}
+
+rs422_device_1_data ={
+            'eb_1_relay_status': 0,
+            'eb_2_relay_status': 0,
+            'heater_pad_charger_relay_status': 0,
+            'charger_status': 0,
+            'voltage': 0,
+            'eb_1_current': 0,
+            'eb_2_current': 0,
+            'charge_current': 0,
+            'temperature': 0,
+            'channel_selected': 0
+}
 
 rs232_write = {
     'header' : 0xAA,
@@ -101,7 +154,7 @@ def set_interval_async(func, interval):
 
 
 def connect_to_serial_port(port_name, flag):
-    global control, rs_232_flag, rs_422_flag
+    global battery_1, rs_232_flag, rs_422_flag
     """Connect to the serial port and configure it with default settings."""
     baud_rate = 19200 if flag == "RS-232" else 9600
     data_bits = serial.EIGHTBITS
@@ -109,7 +162,7 @@ def connect_to_serial_port(port_name, flag):
     stop_bits = serial.STOPBITS_ONE
 
     try:
-        control = serial.Serial(
+        battery_1 = serial.Serial(
             port=port_name,
             baudrate=baud_rate,
             bytesize=data_bits,
@@ -117,11 +170,11 @@ def connect_to_serial_port(port_name, flag):
             stopbits=stop_bits,
             timeout=1  # 1-second timeout
         )
-        if control.is_open:
+        if battery_1.is_open:
             print(f"Connected to {port_name} with baud rate {baud_rate}.")
             # Once connected, start periodic send/read loop
             start_communication()
-            return control
+            return battery_1
         else:
             print(f"Failed to open {port_name}.")
             return None
@@ -131,30 +184,27 @@ def connect_to_serial_port(port_name, flag):
 
 # Method to send RS232 or RS422 data
 def send_data():
-    while control and control.is_open:
+    while battery_1 and battery_1.is_open:
         if rs_232_flag:
             send_rs232_data()
         elif rs_422_flag:
             send_rs422_data()
-        # control.flush()  # Flush the buffer
+        # battery_1.flush()  # Flush the buffer
         threading.Event().wait(0.16)  # Wait for 160ms between each send
-
 
 # Method to read RS232 or RS422 data
 def read_data():
-    while control and control.is_open:
+    while battery_1 and battery_1.is_open:
         if rs_232_flag:
             read_rs232_data()
         elif rs_422_flag:
             read_rs422_data()
         threading.Event().wait(0.16)  # Adjust the read interval if necessary
 
-
 # Separate thread for sending data
 def start_sending():
     send_thread = threading.Thread(target=send_data, daemon=True)
     send_thread.start()
-
 
 # Separate thread for reading data
 def start_reading():
@@ -163,23 +213,23 @@ def start_reading():
 
 def send_rs232_data():
     """Send RS232 data."""
-    # if control.is_open:
+    # if battery_1.is_open:
     data = create_rs232_packet()
     print(f"{data} data send")
-    control.write(data)
+    battery_1.write(data)
     print(f"Sent RS232 data: {data.hex()}")
 
 def send_rs422_data():
     """Send RS422 data."""
-    # if control.is_open:
+    # if battery_1.is_open:
     data = create_rs422_packet()
-    control.write(data)
+    battery_1.write(data)
     print(f"Sent RS422 data: {data.hex()}")
 
 def read_rs232_data():
     """Read 256 bytes of data, find the valid 64-byte block, and update RS232 data."""
-    if control.is_open:
-        received_data = control.read(256)  # Read 256 bytes of data
+    if battery_1.is_open:
+        received_data = battery_1.read(256)  # Read 256 bytes of data
         if len(received_data) == 256:
             # Log the received data in hex format for debugging purposes
             received_hex = received_data.hex()
@@ -196,8 +246,8 @@ def read_rs232_data():
                         print(f"RS232 vaild Data received: {valid_block.hex()}")
                         print(f"Valid RS232 data block found from index {i} to {i+63}.")
                         # Pass the valid block to update the device data
-                        update_rs232_device_data(valid_block)
-                        log_rs_data(rs232_device_data)
+                        update_rs232_device_0_data(valid_block)
+                        log_rs_data(rs232_device_0_data)
                         return  # Exit after finding and processing the valid block
             print("No valid RS232 data block found in the received 256 bytes.")
         else:
@@ -205,8 +255,8 @@ def read_rs232_data():
 
 def read_rs422_data():
     """Read 20 bytes, validate the first 18-byte RS422 data block, and update the device data."""
-    if control.is_open:
-        received_data = control.read(40)  # Read 40 bytes of data
+    if battery_1.is_open:
+        received_data = battery_1.read(40)  # Read 40 bytes of data
         if len(received_data) == 40:
             print(f"RS422 Data received (40 bytes): {received_data.hex()}")
 
@@ -266,8 +316,8 @@ def create_rs422_packet():
     packet.append(checksum)
     return bytearray(packet)
 
-def update_rs232_device_data(data_hex):
-    """Update rs232_device_data with the received bytes."""
+def update_rs232_device_0_data(data_hex):
+    """Update rs232_device_0_data with the received bytes."""
     
     # Helper function to calculate and validate cell voltage
     def calculate_cell_voltage(raw_data):
@@ -281,142 +331,142 @@ def update_rs232_device_data(data_hex):
             return None
     
     # Byte 2: Battery ID
-    rs232_device_data['battery_id'] = data_hex[2]
+    rs232_device_0_data['battery_id'] = data_hex[2]
 
     # Byte 3: Battery Serial Number (1-255)
-    rs232_device_data['serial_number'] = data_hex[3]
+    rs232_device_0_data['serial_number'] = data_hex[3]
 
     # Byte 4: Hardware Version (1-9)
-    rs232_device_data['hw_version'] = data_hex[4]
+    rs232_device_0_data['hw_version'] = data_hex[4]
 
     # Byte 5: Software Version (1-9)
-    rs232_device_data['sw_version'] = data_hex[5]
+    rs232_device_0_data['sw_version'] = data_hex[5]
 
     # Process each cell voltage (adding 2 to raw value and ensuring it's within range)
     # Bytes 6-7: Cell-1 Voltage (Resolution 0.01V)
     cell_1_voltage_raw = data_hex[6]
-    rs232_device_data['cell_1_voltage'] = calculate_cell_voltage(cell_1_voltage_raw)
+    rs232_device_0_data['cell_1_voltage'] = calculate_cell_voltage(cell_1_voltage_raw)
     
     # Bytes 8-9: Cell-2 Voltage (Resolution 0.01V)
     cell_2_voltage_raw = data_hex[7]
-    rs232_device_data['cell_2_voltage'] = calculate_cell_voltage(cell_2_voltage_raw)
+    rs232_device_0_data['cell_2_voltage'] = calculate_cell_voltage(cell_2_voltage_raw)
     
     # Bytes 10-11: Cell-3 Voltage (Resolution 0.01V)
     cell_3_voltage_raw = data_hex[8]
-    rs232_device_data['cell_3_voltage'] = calculate_cell_voltage(cell_3_voltage_raw)
+    rs232_device_0_data['cell_3_voltage'] = calculate_cell_voltage(cell_3_voltage_raw)
     
     # Bytes 12-13: Cell-4 Voltage (Resolution 0.01V)
     cell_4_voltage_raw = data_hex[9]
-    rs232_device_data['cell_4_voltage'] = calculate_cell_voltage(cell_4_voltage_raw)
+    rs232_device_0_data['cell_4_voltage'] = calculate_cell_voltage(cell_4_voltage_raw)
     
     # Bytes 14-15: Cell-5 Voltage (Resolution 0.01V)
     cell_5_voltage_raw = data_hex[10]
-    rs232_device_data['cell_5_voltage'] = calculate_cell_voltage(cell_5_voltage_raw)
+    rs232_device_0_data['cell_5_voltage'] = calculate_cell_voltage(cell_5_voltage_raw)
     
     # Bytes 16-17: Cell-6 Voltage (Resolution 0.01V)
     cell_6_voltage_raw = data_hex[11]
-    rs232_device_data['cell_6_voltage'] = calculate_cell_voltage(cell_6_voltage_raw)
+    rs232_device_0_data['cell_6_voltage'] = calculate_cell_voltage(cell_6_voltage_raw)
     
     # Bytes 18-19: Cell-7 Voltage (Resolution 0.01V)
     cell_7_voltage_raw = data_hex[12]
-    rs232_device_data['cell_7_voltage'] = calculate_cell_voltage(cell_7_voltage_raw)
+    rs232_device_0_data['cell_7_voltage'] = calculate_cell_voltage(cell_7_voltage_raw)
 
     # Byte 20: Cell-1 Temperature (-40 to +125, subtract 40)
-    rs232_device_data['cell_1_temp'] = data_hex[13] - 40
+    rs232_device_0_data['cell_1_temp'] = data_hex[13] - 40
 
     # Byte 21: Cell-2 Temperature (-40 to +125, subtract 40)
-    rs232_device_data['cell_2_temp'] = data_hex[14] - 40
+    rs232_device_0_data['cell_2_temp'] = data_hex[14] - 40
 
     # Byte 22: Cell-3 Temperature (-40 to +125, subtract 40)
-    rs232_device_data['cell_3_temp'] = data_hex[15] - 40
+    rs232_device_0_data['cell_3_temp'] = data_hex[15] - 40
 
     # Byte 23: Cell-4 Temperature (-40 to +125, subtract 40)
-    rs232_device_data['cell_4_temp'] = data_hex[16] - 40
+    rs232_device_0_data['cell_4_temp'] = data_hex[16] - 40
 
     # Byte 24: Cell-5 Temperature (-40 to +125, subtract 40)
-    rs232_device_data['cell_5_temp'] = data_hex[17] - 40
+    rs232_device_0_data['cell_5_temp'] = data_hex[17] - 40
 
     # Byte 25: Cell-6 Temperature (-40 to +125, subtract 40)
-    rs232_device_data['cell_6_temp'] = data_hex[18] - 40
+    rs232_device_0_data['cell_6_temp'] = data_hex[18] - 40
 
     # Byte 26: Cell-7 Temperature (-40 to +125, subtract 40)
-    rs232_device_data['cell_7_temp'] = data_hex[19] - 40
+    rs232_device_0_data['cell_7_temp'] = data_hex[19] - 40
 
     cell_status_byte = data_hex[20]  # Byte 21 in the data (index 20)
     binary_status = format(cell_status_byte, '08b')  # Convert to 8-bit binary string
 
     # Get the status of each cell from the corresponding bit
-    rs232_device_data['cell_1_status'] = (cell_status_byte & 0x01)  # Bit 0: Cell 1 Status
-    rs232_device_data['cell_2_status'] = (cell_status_byte & 0x02) >> 1  # Bit 1: Cell 2 Status
-    rs232_device_data['cell_3_status'] = (cell_status_byte & 0x04) >> 2  # Bit 2: Cell 3 Status
-    rs232_device_data['cell_4_status'] = (cell_status_byte & 0x08) >> 3  # Bit 3: Cell 4 Status
-    rs232_device_data['cell_5_status'] = (cell_status_byte & 0x10) >> 4  # Bit 4: Cell 5 Status
-    rs232_device_data['cell_6_status'] = (cell_status_byte & 0x20) >> 5  # Bit 5: Cell 6 Status
-    rs232_device_data['cell_7_status'] = (cell_status_byte & 0x40) >> 6  # Bit 6: Cell 7 Status
+    rs232_device_0_data['cell_1_status'] = (cell_status_byte & 0x01)  # Bit 0: Cell 1 Status
+    rs232_device_0_data['cell_2_status'] = (cell_status_byte & 0x02) >> 1  # Bit 1: Cell 2 Status
+    rs232_device_0_data['cell_3_status'] = (cell_status_byte & 0x04) >> 2  # Bit 2: Cell 3 Status
+    rs232_device_0_data['cell_4_status'] = (cell_status_byte & 0x08) >> 3  # Bit 3: Cell 4 Status
+    rs232_device_0_data['cell_5_status'] = (cell_status_byte & 0x10) >> 4  # Bit 4: Cell 5 Status
+    rs232_device_0_data['cell_6_status'] = (cell_status_byte & 0x20) >> 5  # Bit 5: Cell 6 Status
+    rs232_device_0_data['cell_7_status'] = (cell_status_byte & 0x40) >> 6  # Bit 6: Cell 7 Status
 
 
     # Byte 27: Monitor IC Temperature (-40 to +125, subtract 40)
-    rs232_device_data['ic_temp'] = data_hex[22] - 40
+    rs232_device_0_data['ic_temp'] = data_hex[22] - 40
 
     # Bytes 28-29: Bus 1 Voltage (18-33.3V, Resolution 0.06V)
-    rs232_device_data['bus_1_voltage_before_diode'] = round(data_hex[23] * 0.06,2)
+    rs232_device_0_data['bus_1_voltage_before_diode'] = round(data_hex[23] * 0.06,2)
 
     # Bytes 30-31: Bus 2 Voltage (18-33.3V, Resolution 0.06V)
-    rs232_device_data['bus_2_voltage_before_diode'] = round(data_hex[24] * 0.06,2)
+    rs232_device_0_data['bus_2_voltage_before_diode'] = round(data_hex[24] * 0.06,2)
 
     # Bytes 32-33: Bus 1 Voltage after Diode (Resolution 0.06V)
-    rs232_device_data['bus_1_voltage_after_diode'] = round(data_hex[25] * 0.06,2)
+    rs232_device_0_data['bus_1_voltage_after_diode'] = round(data_hex[25] * 0.06,2)
 
     # Bytes 34-35: Bus 2 Voltage after Diode (Resolution 0.06V)
-    rs232_device_data['bus_2_voltage_after_diode'] = round(data_hex[26] * 0.06,2)
+    rs232_device_0_data['bus_2_voltage_after_diode'] = round(data_hex[26] * 0.06,2)
 
     # Bytes 36-37: Current / Bus 1 Sensor 1 (0-63.75A, Resolution 0.25A)
-    rs232_device_data['bus_1_current_sensor1'] = round((data_hex[27]-128) * 0.25,2)
+    rs232_device_0_data['bus_1_current_sensor1'] = round((data_hex[27]-128) * 0.25,2)
 
     # Bytes 38-39: Current / Bus 2 Sensor 2 (0-63.75A, Resolution 0.25A)
-    rs232_device_data['bus_2_current_sensor1'] = round((data_hex[29]-128) * 0.25,2)
+    rs232_device_0_data['bus_2_current_sensor1'] = round((data_hex[29]-128) * 0.25,2)
 
     # Byte 40-41: Charger Input Current (0-15A, Resolution 0.1A)
-    rs232_device_data['charger_input_current'] = round(data_hex[31] * 0.1,1)
+    rs232_device_0_data['charger_input_current'] = round(data_hex[31] * 0.1,1)
     
     # Bytes 32-33: Charger Output Current (Resolution 0.1A)
-    rs232_device_data['charger_output_current'] = round(data_hex[32] * 0.1,2)
+    rs232_device_0_data['charger_output_current'] = round(data_hex[32] * 0.1,2)
 
     # Bytes 34-35: Charger Output Voltage (Resolution 0.1V)
-    rs232_device_data['charger_output_voltage'] = round(data_hex[33] * 0.06,2)
+    rs232_device_0_data['charger_output_voltage'] = round(data_hex[33] * 0.06,2)
 
     charger_status_byte = data_hex[35]  # Byte 35 in the data
 
     # Get the charging on/off status (0th bit)
-    rs232_device_data['charging_on_off_status'] = (charger_status_byte & 0x01)  # Bit 0: Charging On/Off Status
+    rs232_device_0_data['charging_on_off_status'] = (charger_status_byte & 0x01)  # Bit 0: Charging On/Off Status
 
     # Byte 37: Charger Relay Status
-    rs232_device_data['charger_relay_status'] = (charger_status_byte & 0x02) >> 1
+    rs232_device_0_data['charger_relay_status'] = (charger_status_byte & 0x02) >> 1
 
     # Byte 38: Constant Voltage Mode (1 byte)
-    rs232_device_data['constant_voltage_mode'] = (charger_status_byte & 0x04) >> 2
+    rs232_device_0_data['constant_voltage_mode'] = (charger_status_byte & 0x04) >> 2
 
     # Byte 39: Constant Current Mode (1 byte)
-    rs232_device_data['constant_current_mode'] = (charger_status_byte & 0x08) >> 3
+    rs232_device_0_data['constant_current_mode'] = (charger_status_byte & 0x08) >> 3
 
     # Byte 40: Input Under Voltage (1 byte)
-    rs232_device_data['input_under_voltage'] = (charger_status_byte & 0x10) >> 4
+    rs232_device_0_data['input_under_voltage'] = (charger_status_byte & 0x10) >> 4
 
     # Byte 41: Output Over Current (1 byte)
-    rs232_device_data['output_over_current'] = (charger_status_byte & 0x20) >> 5
+    rs232_device_0_data['output_over_current'] = (charger_status_byte & 0x20) >> 5
 
     info_status_byte = data_hex[35]  # Byte 35 in the data
 
     # Byte 42: Bus1 Status (1 byte)
-    rs232_device_data['bus1_status'] = (info_status_byte & 0x01)
+    rs232_device_0_data['bus1_status'] = (info_status_byte & 0x01)
 
     # Byte 43: Bus2 Status (1 byte)
-    rs232_device_data['bus2_status'] = (info_status_byte & 0x02) >> 1
+    rs232_device_0_data['bus2_status'] = (info_status_byte & 0x02) >> 1
 
     # Byte 44: Heater Pad Status (1 byte)
-    rs232_device_data['heater_pad'] = (info_status_byte & 0x04) >> 2
+    rs232_device_0_data['heater_pad'] = (info_status_byte & 0x04) >> 2
           
-    print(f"Updated RS232 device data: {rs232_device_data}")
+    print(f"Updated RS232 device data: {rs232_device_0_data}")
 
 def update_rs422_device_data(data_bytes):
     # Example of parsing each byte using the appropriate resolution or bitwise operations:
@@ -500,8 +550,8 @@ def stop_communication():
     rs_232_flag = False
     rs_422_flag = False
 
-    if control and control.is_open:
-        control.close()
+    if battery_1 and battery_1.is_open:
+        battery_1.close()
         print("Serial connection closed.")
 
 def get_active_protocol():
@@ -510,6 +560,7 @@ def get_active_protocol():
         return "RS-232"
     elif rs_422_flag:
         return "RS-422"
+
 
 def set_active_protocol(selected_flag):
     global rs_422_flag, rs_232_flag

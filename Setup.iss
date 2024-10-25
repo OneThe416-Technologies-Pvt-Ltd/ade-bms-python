@@ -1,11 +1,11 @@
 [Setup]
 ; Basic setup details
-AppName=ADE BMS Software
+AppName=ADE BMS Console Software
 AppVersion=1.1
-DefaultDirName={commonpf}\ADE BMS Software
-DefaultGroupName=ADE BMS Software
+DefaultDirName={commonpf}\ADE BMS Console Software
+DefaultGroupName=ADE BMS Console Software
 OutputDir=output
-OutputBaseFilename=ADE BMS Software Installer
+OutputBaseFilename=ADE BMS Console Software Installer
 Compression=lzma
 SolidCompression=yes
 

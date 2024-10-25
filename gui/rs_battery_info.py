@@ -62,7 +62,7 @@ class RSBatteryInfo:
         print(f"{self.rs422_flag} self.rs422_flag")
 
         if self.rs232_flag:
-            self.device_data = rs232_device_data
+            self.device_data = rs232_device_0_data
             print("RS232 data updated")
         elif self.rs422_flag:
             self.device_data = rs422_device_data
@@ -188,7 +188,7 @@ class RSBatteryInfo:
 
         # Step 4: Update device data based on the selected protocol
         if self.rs232_flag:
-            self.device_data = rs232_device_data
+            self.device_data = rs232_device_0_data
             print("RS232 data updated")
         elif self.rs422_flag:
             self.device_data = rs422_device_data
@@ -1411,7 +1411,7 @@ class RSBatteryInfo:
             for i in range(7):
                 ttk.Label(parameters_frame, text=f"BAT{i+1}").grid(row=0, column=i+1, padx=5, pady=5)
 
-                # Set the values from the rs232_device_data dictionary
+                # Set the values from the rs232_device_0_data dictionary
                 voltage_value = self.device_data.get(f'cell_{i+1}_voltage', 'N/A')
                 temp_value = self.device_data.get(f'cell_{i+1}_temp', 'N/A')
 

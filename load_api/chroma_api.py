@@ -29,21 +29,7 @@ def find_and_connect():
         except Exception as e:
             pass
     messagebox.showwarning("Device Not Found","Chroma device not found")
-def set_current(current):
-    """Set the load current on the Chroma device."""
-    global chroma,load_current
-    if chroma:
-        try:
-            status = chroma.query("STAT:QUES:COND?")
-            print(f"Device Status: {status}")
-            chroma.write(f"CURR:STAT:L1 {current}\n")
-            load_current=current
-            return f"Current set to {current}A"
-        except Exception as e:
-            return f"Error setting current: {e}"
-    else:
-        return "Device not connected"
-    
+   
 def turn_load_on():
     """Turn on the load."""
     global chroma
@@ -58,47 +44,39 @@ def turn_load_off():
         chroma.write(":LOAD OFF\n")
         print("off")
 
-def set_l1_50a_and_turn_on():
-    global chroma,load_current
-    if chroma:
-        chroma.write("CURR:STAT:L1 50")
-        load_current=50
-        turn_load_on()
-        print("Load set to 50A and turned on.")
-
 # Method 2: Set L1 to 100A and turn on the load
 def set_l1_100a_and_turn_on():
-    global chroma,load_current
+    global chroma , load_current
+    load_current=100
     if chroma:
         chroma.write("CURR:STAT:L1 100")
-        load_current=100
         turn_load_on()
         print("Load set to 100A and turned on.")
 
 # Method 3: Set custom L1 value and turn load on or off separately
 def set_custom_l1_value(value):
     global chroma,load_current
+    load_current = value
     print(value,"test")
     if chroma:
         chroma.write(f"CURR:STAT:L1 {value}\n")
-        load_current =value
         print(f"Load set to {value}A.")
 
 
 def set_l1_25a_and_turn_on():
     global chroma,load_current
+    load_current = 25
     if chroma:
         chroma.write("CURR:STAT:L1 25")
-        load_current =25
         turn_load_on()
         print("Load set to 25A and turned on.")
 
 # Method 2: Set L1 to 100A and turn on the load
 def set_l1_50a_and_turn_on():
     global chroma,load_current
+    load_current = 50
     if chroma:
         chroma.write("CURR:STAT:L1 50")
-        load_current =50
         turn_load_on()
         print("Load set to 50A and turned on.")
 
@@ -112,3 +90,7 @@ def set_dynamic_values(l1, l2, t1, t2, repeat):
         chroma.write(f"CURR:DYN:T2 {t2}\n")
         chroma.write(f"CURR:DYN:REP {repeat}\n")
         print("Load set to L1,L2,T1,T2,REP ")
+
+def get_load_current():
+    global load_current
+    return load_current

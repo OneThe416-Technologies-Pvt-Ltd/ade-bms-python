@@ -529,9 +529,9 @@ class CanBatteryInfo:
                 # Frame for dynamic fields (L1, L2, T1, T2, Repeat, Save button)
                 self.testing_default_fields_frame = ttk.Frame(control_testing_frame)
                 self.testing_default_fields_frame.grid(row=1, column=0, columnspan=6, padx=10, pady=10, sticky="nsew")
-                self.load_default_button_control = ttk.Button(self.testing_default_fields_frame, text="Set 50A & Turn ON")
+                self.load_default_button_control = ttk.Button(self.testing_default_fields_frame, text="Set 50A & Turn ON", command=set_l1_50a_and_turn_on)
                 self.load_default_button_control.grid(row=1, column=0, columnspan=6, padx=150, pady=10, sticky="ew")
-                self.load_custom_button_control = ttk.Button(self.testing_default_fields_frame, text="Turn OFF")
+                self.load_custom_button_control = ttk.Button(self.testing_default_fields_frame, text="Turn OFF", command=turn_load_off)
                 self.load_custom_button_control.grid(row=1, column=6, columnspan=6, padx=190, pady=10, sticky="ew")
 
             def hide_default_controls():
@@ -634,10 +634,10 @@ class CanBatteryInfo:
                 # Initially hide the dynamic fields frame
                 self.maintance_default_fields_frame.grid_remove()
 
-                self.load_default_maintance_button_control = ttk.Button( self.maintance_default_fields_frame, text="Set 100A & Turn ON")
+                self.load_default_maintance_button_control = ttk.Button( self.maintance_default_fields_frame, text="Set 100A & Turn ON", command=set_l1_100a_and_turn_on)
                 self.load_default_maintance_button_control.grid(row=1, column=0, columnspan=6, padx=140, pady=5, sticky="ew")
 
-                self.load_custom_maintance_button_control = ttk.Button( self.maintance_default_fields_frame, text="Turn OFF")
+                self.load_custom_maintance_button_control = ttk.Button( self.maintance_default_fields_frame, text="Turn OFF", command=turn_load_off)
                 self.load_custom_maintance_button_control.grid(row=1, column=6, columnspan=6, padx=180, pady=5, sticky="ew")
 
             def hide_maintance_default_controls():
@@ -755,7 +755,7 @@ class CanBatteryInfo:
 
             select_discharging_default_maintenance()
             
-            # Custom value save function
+           # Custom value save function
             def save_custom_value():
                 """Saves the custom current value and sets it to the Chroma device."""
                 custom_value = self.custom_current_entry.get()
@@ -769,13 +769,13 @@ class CanBatteryInfo:
             def toggle_load():
                 if self.load_status.get():
                     turn_load_off()
-                    self.maintance_load_toggle_button.config(text="Turn ON Load", bootstyle="success")  # Change to green when OFF
+                    self.load_toggle_button.config(text="Turn ON Load", bootstyle="success")  # Change to green when OFF
                     self.load_status.set(False)  # Update state to OFF
                 else:
                     turn_load_on()
-                    self.maintance_load_toggle_button.config(text="Turn OFF Load", bootstyle="danger")  # Change to red when ON
+                    self.load_toggle_button.config(text="Turn OFF Load", bootstyle="danger")  # Change to red when ON
                     self.load_status.set(True)  # Update state to ON
-        
+
         # Function to enable/disable agree button based on checkbox states
         def update_agree_button(*args):
             self.chroma_device_status.set(self.chroma_load_status.get())
@@ -797,6 +797,7 @@ class CanBatteryInfo:
     
     def show_load_control(self):
         # Show charger control elements
+        self.connect_device()
         self.agree_discharging_status.set(True)
         self.load_control_frame.grid(row=9, column=2, rowspan=1, columnspan=10, padx=5, pady=5, sticky="nsew")
         self.discharge_button_battery_1.grid(row=7, column=2, columnspan=4, rowspan= 2,  padx=10, pady=5, sticky="ew")
@@ -1053,7 +1054,6 @@ class CanBatteryInfo:
     def connect_device(self):
         """Connect to the Chroma device."""
         result = find_and_connect()  # This can be the same method or a separate one for specific device connection
-        self.status_label.config(text=result)
 
     def show_config(self):
         """Show the configuration settings page where users can view and update configurations."""
@@ -1453,7 +1453,8 @@ class CanBatteryInfo:
         capacity_label = ttk.Label(capacity_frame, text="Capacity", font=("Helvetica", 10, "bold"))
         capacity_label.pack(pady=(10, 10))
         remaining_capacity = self.device_data.get('remaining_capacity')
-        capacity = (remaining_capacity / 103) * 100
+        full_charge_capacity = self.device_data.get('full_charge_capacity')
+        capacity = (remaining_capacity / full_charge_capacity) * 100
         self.capacity_meter = ttk.Meter(
             master=capacity_frame,
             metersize=180,
@@ -2257,16 +2258,16 @@ class CanBatteryInfo:
         self.battery_status_label.grid(row=row, column=column, padx=5, pady=2, sticky="w")
 
     def auto_refresh(self):
-        # asyncio.run(update_device_data())
-        for key, value in device_data_battery_1.items():
-            if key not in ["serial_number", "cycle_count",'full_charge_capacity','current','rel_state_of_charge']:  # Skip serial_number and cycle_count
-                if isinstance(value, (int, float)):  # Only update numeric fields
-                    device_data_battery_1[key] = round(value + 0.1,2)
-        if device_data_battery_2['serial_number'] > 0:
-            for key, value in device_data_battery_2.items():
-                if key not in ["serial_number", "cycle_count",'full_charge_capacity',"charging_current","current"]:  # Skip serial_number and cycle_count
-                    if isinstance(value, (int, float)):  # Only update numeric fields
-                        device_data_battery_2[key] = round(value + 2.51,2)
+        asyncio.run(update_device_data())
+        # for key, value in device_data_battery_1.items():
+        #     if key not in ["serial_number", "cycle_count",'full_charge_capacity','charging_current','rel_state_of_charge']:  # Skip serial_number and cycle_count
+        #         if isinstance(value, (int, float)):  # Only update numeric fields
+        #             device_data_battery_1[key] = round(value + 0.1,2)
+        # if device_data_battery_2['serial_number'] > 0:
+        #     for key, value in device_data_battery_2.items():
+        #         if key not in ["serial_number", "cycle_count",'full_charge_capacity',"charging_current","current"]:  # Skip serial_number and cycle_count
+        #             if isinstance(value, (int, float)):  # Only update numeric fields
+        #                 device_data_battery_2[key] = round(value + 2.51,2)
         if self.selected_battery == "Battery 1":
             self.device_data = device_data_battery_1
             self.battery_status_flags = battery_1_status_flags
@@ -2331,7 +2332,8 @@ class CanBatteryInfo:
             self.discharging_voltage_meter.configure(amountused=self.device_data['voltage'], bootstyle=self.get_gauge_style(self.device_data['voltage'], "voltage"))
             self.temp_meter.configure(amountused=self.device_data['temperature'], bootstyle=self.get_gauge_style(self.device_data['temperature'], "temperature"))
             remaining_capacity = self.device_data.get('remaining_capacity')
-            capacity = (remaining_capacity / 103) * 100
+            full_charge_capacity = self.device_data.get('full_charge_capacity')
+            capacity = (remaining_capacity / full_charge_capacity) * 100
             self.capacity_meter.configure(amountused=round(capacity, 2), bootstyle=self.get_gauge_style(capacity, "capacity"))
         elif self.selected_button == self.info_button:
             selected_mode = self.mode_var.get()
@@ -2391,7 +2393,7 @@ class CanBatteryInfo:
         battery_1_voltage = float(device_data_battery_1['charging_voltage'])
         battery_1_current = float(device_data_battery_1['charging_current'])
         battery_1_temperature = float(device_data_battery_1['temperature'])
-        battery_1_state_of_charge = float((device_data_battery_1['remaining_capacity'] / 103) * 100)
+        battery_1_state_of_charge = int(device_data_battery_1['rel_state_of_charge'])
 
         # Load existing data from the Excel file, or create a new DataFrame if the file doesn't exist
         try:
@@ -2430,6 +2432,9 @@ class CanBatteryInfo:
 
         # Save the updated DataFrame back to the Excel file
         df.to_excel(excel_file_path, index=False)
+        remaining_capacity = self.device_data.get('remaining_capacity')
+        full_charge_capacity = self.device_data.get('full_charge_capacity')
+        battery_capacity = round((remaining_capacity / full_charge_capacity) * 100,2)
 
         # Add new data for battery 1 if charging conditions are met
         if battery_1_current < config.config_values['can_config'].get('charging_cutoff_curr') and battery_1_voltage > config.config_values['can_config'].get('charging_cutoff_volt') and battery_1_state_of_charge > config.config_values['can_config'].get('charging_cutoff_capacity'):
@@ -2531,7 +2536,9 @@ class CanBatteryInfo:
         battery_1_voltage = float(device_data_battery_1['voltage'])  # Use appropriate key
         battery_1_current = float(device_data_battery_1['current'])  # Use appropriate key
         battery_1_temperature = float(device_data_battery_1['temperature'])
-        # battery_1_load_current = float(device_data_battery_1['load_current'])  # Assuming this key exists
+        print(f"load_current 1 {get_load_current}")
+        battery_1_load_current = get_load_current()  # Assuming this key exists
+        print(f"load_current 2 {battery_1_load_current}")
 
         try:
             df = pd.read_excel(excel_file_path)
@@ -2564,7 +2571,7 @@ class CanBatteryInfo:
                 battery_1_voltage,
                 battery_1_current,
                 battery_1_temperature,
-                load_current
+                battery_1_load_current
             ]
 
             # Add new data for battery 1
@@ -2577,8 +2584,9 @@ class CanBatteryInfo:
         if battery_1_current > 0 and battery_1_voltage <= config.config_values['can_config'].get('discharge_cutoff_volt'):
             # Show messagebox and stop logging
             messagebox.showinfo("Discharging Completed", "Battery 1 discharging completed. Stopping log.")
-            self.discharger_control_var_battery_1.set(False)
             turn_load_off()
+            pcan_write_control('both_off',1)
+            self.discharger_control_var_battery_1.set(False)      
             self.toggle_button_style(tk.BooleanVar(value=False), self.discharge_button_battery_1, 'charge', self.selected_battery)
             return  # Stop the recursion here
 
