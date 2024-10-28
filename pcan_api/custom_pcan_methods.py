@@ -261,12 +261,12 @@ async def fetch_and_store_data(call_name, key):
 def pcan_initialize(baudrate, hwtype, ioport, interrupt):
     result = m_objPCANBasic.Initialize(m_PcanHandle, baudrate, hwtype, ioport, interrupt)
     if result != PCAN_ERROR_OK:
-        # log_can_data(device_data_battery_1)
+        log_can_data(device_data_battery_1)
         if result == 5120:
             result = 512
         messagebox.showerror("Error!", GetFormatedError(result))
-        # return True
-        return False
+        return True
+        # return False
     else:
         pcan_write_read('serial_number',1)
         pcan_write_read('serial_number',2)

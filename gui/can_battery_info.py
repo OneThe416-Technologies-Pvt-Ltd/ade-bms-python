@@ -797,7 +797,7 @@ class CanBatteryInfo:
     
     def show_load_control(self):
         # Show charger control elements
-        self.connect_device()
+        # self.connect_device()
         self.agree_discharging_status.set(True)
         self.load_control_frame.grid(row=9, column=2, rowspan=1, columnspan=10, padx=5, pady=5, sticky="nsew")
         self.discharge_button_battery_1.grid(row=7, column=2, columnspan=4, rowspan= 2,  padx=10, pady=5, sticky="ew")
@@ -2258,16 +2258,16 @@ class CanBatteryInfo:
         self.battery_status_label.grid(row=row, column=column, padx=5, pady=2, sticky="w")
 
     def auto_refresh(self):
-        asyncio.run(update_device_data())
-        # for key, value in device_data_battery_1.items():
-        #     if key not in ["serial_number", "cycle_count",'full_charge_capacity','charging_current','rel_state_of_charge']:  # Skip serial_number and cycle_count
-        #         if isinstance(value, (int, float)):  # Only update numeric fields
-        #             device_data_battery_1[key] = round(value + 0.1,2)
-        # if device_data_battery_2['serial_number'] > 0:
-        #     for key, value in device_data_battery_2.items():
-        #         if key not in ["serial_number", "cycle_count",'full_charge_capacity',"charging_current","current"]:  # Skip serial_number and cycle_count
-        #             if isinstance(value, (int, float)):  # Only update numeric fields
-        #                 device_data_battery_2[key] = round(value + 2.51,2)
+        # asyncio.run(update_device_data())
+        for key, value in device_data_battery_1.items():
+            if key not in ["serial_number", "cycle_count",'full_charge_capacity','charging_current','rel_state_of_charge']:  # Skip serial_number and cycle_count
+                if isinstance(value, (int, float)):  # Only update numeric fields
+                    device_data_battery_1[key] = round(value + 0.1,2)
+        if device_data_battery_2['serial_number'] > 0:
+            for key, value in device_data_battery_2.items():
+                if key not in ["serial_number", "cycle_count",'full_charge_capacity',"charging_current","current"]:  # Skip serial_number and cycle_count
+                    if isinstance(value, (int, float)):  # Only update numeric fields
+                        device_data_battery_2[key] = round(value + 2.51,2)
         if self.selected_battery == "Battery 1":
             self.device_data = device_data_battery_1
             self.battery_status_flags = battery_1_status_flags

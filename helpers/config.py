@@ -42,6 +42,10 @@ EXCEL_FILES = {
 # Default configuration values for CAN and RS232/RS422
 default_config = {
     "can_config": {
+        "hardware_type": "ISA-82C200",
+        "baudrate": "250 kBit/sec",
+        "input_output_port": "0100",
+        "interrupt": "3",
         "discharging_current_max": 450,
         "logging_time": 5,
         "discharge_cutoff_volt": 21,

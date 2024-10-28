@@ -4,6 +4,7 @@ import tkinter as tk
 import ttkbootstrap as ttk
 from gui.can_connect import CanConnection
 from gui.rs_connect import RSConnection
+from gui.settings import Settings
 from gui.can_battery_info import CanBatteryInfo
 from gui.rs_battery_info import RSBatteryInfo
 from gui.splash_screen import SplashScreen
@@ -43,9 +44,26 @@ class MainWindow:
         self.rs_connection = RSConnection(self.rs_frame, self)
         self.rs_connection.pack(fill="both", expand=True)
 
+        # Create Settings tab
+        self.settings_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.settings_frame, text="Settings")
+
+        # Initialize the RS232/RS422 connection settings
+        self.settings = Settings(self.settings_frame, self)
+        self.settings.pack(fill="both", expand=True)
+
         # Initialize the CanBatteryInfo and RSBatteryInfo frames separately
         self.can_battery_info = None
         self.rs_battery_info = None
+    
+        # Bind tab change event
+        self.notebook.bind("<<NotebookTabChanged>>", self.on_tab_change)
+
+    def on_tab_change(self, event):
+        # Check if the CAN tab is selected
+        selected_tab = self.notebook.tab(self.notebook.select(), "text")
+        if selected_tab == "CAN":
+            self.can_connection.update_displayed_values()  # Call the refresh method
 
     def center_window(self, width, height):
         # Calculate x and y coordinates to center the window
@@ -105,14 +123,14 @@ if __name__ == "__main__":
     # root = ttk.Window(themename="lumen")
     root = tk.Tk()
     # Hide the main window while the splash screen is displayed
-    root.withdraw()
+    # root.withdraw()
 
-    # Create and show the splash screen
-    splash = SplashScreen(root)
-    splash.update()
+    # # Create and show the splash screen
+    # splash = SplashScreen(root)
+    # splash.update()
 
-    # After the splash screen is closed, show the main window
-    root.after(5000, lambda: (splash.destroy(), root.deiconify()))
+    # # After the splash screen is closed, show the main window
+    # root.after(5000, lambda: (splash.destroy(), root.deiconify()))
 
     # Initialize and run the main application
     app = MainWindow(root)
