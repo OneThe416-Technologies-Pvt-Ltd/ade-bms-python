@@ -44,6 +44,8 @@ class RSBatteryInfo:
         self.agree_discharging_status = tk.BooleanVar(value=False)  # Initially OFF
         self.load_status = tk.BooleanVar(value=False)
         self.control_var = tk.StringVar(value="Charging")  # control variable (Charging by default)
+        self.battery_1_status = tk.StringVar(value="Idle")
+        self.battery_2_status = tk.StringVar(value="Idle")
 
 
         # Battery selection control variables
@@ -68,7 +70,7 @@ class RSBatteryInfo:
         self.main_frame.pack(fill="both", expand=True)
 
         active_protocol = get_active_protocol()
-        print(f"{active_protocol} protocol")
+        logger.info(f"{active_protocol} protocol")
         # Step 3: Update the flags based on the active protocol
         if active_protocol == "RS-232":
             self.rs232_flag = True
@@ -77,15 +79,16 @@ class RSBatteryInfo:
             self.rs232_flag = False
             self.rs422_flag = True
 
-        print(f"{self.rs232_flag} self.rs232_flag")
-        print(f"{self.rs422_flag} self.rs422_flag")
+        logger.info(f"{self.rs232_flag} self.rs232_flag")
+        logger.info(f"{self.rs422_flag} self.rs422_flag")
 
         if self.rs232_flag:
             self.device_1_data = rs232_device_1_data
-            print("RS232 data updated")
+            self.device_2_data = rs232_device_2_data
+            logger.info("RS232 data updated")
         elif self.rs422_flag:
             self.device_1_data = rs422_device_1_data
-            print("RS422 data updated")
+            logger.info("RS422 data updated")
 
         
         # Create the side menu frame with 1/4 width of the main window
@@ -214,10 +217,10 @@ class RSBatteryInfo:
         # Step 4: Update device data based on the selected protocol
         if self.rs232_flag:
             self.device_1_data = rs232_device_1_data
-            print("RS232 data updated")
+            logger.info("RS232 data updated")
         elif self.rs422_flag:
             self.device_1_data = rs422_device_1_data
-            print("RS422 data updated")
+            logger.info("RS422 data updated")
 
         # Step 5: Immediately update UI or display data  # If it's the first call, update immediately
 
@@ -257,9 +260,9 @@ class RSBatteryInfo:
                 self.config_button.pack_forget()
         """Update the Info page content based on the selected mode."""
         if self.selected_button == self.info_button:
-            self.show_new_info()
+            self.show_info()
         elif self.selected_button == self.control_button:
-            self.show_new_control()
+            self.show_control()
         elif self.selected_button == self.config_button:
             self.show_new_dashboard()
         elif self.selected_button == self.report_button:
@@ -268,11 +271,11 @@ class RSBatteryInfo:
     def update_info(self, event=None):
         """Update the Info page content based on the selected mode."""
         if self.selected_button == self.info_button:
-            self.show_new_info()
+            self.show_info()
         elif self.selected_button == self.dashboard_button:
             self.show_new_dashboard()
         elif self.selected_button == self.control_button:
-            self.show_new_control()
+            self.show_control()
 
     def start_logging(self):
         # Your existing start logging method...
@@ -292,283 +295,491 @@ class RSBatteryInfo:
 
             # Charging Section
             battery_1_frame = ttk.Labelframe(main_frame, text="Battery 1", bootstyle='dark', borderwidth=10, relief="solid")
-            battery_1_frame.grid(row=0, column=0, rowspan=12, columnspan=6, padx=10, pady=5, sticky="nsew")
+            battery_1_frame.grid(row=0, column=0, rowspan=12, columnspan=6, padx=5, pady=5, sticky="nsew")
 
-            # Charging Current (Row 0, Column 0)
-            bus1_voltage_frame = ttk.Frame(battery_1_frame)
-            bus1_voltage_frame.grid(row=0, column=0, columnspan=2, padx=35, pady=5, sticky="nsew")
-            bus1_voltage_label = ttk.Label(bus1_voltage_frame, text="After Diode Voltage", font=("Helvetica", 10, "bold"))
-            bus1_voltage_label.pack(pady=(5, 5))
-            bus1_voltage_meter = ttk.Meter(
-                master=bus1_voltage_frame,
-                metersize=150,
-                amountused=self.device_1_data['bus_1_voltage_after_diode'],
-                meterthickness=10,
-                metertype="semi",
-                # subtext="After Diode Voltage",
-                textright="V",
-                amounttotal=100,
-                bootstyle=self.get_gauge_style(self.device_1_data['bus_1_voltage_after_diode'], "bus_1_voltage_after_diode"),
-                stripethickness=10,
-                subtextfont='-size 6'
-            )
-            bus1_voltage_meter.pack()
+            # Battery Status Label
+            battery_1_status_label = ttk.Label(battery_1_frame, text="Battery Status:", font=("Helvetica", 12, "bold"))
+            battery_1_status_label.grid(row=0, column=0, padx=5, pady=5, sticky="nsew", columnspan=2)
 
-            # Center Label - BUS 1
-            bus1_label_frame = ttk.Frame(battery_1_frame)
-            bus1_label_frame.grid(row=0, column=2, columnspan=1, padx=5, pady=5, sticky="nsew")
-            bus1_label = ttk.Label(bus1_label_frame, text="BUS 1", font=("Helvetica", 12, "bold"))
-            bus1_label.pack()
+            status = self.battery_1_status.get()
+            # Battery Gauge
+            self.battery_1_gauge = ttk.Floodgauge(battery_1_frame, bootstyle=INFO,
+                                   font=(None, 14, 'bold'),
+                                   mask='IDLE',
+                                   maximum=100,
+                                   length=300)
+            self.battery_1_gauge.grid(row=0, column=2, columnspan=6, padx=20, pady=5, sticky="nsew")
+            if status == "Idle":
+                self.battery_1_gauge.configure(bootstyle=INFO, mask="IDLE")
+            elif status == "Charging":
+                self.battery_1_gauge.configure(bootstyle=SUCCESS, mask="CHARGING")
+                self.battery_1_gauge.start()
+            elif status == "Discharging":
+                self.battery_1_gauge.configure(bootstyle=DANGER, mask="DISCHARGING")
+                self.battery_1_gauge.start()   
 
-            # Charging Voltage (Row 0, Column 1)
-            charging_voltage_frame = ttk.Frame(battery_1_frame)
-            charging_voltage_frame.grid(row=0, column=3, columnspan=3, padx=35, pady=5, sticky="nsew")
-            charging_voltage_label = ttk.Label(charging_voltage_frame, text="Current Sensor 1", font=("Helvetica", 10, "bold"))
-            charging_voltage_label.pack(pady=(5, 5)) 
-            charging_voltage_meter = ttk.Meter(
-                master=charging_voltage_frame,
-                metersize=150,
-                amountused=self.device_1_data['bus_1_current_sensor1'],
-                meterthickness=10,
-                metertype="semi",
-                # subtext="Current Sensor 1",
-                textright="A",
-                amounttotal=100,
-                bootstyle=self.get_gauge_style(self.device_1_data['bus_1_current_sensor1'], "bus_1_current_sensor1"),
-                stripethickness=10,
-                subtextfont='-size 6'
-            )
-            charging_voltage_meter.pack()
+            # Add separator line after row 0
+            separator = ttk.Separator(battery_1_frame, orient="horizontal")
+            separator.grid(row=1, column=0, columnspan=12, sticky="ew", padx=5, pady=5)
 
-            # Discharging Current (Row 1, Column 0)
-            bus2_current_frame = ttk.Frame(battery_1_frame)
-            bus2_current_frame.grid(row=1, column=0, columnspan=2, padx=35, pady=5, sticky="nsew")
-            discharging_current_label = ttk.Label(bus2_current_frame, text="After Diode Voltage", font=("Helvetica", 10, "bold"))
-            discharging_current_label.pack(pady=(5, 5))
-            # Variable to control the max value of the discharging current gauge
+            # Labels for Voltage and Temperature
+            ttk.Label(battery_1_frame, text="Voltage", font=("Helvetica", 10, "bold")).grid(row=3, column=0,columnspan=1, padx=5, pady=15, sticky="nsew")
+            ttk.Label(battery_1_frame, text="Temperature", font=("Helvetica", 10, "bold")).grid(row=4, column=0,columnspan=1, padx=5, pady=15, sticky="nsew")
 
-            # Discharging Current Gauge
-            self.discharging_current_meter = ttk.Meter(
-                master=bus2_current_frame,
-                metersize=150,
-                amountused=self.device_1_data['bus_2_voltage_after_diode'],  # Assuming this is the discharging current
-                meterthickness=10,
-                metertype="semi",
-                # subtext="After Diode Voltage",
-                textright="V",
-                amounttotal=100,
-                bootstyle=self.get_gauge_style(self.device_1_data['bus_2_voltage_after_diode'], "bus_2_voltage_after_diode"),
-                stripethickness=10,
-                subtextfont='-size 6'
-            )
-            self.discharging_current_meter.pack()
+            # Create labels for each cell
+            for i in range(7):
+                ttk.Label(battery_1_frame, text=f"Cell {i+1}", font=("Helvetica", 10, "bold")).grid(row=2, column=i+2, padx=3, pady=15, sticky="nsew")
 
-            # Center Label - BUS 1
-            bus2_label_frame = ttk.Frame(battery_1_frame)
-            bus2_label_frame.grid(row=1, column=2, columnspan=1, padx=5, pady=5, sticky="nsew")
-            bus2_label = ttk.Label(bus2_label_frame, text="BUS 2", font=("Helvetica", 12, "bold"))
-            bus2_label.pack()
+                # Set the values from the rs232_device_1_data dictionary
+                voltage_value = self.device_1_data.get(f'cell_{i+1}_voltage', 'N/A')
+                temp_value = self.device_1_data.get(f'cell_{i+1}_temp', 'N/A')
 
-            # Discharging Voltage (Row 1, Column 1)
-            discharging_voltage_frame = ttk.Frame(battery_1_frame)
-            discharging_voltage_frame.grid(row=1, column=3, columnspan=3, padx=35, pady=5, sticky="nsew")
-            discharging_voltage_label = ttk.Label(discharging_voltage_frame, text="Current Sensor 1", font=("Helvetica", 10, "bold"))
-            discharging_voltage_label.pack(pady=(5, 5))
-            discharging_voltage_meter = ttk.Meter(
-                master=discharging_voltage_frame,
-                metersize=150,
-                amountused=self.device_1_data['bus_2_current_sensor1'],  # Assuming this is the discharging voltage
-                meterthickness=10,
-                metertype="semi",
-                # subtext="Current Sensor 1",
-                textright="A",
-                amounttotal=100,
-                bootstyle=self.get_gauge_style(self.device_1_data['bus_2_current_sensor1'], "bus_2_current_sensor1"),
-                stripethickness=10,
-                subtextfont='-size 6'
-            )
-            discharging_voltage_meter.pack()
+                # Voltage label styled like an Entry (with border)
+                voltage_label = ttk.Label(battery_1_frame, text=voltage_value, relief="solid", borderwidth=2, width=6, anchor="center")
+                voltage_label.grid(row=3, column=i+2, padx=5, pady=15, sticky="nsew")
+
+                # Temperature label styled like an Entry (with border)
+                charger_current_label = ttk.Label(battery_1_frame, text=temp_value, relief="solid", borderwidth=2, width=6, anchor="center")
+                charger_current_label.grid(row=4, column=i+2, padx=5, pady=15, sticky="nsew")
+
+            # Add separator line after row 0
+            separator = ttk.Separator(battery_1_frame, orient="horizontal")
+            separator.grid(row=5, column=0, columnspan=12, sticky="ew", padx=5, pady=5)
+            
+            # Configure columns for equal weight
+            for col in range(12):  # Adjust column count based on your number of cells
+                battery_1_frame.grid_columnconfigure(col, weight=1)
+
+            meter_frames = ttk.Frame(battery_1_frame)
+            meter_frames.grid(row=6, column=0, columnspan=12, rowspan=6, sticky="ew", padx=5, pady=5)
+
+            if status == "Idle":
+                bus1_before_voltage_frame = ttk.Frame(meter_frames)
+                bus1_before_voltage_frame.grid(row=0, column=0, columnspan=5, padx=5, pady=2, sticky="nsew")
+                bus1_before_voltage_label = ttk.Label(bus1_before_voltage_frame, text="BUS1 Before Diode Voltage", font=("Helvetica", 10, "bold"))
+                bus1_before_voltage_label.pack(pady=(5, 5)) 
+                bus1_before_voltage_meter = ttk.Meter(
+                    master=bus1_before_voltage_frame,
+                    metersize=140,
+                    amountused=self.device_1_data['bus_1_voltage_before_diode'],
+                    meterthickness=10,
+                    metertype="semi",
+                    # subtext="Current Sensor 1",
+                    textright="V",
+                    amounttotal=100,
+                    bootstyle=self.get_gauge_style(self.device_1_data['bus_1_current_sensor1'], "bus_1_current_sensor1"),
+                    stripethickness=10,
+                    subtextfont='-size 10'
+                )
+                bus1_before_voltage_meter.pack()
+
+                bus1_after_voltage_frame = ttk.Frame(meter_frames)
+                bus1_after_voltage_frame.grid(row=0, column=5, columnspan=5, padx=5, pady=2, sticky="nsew")
+                bus1_after_voltage_label = ttk.Label(bus1_after_voltage_frame, text="BUS1 After Diode Voltage", font=("Helvetica", 10, "bold"))
+                bus1_after_voltage_label.pack(pady=(5, 5))
+                bus1_after_voltage_meter = ttk.Meter(
+                    master=bus1_after_voltage_frame,
+                    metersize=140,
+                    amountused=self.device_1_data['bus_1_voltage_after_diode'],
+                    meterthickness=10,
+                    metertype="semi",
+                    # subtext="After Diode Voltage",
+                    textright="V",
+                    amounttotal=100,
+                    bootstyle=self.get_gauge_style(self.device_1_data['bus_1_voltage_after_diode'], "bus_1_voltage_after_diode"),
+                    stripethickness=10,
+                    subtextfont='-size 10'
+                )
+                bus1_after_voltage_meter.pack()
+
+                bus1_before_voltage_frame = ttk.Frame(meter_frames)
+                bus1_before_voltage_frame.grid(row=0, column=10, columnspan=2, padx=5, pady=2, sticky="nsew")
+                bus1_before_voltage_label = ttk.Label(bus1_before_voltage_frame, text="BUS1 ON/OFF", font=("Helvetica", 10, "bold"))
+                bus1_before_voltage_label.pack(pady=(5, 5))
+                bus1_before_voltage_status_color = "green" if self.device_1_data.get('bus1_status') == 1 else "red"
+                bus1_before_voltage_status_label = ttk.Label(bus1_before_voltage_frame, text="●", font=("Arial", 36), foreground=bus1_before_voltage_status_color, anchor="center")
+                bus1_before_voltage_status_label.pack()
 
 
-            # Temperature (Top of Battery Health)
-            charger_current_frame = ttk.Frame(battery_1_frame)
-            charger_current_frame.grid(row=2, column=0, columnspan=2, padx=35, pady=5, sticky="nsew")
-            charger_current_label = ttk.Label(charger_current_frame, text="Charging Current", font=("Helvetica", 10, "bold"))
-            charger_current_label.pack(pady=(10, 10))
-            charger_current_meter = ttk.Meter(
-                master=charger_current_frame,
-                metersize=150,
-                amountused=self.device_1_data['charger_input_current'],
-                meterthickness=10,
-                metertype="semi",
-                # subtext="Charging Current",
-                textright="A",
-                amounttotal=100,
-                bootstyle=self.get_gauge_style(self.device_1_data['charger_input_current'], "charger_input_current"),
-                stripethickness=8,
-                subtextfont='-size 6'
-            )
-            charger_current_meter.pack()
+                bus2_before_voltage_frame = ttk.Frame(meter_frames)
+                bus2_before_voltage_frame.grid(row=1, column=0, columnspan=5, padx=5, pady=2, sticky="nsew")
+                bus2_before_voltage_label = ttk.Label(bus2_before_voltage_frame, text="BUS1 Before Diode Voltage", font=("Helvetica", 10, "bold"))
+                bus2_before_voltage_label.pack(pady=(5, 5)) 
+                bus2_before_voltage_meter = ttk.Meter(
+                    master=bus2_before_voltage_frame,
+                    metersize=140,
+                    amountused=self.device_1_data['bus_1_voltage_after_diode'],
+                    meterthickness=10,
+                    metertype="semi",
+                    # subtext="Current Sensor 1",
+                    textright="V",
+                    amounttotal=100,
+                    bootstyle=self.get_gauge_style(self.device_1_data['bus_1_current_sensor1'], "bus_1_current_sensor1"),
+                    stripethickness=10,
+                    subtextfont='-size 10'
+                )
+                bus2_before_voltage_meter.pack() 
 
-            # Capacity (Bottom of Battery Health)
-            charger_voltage_frame = ttk.Frame(battery_1_frame)
-            charger_voltage_frame.grid(row=2, column=3, columnspan=3, padx=40, pady=5, sticky="nsew")
-            charger_voltage_label = ttk.Label(charger_voltage_frame, text="Charging Voltage", font=("Helvetica", 10, "bold"))
-            charger_voltage_label.pack(pady=(10, 10))
-            charger_voltage_meter = ttk.Meter(
-                master=charger_voltage_frame,
-                metersize=150,
-                amountused=self.device_1_data['charger_output_current'],
-                meterthickness=10,
-                metertype="semi",
-                # subtext="Charging Voltage",
-                textright="%",
-                amounttotal=100,
-                bootstyle=self.get_gauge_style(self.device_1_data['charger_output_current'], "charger_output_current"),
-                stripethickness=8,
-                subtextfont='-size 6'
-            )
-            charger_voltage_meter.pack()
+                bus2_after_voltage_frame = ttk.Frame(meter_frames)
+                bus2_after_voltage_frame.grid(row=1, column=5, columnspan=5, padx=5, pady=2, sticky="nsew")
+                bus2_after_voltage_label = ttk.Label(bus2_after_voltage_frame, text="BUS1 After Diode Voltage", font=("Helvetica", 10, "bold"))
+                bus2_after_voltage_label.pack(pady=(5, 5))
+                bus2_after_voltage_meter = ttk.Meter(
+                    master=bus2_after_voltage_frame,
+                    metersize=140,
+                    amountused=self.device_1_data['bus_1_voltage_after_diode'],
+                    meterthickness=10,
+                    metertype="semi",
+                    # subtext="After Diode Voltage",
+                    textright="V",
+                    amounttotal=100,
+                    bootstyle=self.get_gauge_style(self.device_1_data['bus_1_voltage_after_diode'], "bus_1_voltage_after_diode"),
+                    stripethickness=10,
+                    subtextfont='-size 10'
+                )
+                bus2_after_voltage_meter.pack()
+
+                bus2_before_voltage_frame = ttk.Frame(meter_frames)
+                bus2_before_voltage_frame.grid(row=1, column=10, columnspan=2, padx=5, pady=2, sticky="nsew")
+                bus2_before_voltage_label = ttk.Label(bus2_before_voltage_frame, text="BUS2 ON/OFF", font=("Helvetica", 10, "bold"))
+                bus2_before_voltage_label.pack(pady=(5, 5))
+                bus2_before_voltage_status_color = "green" if self.device_1_data.get('bus2_status') == 1 else "red"
+                bus2_before_voltage_status_label = ttk.Label(bus2_before_voltage_frame, text="●", font=("Arial", 36), foreground=bus2_before_voltage_status_color, anchor="center")
+                bus2_before_voltage_status_label.pack()
+            elif status == "Charging":
+                charging_voltage_frame = ttk.Frame(meter_frames)
+                charging_voltage_frame.grid(row=0, column=0, rowspan=3, columnspan=8, padx=50, pady=2, sticky="nsew")
+                charging_voltage_label = ttk.Label(charging_voltage_frame, text="Charging Voltage", font=("Helvetica", 10, "bold"))
+                charging_voltage_label.pack(pady=(5, 5)) 
+                charging_voltage_meter = ttk.Meter(
+                    master=charging_voltage_frame,
+                    metersize=142,
+                    amountused=self.device_1_data['charger_output_voltage'],
+                    meterthickness=10,
+                    metertype="semi",
+                    # subtext="Current Sensor 1",
+                    textright="V",
+                    amounttotal=100,
+                    bootstyle=self.get_gauge_style(self.device_1_data['bus_1_current_sensor1'], "bus_1_current_sensor1"),
+                    stripethickness=10,
+                    subtextfont='-size 10'
+                )
+                charging_voltage_meter.pack()
+
+                charging_current_frame = ttk.Frame(meter_frames)
+                charging_current_frame.grid(row=3, column=0, rowspan=3, columnspan=8, padx=50, pady=2, sticky="nsew")
+                charging_current_label = ttk.Label(charging_current_frame, text="Charging Current", font=("Helvetica", 10, "bold"))
+                charging_current_label.pack(pady=(5, 5))
+                charging_current_meter = ttk.Meter(
+                    master=charging_current_frame,
+                    metersize=142,
+                    amountused=self.device_1_data['charger_output_current'],
+                    meterthickness=10,
+                    metertype="semi",
+                    # subtext="After Diode Voltage",
+                    textright="V",
+                    amounttotal=100,
+                    bootstyle=self.get_gauge_style(self.device_1_data['bus_1_voltage_after_diode'], "bus_1_voltage_after_diode"),
+                    stripethickness=10,
+                    subtextfont='-size 10'
+                )
+                charging_current_meter.pack()
+
+                charging_status_frame = ttk.Frame(meter_frames)
+                charging_status_frame.grid(row=0, column=10, columnspan=2, padx=50, pady=2, sticky="nsew")
+                charging_status_label = ttk.Label(charging_status_frame, text="Charging ON/OFF", font=("Helvetica", 10, "bold"))
+                charging_status_label.pack(pady=(5, 5))
+                charging_status_color = "green" if self.device_1_data.get('charging_on_off_status') == 1 else "red"
+                charging_status_info_label = ttk.Label(charging_status_frame, text="●", font=("Arial", 36), foreground=charging_status_color, anchor="center")
+                charging_status_info_label.pack()
+
+                charger_relay_status_frame = ttk.Frame(meter_frames)
+                charger_relay_status_frame.grid(row=3, column=10, columnspan=2, padx=50, pady=2, sticky="nsew")
+                charger_relay_status_label = ttk.Label(charger_relay_status_frame, text="Charger Relay ON/OFF", font=("Helvetica", 10, "bold"))
+                charger_relay_status_label.pack(pady=(5, 5))
+                charger_relay_status_color = "green" if self.device_1_data.get('charger_relay_status') == 1 else "red"
+                charger_relay_status_info_label = ttk.Label(charger_relay_status_frame, text="●", font=("Arial", 36), foreground=charger_relay_status_color, anchor="center")
+                charger_relay_status_info_label.pack()
+            elif status == "Discharging":
+                bus1_before_voltage_frame = ttk.Frame(meter_frames)
+                bus1_before_voltage_frame.grid(row=0, column=0, columnspan=5, padx=5, pady=2, sticky="nsew")
+                bus1_before_voltage_label = ttk.Label(bus1_before_voltage_frame, text="BUS1 Before Diode Voltage", font=("Helvetica", 10, "bold"))
+                bus1_before_voltage_label.pack(pady=(5, 5)) 
+                bus1_before_voltage_meter = ttk.Meter(
+                    master=bus1_before_voltage_frame,
+                    metersize=100,
+                    amountused=self.device_1_data['bus_1_voltage_before_diode'],
+                    meterthickness=10,
+                    metertype="semi",
+                    # subtext="Current Sensor 1",
+                    textright="V",
+                    amounttotal=100,
+                    bootstyle=self.get_gauge_style(self.device_1_data['bus_1_current_sensor1'], "bus_1_current_sensor1"),
+                    stripethickness=10,
+                    subtextfont='-size 10'
+                )
+                bus1_before_voltage_meter.pack()
+
+                bus1_after_voltage_frame = ttk.Frame(meter_frames)
+                bus1_after_voltage_frame.grid(row=0, column=5, columnspan=5, padx=5, pady=2, sticky="nsew")
+                bus1_after_voltage_label = ttk.Label(bus1_after_voltage_frame, text="BUS1 After Diode Voltage", font=("Helvetica", 10, "bold"))
+                bus1_after_voltage_label.pack(pady=(5, 5))
+                bus1_after_voltage_meter = ttk.Meter(
+                    master=bus1_after_voltage_frame,
+                    metersize=100,
+                    amountused=self.device_1_data['bus_1_voltage_after_diode'],
+                    meterthickness=10,
+                    metertype="semi",
+                    # subtext="After Diode Voltage",
+                    textright="V",
+                    amounttotal=100,
+                    bootstyle=self.get_gauge_style(self.device_1_data['bus_1_voltage_after_diode'], "bus_1_voltage_after_diode"),
+                    stripethickness=10,
+                    subtextfont='-size 10'
+                )
+                bus1_after_voltage_meter.pack()
+
+                bus1_before_voltage_frame = ttk.Frame(meter_frames)
+                bus1_before_voltage_frame.grid(row=0, column=10, columnspan=2, padx=5, pady=2, sticky="nsew")
+                bus1_before_voltage_label = ttk.Label(bus1_before_voltage_frame, text="BUS1 ON/OFF", font=("Helvetica", 10, "bold"))
+                bus1_before_voltage_label.pack(pady=(5, 5))
+                bus1_before_voltage_status_color = "green" if self.device_1_data.get('bus1_status') == 1 else "red"
+                bus1_before_voltage_status_label = ttk.Label(bus1_before_voltage_frame, text="●", font=("Arial", 36), foreground=bus1_before_voltage_status_color, anchor="center")
+                bus1_before_voltage_status_label.pack()
+
+
+                bus2_before_voltage_frame = ttk.Frame(meter_frames)
+                bus2_before_voltage_frame.grid(row=1, column=0, columnspan=5, padx=5, pady=2, sticky="nsew")
+                bus2_before_voltage_label = ttk.Label(bus2_before_voltage_frame, text="BUS1 Before Diode Voltage", font=("Helvetica", 10, "bold"))
+                bus2_before_voltage_label.pack(pady=(5, 5)) 
+                bus2_before_voltage_meter = ttk.Meter(
+                    master=bus2_before_voltage_frame,
+                    metersize=100,
+                    amountused=self.device_1_data['bus_1_voltage_after_diode'],
+                    meterthickness=10,
+                    metertype="semi",
+                    # subtext="Current Sensor 1",
+                    textright="V",
+                    amounttotal=100,
+                    bootstyle=self.get_gauge_style(self.device_1_data['bus_1_current_sensor1'], "bus_1_current_sensor1"),
+                    stripethickness=10,
+                    subtextfont='-size 10'
+                )
+                bus2_before_voltage_meter.pack() 
+
+                bus2_after_voltage_frame = ttk.Frame(meter_frames)
+                bus2_after_voltage_frame.grid(row=1, column=5, columnspan=5, padx=5, pady=2, sticky="nsew")
+                bus2_after_voltage_label = ttk.Label(bus2_after_voltage_frame, text="BUS1 After Diode Voltage", font=("Helvetica", 10, "bold"))
+                bus2_after_voltage_label.pack(pady=(5, 5))
+                bus2_after_voltage_meter = ttk.Meter(
+                    master=bus2_after_voltage_frame,
+                    metersize=100,
+                    amountused=self.device_1_data['bus_1_voltage_after_diode'],
+                    meterthickness=10,
+                    metertype="semi",
+                    # subtext="After Diode Voltage",
+                    textright="V",
+                    amounttotal=100,
+                    bootstyle=self.get_gauge_style(self.device_1_data['bus_1_voltage_after_diode'], "bus_1_voltage_after_diode"),
+                    stripethickness=10,
+                    subtextfont='-size 10'
+                )
+                bus2_after_voltage_meter.pack()
+
+                bus2_before_voltage_frame = ttk.Frame(meter_frames)
+                bus2_before_voltage_frame.grid(row=1, column=10, columnspan=2, padx=5, pady=2, sticky="nsew")
+                bus2_before_voltage_label = ttk.Label(bus2_before_voltage_frame, text="BUS2 ON/OFF", font=("Helvetica", 10, "bold"))
+                bus2_before_voltage_label.pack(pady=(5, 5))
+                bus2_before_voltage_status_color = "green" if self.device_1_data.get('bus2_status') == 1 else "red"
+                bus2_before_voltage_status_label = ttk.Label(bus2_before_voltage_frame, text="●", font=("Arial", 36), foreground=bus2_before_voltage_status_color, anchor="center")
+                bus2_before_voltage_status_label.pack()
+                
+                bus1_current_frame = ttk.Frame(meter_frames)
+                bus1_current_frame.grid(row=3, column=0, columnspan=5, padx=10, pady=10, sticky="nsew")
+                ttk.Label(bus1_current_frame, text="BUS1 Current", font=("Helvetica", 10, "bold")).pack(padx=10, pady=5,)
+                ttk.Label(bus1_current_frame, text=self.device_1_data.get('bus_1_current_sensor1'), relief="solid", borderwidth=2, width=6, anchor="center").pack(padx=10, pady=5,)
+                
+                bus2_current_frame = ttk.Frame(meter_frames)
+                bus2_current_frame.grid(row=3, column=5, columnspan=5, padx=10, pady=10, sticky="nsew")
+                ttk.Label(bus2_current_frame, text="BUS2 Current", font=("Helvetica", 10, "bold")).pack(padx=10, pady=5,)
+                ttk.Label(bus2_current_frame, text=self.device_1_data.get('bus_2_current_sensor1'), relief="solid", borderwidth=2, width=6, anchor="center").pack(padx=10, pady=5,)
+
+            # Configure rows for equal weight where needed
+            meter_frames.grid_rowconfigure(0, weight=3)
+
+
+
+
+
+
+
+
+
+
+
 
             # Charging Section
             battery_2_frame = ttk.Labelframe(main_frame, text="Battery 2", bootstyle='dark', borderwidth=10, relief="solid")
-            battery_2_frame.grid(row=0, column=6, rowspan=12, columnspan=6, padx=10, pady=5, sticky="nsew")
+            battery_2_frame.grid(row=0, column=6, rowspan=12, columnspan=6, padx=5, pady=5, sticky="nsew")
 
-            # Charging Current (Row 0, Column 0)
-            bus1_voltage_frame = ttk.Frame(battery_2_frame)
-            bus1_voltage_frame.grid(row=0, column=0, columnspan=2, padx=35, pady=5, sticky="nsew")
-            bus1_voltage_label = ttk.Label(bus1_voltage_frame, text="After Diode Voltage", font=("Helvetica", 10, "bold"))
-            bus1_voltage_label.pack(pady=(5, 5))
-            bus1_voltage_meter = ttk.Meter(
-                master=bus1_voltage_frame,
-                metersize=150,
-                amountused=self.device_1_data['bus_1_voltage_after_diode'],
-                meterthickness=10,
-                metertype="semi",
-                # subtext="After Diode Voltage",
-                textright="V",
-                amounttotal=100,
-                bootstyle=self.get_gauge_style(self.device_1_data['bus_1_voltage_after_diode'], "bus_1_voltage_after_diode"),
-                stripethickness=10,
-                subtextfont='-size 6'
-            )
-            bus1_voltage_meter.pack()
+            # Battery Status Label
+            battery_2_status_label = ttk.Label(battery_2_frame, text="Battery Status:", font=("Helvetica", 12, "bold"))
+            battery_2_status_label.grid(row=0, column=0, padx=20, pady=5, sticky="nsew", columnspan=2)
 
-            # Center Label - BUS 1
-            bus1_label_frame = ttk.Frame(battery_2_frame)
-            bus1_label_frame.grid(row=0, column=2, columnspan=1, padx=5, pady=5, sticky="nsew")
-            bus1_label = ttk.Label(bus1_label_frame, text="BUS 1", font=("Helvetica", 12, "bold"))
-            bus1_label.pack()
+            status = self.battery_2_status.get()
+            # Battery Gauge
+            self.battery_2_gauge = ttk.Floodgauge(battery_2_frame, bootstyle=INFO,
+                                   font=(None, 14, 'bold'),
+                                   mask='IDLE',
+                                   maximum=100,
+                                   length=300)
+            self.battery_2_gauge.grid(row=0, column=2, columnspan=6, padx=5, pady=5, sticky="nsew")
+            if status == "Idle":
+                self.battery_2_gauge.configure(bootstyle=INFO, mask="IDLE")
+            elif status == "Charging":
+                self.battery_2_gauge.configure(bootstyle=SUCCESS, mask="CHARGING")
+                self.battery_2_gauge.start()
+            elif status == "Discharging":
+                self.battery_2_gauge.configure(bootstyle=DANGER, mask="DISCHARGING")
+                self.battery_2_gauge.start() 
 
-            # Charging Voltage (Row 0, Column 1)
-            charging_voltage_frame = ttk.Frame(battery_2_frame)
-            charging_voltage_frame.grid(row=0, column=3, columnspan=3, padx=35, pady=5, sticky="nsew")
-            charging_voltage_label = ttk.Label(charging_voltage_frame, text="Current Sensor 1", font=("Helvetica", 10, "bold"))
-            charging_voltage_label.pack(pady=(5, 5)) 
-            charging_voltage_meter = ttk.Meter(
-                master=charging_voltage_frame,
-                metersize=150,
-                amountused=self.device_1_data['bus_1_current_sensor1'],
-                meterthickness=10,
-                metertype="semi",
-                # subtext="Current Sensor 1",
-                textright="A",
-                amounttotal=100,
-                bootstyle=self.get_gauge_style(self.device_1_data['bus_1_current_sensor1'], "bus_1_current_sensor1"),
-                stripethickness=10,
-                subtextfont='-size 6'
-            )
-            charging_voltage_meter.pack()
+            # Add separator line after row 0
+            separator = ttk.Separator(battery_2_frame, orient="horizontal")
+            separator.grid(row=1, column=0, columnspan=12, sticky="ew", padx=5, pady=5)
 
-            # Discharging Current (Row 1, Column 0)
-            bus2_current_frame = ttk.Frame(battery_2_frame)
-            bus2_current_frame.grid(row=1, column=0, columnspan=2, padx=35, pady=5, sticky="nsew")
-            discharging_current_label = ttk.Label(bus2_current_frame, text="After Diode Voltage", font=("Helvetica", 10, "bold"))
-            discharging_current_label.pack(pady=(5, 5))
-            # Variable to control the max value of the discharging current gauge
+            # Labels for Voltage and Temperature
+            ttk.Label(battery_2_frame, text="Voltage", font=("Helvetica", 10, "bold")).grid(row=3, column=0,columnspan=1, padx=5, pady=15, sticky="nsew")
+            ttk.Label(battery_2_frame, text="Temperature", font=("Helvetica", 10, "bold")).grid(row=4, column=0,columnspan=1, padx=5, pady=15, sticky="nsew")
 
-            # Discharging Current Gauge
-            self.discharging_current_meter = ttk.Meter(
-                master=bus2_current_frame,
-                metersize=150,
-                amountused=self.device_1_data['bus_2_voltage_after_diode'],  # Assuming this is the discharging current
-                meterthickness=10,
-                metertype="semi",
-                # subtext="After Diode Voltage",
-                textright="V",
-                amounttotal=100,
-                bootstyle=self.get_gauge_style(self.device_1_data['bus_2_voltage_after_diode'], "bus_2_voltage_after_diode"),
-                stripethickness=10,
-                subtextfont='-size 6'
-            )
-            self.discharging_current_meter.pack()
+            # Create labels for each cell
+            for i in range(7):
+                ttk.Label(battery_2_frame, text=f"Cell {i+1}", font=("Helvetica", 10, "bold")).grid(row=2, column=i+2, padx=3, pady=15, sticky="nsew")
 
-            # Center Label - BUS 1
-            bus2_label_frame = ttk.Frame(battery_2_frame)
-            bus2_label_frame.grid(row=1, column=2, columnspan=1, padx=5, pady=5, sticky="nsew")
-            bus2_label = ttk.Label(bus2_label_frame, text="BUS 2", font=("Helvetica", 12, "bold"))
-            bus2_label.pack()
+                # Set the values from the rs232_device_1_data dictionary
+                voltage_value = self.device_2_data.get(f'cell_{i+1}_voltage', 'N/A')
+                temp_value = self.device_2_data.get(f'cell_{i+1}_temp', 'N/A')
 
-            # Discharging Voltage (Row 1, Column 1)
-            discharging_voltage_frame = ttk.Frame(battery_2_frame)
-            discharging_voltage_frame.grid(row=1, column=3, columnspan=3, padx=35, pady=5, sticky="nsew")
-            discharging_voltage_label = ttk.Label(discharging_voltage_frame, text="Current Sensor 1", font=("Helvetica", 10, "bold"))
-            discharging_voltage_label.pack(pady=(5, 5))
-            discharging_voltage_meter = ttk.Meter(
-                master=discharging_voltage_frame,
-                metersize=150,
-                amountused=self.device_1_data['bus_2_current_sensor1'],  # Assuming this is the discharging voltage
-                meterthickness=10,
-                metertype="semi",
-                # subtext="Current Sensor 1",
-                textright="A",
-                amounttotal=100,
-                bootstyle=self.get_gauge_style(self.device_1_data['bus_2_current_sensor1'], "bus_2_current_sensor1"),
-                stripethickness=10,
-                subtextfont='-size 6'
-            )
-            discharging_voltage_meter.pack()
+                # Voltage label styled like an Entry (with border)
+                voltage_label = ttk.Label(battery_2_frame, text=voltage_value, relief="solid", borderwidth=2, width=6, anchor="center")
+                voltage_label.grid(row=3, column=i+2, padx=5, pady=15, sticky="nsew")
+
+                # Temperature label styled like an Entry (with border)
+                charger_current_label = ttk.Label(battery_2_frame, text=temp_value, relief="solid", borderwidth=2, width=6, anchor="center")
+                charger_current_label.grid(row=4, column=i+2, padx=5, pady=15, sticky="nsew")
+
+            # Add separator line after row 0
+            separator = ttk.Separator(battery_2_frame, orient="horizontal")
+            separator.grid(row=5, column=0, columnspan=12, sticky="ew", padx=5, pady=5)
+            
+            # Configure columns for equal weight
+            for col in range(12):  # Adjust column count based on your number of cells
+                battery_2_frame.grid_columnconfigure(col, weight=1)
+
+            meter_frames = ttk.Frame(battery_2_frame)
+            meter_frames.grid(row=6, column=0, columnspan=12, rowspan=6, sticky="ew", padx=5, pady=5)
+
+            if status == "Idle":
+                bus1_before_voltage_frame = ttk.Frame(meter_frames)
+                bus1_before_voltage_frame.grid(row=0, column=0, columnspan=5, padx=5, pady=2, sticky="nsew")
+                bus1_before_voltage_label = ttk.Label(bus1_before_voltage_frame, text="BUS1 Before Diode Voltage", font=("Helvetica", 10, "bold"))
+                bus1_before_voltage_label.pack(pady=(5, 5)) 
+                bus1_before_voltage_meter = ttk.Meter(
+                    master=bus1_before_voltage_frame,
+                    metersize=140,
+                    amountused=self.device_2_data['bus_1_voltage_before_diode'],
+                    meterthickness=10,
+                    metertype="semi",
+                    # subtext="Current Sensor 1",
+                    textright="V",
+                    amounttotal=100,
+                    bootstyle=self.get_gauge_style(self.device_2_data['bus_1_current_sensor1'], "bus_1_current_sensor1"),
+                    stripethickness=10,
+                    subtextfont='-size 10'
+                )
+                bus1_before_voltage_meter.pack()
+
+                bus1_after_voltage_frame = ttk.Frame(meter_frames)
+                bus1_after_voltage_frame.grid(row=0, column=5, columnspan=5, padx=5, pady=2, sticky="nsew")
+                bus1_after_voltage_label = ttk.Label(bus1_after_voltage_frame, text="BUS1 After Diode Voltage", font=("Helvetica", 10, "bold"))
+                bus1_after_voltage_label.pack(pady=(5, 5))
+                bus1_after_voltage_meter = ttk.Meter(
+                    master=bus1_after_voltage_frame,
+                    metersize=140,
+                    amountused=self.device_2_data['bus_1_voltage_after_diode'],
+                    meterthickness=10,
+                    metertype="semi",
+                    # subtext="After Diode Voltage",
+                    textright="V",
+                    amounttotal=100,
+                    bootstyle=self.get_gauge_style(self.device_2_data['bus_1_voltage_after_diode'], "bus_1_voltage_after_diode"),
+                    stripethickness=10,
+                    subtextfont='-size 10'
+                )
+                bus1_after_voltage_meter.pack()
+
+                bus1_before_voltage_frame = ttk.Frame(meter_frames)
+                bus1_before_voltage_frame.grid(row=0, column=10, columnspan=2, padx=5, pady=2, sticky="nsew")
+                bus1_before_voltage_label = ttk.Label(bus1_before_voltage_frame, text="BUS1 ON/OFF", font=("Helvetica", 10, "bold"))
+                bus1_before_voltage_label.pack(pady=(5, 5))
+                bus1_before_voltage_status_color = "green" if self.device_2_data.get('bus1_status') == 1 else "red"
+                bus1_before_voltage_status_label = ttk.Label(bus1_before_voltage_frame, text="●", font=("Arial", 36), foreground=bus1_before_voltage_status_color, anchor="center")
+                bus1_before_voltage_status_label.pack()
 
 
-            # Temperature (Top of Battery Health)
-            charger_current_frame = ttk.Frame(battery_2_frame)
-            charger_current_frame.grid(row=2, column=0, columnspan=2, padx=35, pady=5, sticky="nsew")
-            charger_current_label = ttk.Label(charger_current_frame, text="Charging Current", font=("Helvetica", 10, "bold"))
-            charger_current_label.pack(pady=(10, 10))
-            charger_current_meter = ttk.Meter(
-                master=charger_current_frame,
-                metersize=150,
-                amountused=self.device_1_data['charger_input_current'],
-                meterthickness=10,
-                metertype="semi",
-                # subtext="Charging Current",
-                textright="A",
-                amounttotal=100,
-                bootstyle=self.get_gauge_style(self.device_1_data['charger_input_current'], "charger_input_current"),
-                stripethickness=8,
-                subtextfont='-size 6'
-            )
-            charger_current_meter.pack()
+                bus2_before_voltage_frame = ttk.Frame(meter_frames)
+                bus2_before_voltage_frame.grid(row=1, column=0, columnspan=5, padx=5, pady=2, sticky="nsew")
+                bus2_before_voltage_label = ttk.Label(bus2_before_voltage_frame, text="BUS1 Before Diode Voltage", font=("Helvetica", 10, "bold"))
+                bus2_before_voltage_label.pack(pady=(5, 5)) 
+                bus2_before_voltage_meter = ttk.Meter(
+                    master=bus2_before_voltage_frame,
+                    metersize=140,
+                    amountused=self.device_2_data['bus_1_voltage_after_diode'],
+                    meterthickness=10,
+                    metertype="semi",
+                    # subtext="Current Sensor 1",
+                    textright="V",
+                    amounttotal=100,
+                    bootstyle=self.get_gauge_style(self.device_2_data['bus_1_current_sensor1'], "bus_1_current_sensor1"),
+                    stripethickness=10,
+                    subtextfont='-size 10'
+                )
+                bus2_before_voltage_meter.pack() 
 
-            # Capacity (Bottom of Battery Health)
-            charger_voltage_frame = ttk.Frame(battery_2_frame)
-            charger_voltage_frame.grid(row=2, column=3, columnspan=3, padx=35, pady=5, sticky="nsew")
-            charger_voltage_label = ttk.Label(charger_voltage_frame, text="Charging Voltage", font=("Helvetica", 10, "bold"))
-            charger_voltage_label.pack(pady=(10, 10))
-            charger_voltage_meter = ttk.Meter(
-                master=charger_voltage_frame,
-                metersize=150,
-                amountused=self.device_1_data['charger_output_current'],
-                meterthickness=10,
-                metertype="semi",
-                # subtext="Charging Voltage",
-                textright="%",
-                amounttotal=100,
-                bootstyle=self.get_gauge_style(self.device_1_data['charger_output_current'], "charger_output_current"),
-                stripethickness=8,
-                subtextfont='-size 6'
-            )
-            charger_voltage_meter.pack()
+                bus2_after_voltage_frame = ttk.Frame(meter_frames)
+                bus2_after_voltage_frame.grid(row=1, column=5, columnspan=5, padx=5, pady=2, sticky="nsew")
+                bus2_after_voltage_label = ttk.Label(bus2_after_voltage_frame, text="BUS1 After Diode Voltage", font=("Helvetica", 10, "bold"))
+                bus2_after_voltage_label.pack(pady=(5, 5))
+                bus2_after_voltage_meter = ttk.Meter(
+                    master=bus2_after_voltage_frame,
+                    metersize=140,
+                    amountused=self.device_2_data['bus_1_voltage_after_diode'],
+                    meterthickness=10,
+                    metertype="semi",
+                    # subtext="After Diode Voltage",
+                    textright="V",
+                    amounttotal=100,
+                    bootstyle=self.get_gauge_style(self.device_2_data['bus_1_voltage_after_diode'], "bus_1_voltage_after_diode"),
+                    stripethickness=10,
+                    subtextfont='-size 10'
+                )
+                bus2_after_voltage_meter.pack()
+
+                bus2_before_voltage_frame = ttk.Frame(meter_frames)
+                bus2_before_voltage_frame.grid(row=1, column=10, columnspan=2, padx=5, pady=2, sticky="nsew")
+                bus2_before_voltage_label = ttk.Label(bus2_before_voltage_frame, text="BUS2 ON/OFF", font=("Helvetica", 10, "bold"))
+                bus2_before_voltage_label.pack(pady=(5, 5))
+                bus2_before_voltage_status_color = "green" if self.device_2_data.get('bus2_status') == 1 else "red"
+                bus2_before_voltage_status_label = ttk.Label(bus2_before_voltage_frame, text="●", font=("Arial", 36), foreground=bus2_before_voltage_status_color, anchor="center")
+                bus2_before_voltage_status_label.pack()
+            elif status == "Charging":
+                self.battery_2_gauge.configure(bootstyle=SUCCESS, mask="CHARGING")
+                self.battery_2_gauge.start()
+            elif status == "Discharging":
+                self.battery_2_gauge.configure(bootstyle=DANGER, mask="DISCHARGING")
+                self.battery_2_gauge.start()
+
+            # Configure rows for equal weight where needed
+            meter_frames.grid_rowconfigure(0, weight=3)
 
             # Configure row and column weights to ensure even distribution
             for i in range(2):
@@ -1081,7 +1292,7 @@ class RSBatteryInfo:
         """Retrieve data from the entry field and send it via the serial port."""
         data = self.write_entry.get()  # Get the data entered in the entry widget
         if data:
-            print(f"Sending data: {data}")
+            logger.info(f"Sending data: {data}")
             # start_periodic_sending()
             # read_data()
         else:
@@ -1183,7 +1394,7 @@ class RSBatteryInfo:
             try:
                 df_rs_charging = pd.read_excel(rs_charging_data_file)
             except FileNotFoundError:
-                print(f"Error: {rs_charging_data_file} not found.")
+                logger.info(f"Error: {rs_charging_data_file} not found.")
                 return
 
             # Retrieve the serial number from self.device_1_data (assuming it contains a key 'serial_number')
@@ -1194,7 +1405,7 @@ class RSBatteryInfo:
 
             # If no matching serial number is found, you can add a fallback or a message
             if filtered_data.empty:
-                print(f"No data found for Serial Number: {device_serial_number}")
+                logger.info(f"No data found for Serial Number: {device_serial_number}")
                 return
 
             # Clear any existing data in the Treeview
@@ -1319,9 +1530,9 @@ class RSBatteryInfo:
                         float(row['Load Current'])
                     ))
                 except ValueError:
-                    print(f"Error processing row: {row}")
+                    logger.info(f"Error processing row: {row}")
 
-            print(f"Data for Serial Number {device_serial_number} loaded successfully.")
+            logger.info(f"Data for Serial Number {device_serial_number} loaded successfully.")
 
         # Create Treeview for Charging Info Table
         columns = ('Hour', 'Voltage (V)', 'Current (A)', 'Temperature (°C)', 'Load Current (A)')
@@ -1726,11 +1937,11 @@ class RSBatteryInfo:
             def save_custom_value():
                 """Saves the custom current value and sets it to the Chroma device."""
                 custom_value = self.custom_current_entry.get()
-                print(f"{custom_value} load value")
+                logger.info(f"{custom_value} load value")
                 if custom_value.isdigit():  # Basic validation to ensure it's a number
                     set_custom_l1_value(int(custom_value))
                 else:
-                    print("Invalid input: Please enter a valid number.")
+                    logger.info("Invalid input: Please enter a valid number.")
 
             # Toggle Load On/Off function
             def toggle_load():
@@ -1914,11 +2125,11 @@ class RSBatteryInfo:
             def save_custom_value():
                 """Saves the custom current value and sets it to the Chroma device."""
                 custom_value = self.custom_current_entry.get()
-                print(f"{custom_value} load value")
+                logger.info(f"{custom_value} load value")
                 if custom_value.isdigit():  # Basic validation to ensure it's a number
                     set_custom_l1_value(int(custom_value))
                 else:
-                    print("Invalid input: Please enter a valid number.")
+                    logger.info("Invalid input: Please enter a valid number.")
 
             # Toggle Load On/Off function
             def toggle_load():
@@ -1995,7 +2206,7 @@ class RSBatteryInfo:
                     bus1_control_status.config(text="ON", bootstyle="success")
                 else:
                     bus1_control_status.config(text="OFF", bootstyle="danger")
-            print(f"Bus 1 Status: {rs232_write['cmd_byte_1']:08b}")
+            logger.info(f"Bus 1 Status: {rs232_write['cmd_byte_1']:08b}")
 
         # Function to toggle Bus 2
         def toggle_bus2():
@@ -2015,7 +2226,7 @@ class RSBatteryInfo:
                     bus2_control_status.config(text="OFF", bootstyle="danger")
                 else:
                     bus2_control_status.config(text="ON", bootstyle="success")
-            print(f"Bus 2 Status: {rs232_write['cmd_byte_1']:08b}")
+            logger.info(f"Bus 2 Status: {rs232_write['cmd_byte_1']:08b}")
 
         # Function to toggle Charger
         def toggle_charger():
@@ -2035,7 +2246,7 @@ class RSBatteryInfo:
                     charger_control_status.config(text="OFF", bootstyle="danger")
                 else:
                     charger_control_status.config(text="ON", bootstyle="success")
-            print(f"Charger Status: {rs232_write['cmd_byte_1']:08b}")
+            logger.info(f"Charger Status: {rs232_write['cmd_byte_1']:08b}")
 
         # Function to toggle Charger Output Relay
         def toggle_output_relay():
@@ -2055,7 +2266,7 @@ class RSBatteryInfo:
                     output_relay_control_status.config(text="OFF", bootstyle="danger")
                 else:
                     output_relay_control_status.config(text="ON", bootstyle="success")
-            print(f"Output Relay Status: {rs232_write['cmd_byte_1']:08b}")
+            logger.info(f"Output Relay Status: {rs232_write['cmd_byte_1']:08b}")
 
         def toggle_reset():
             # Write the reset command value (0x23) to cmd_byte_2
@@ -2070,7 +2281,7 @@ class RSBatteryInfo:
             # You can reset the UI back to normal after the reset process completes
             reset_button.config(text="RESET", bootstyle="danger")
             
-            print(f"Reset Command Triggered: {rs232_write['cmd_byte_2']:08b}")
+            logger.info(f"Reset Command Triggered: {rs232_write['cmd_byte_2']:08b}")
 
 
         # Section: Charger Control Frame
@@ -2199,7 +2410,7 @@ class RSBatteryInfo:
             if custom_value.isdigit():  # Basic validation to ensure it's a number
                 set_custom_l1_value(int(custom_value))
             else:
-                print("Invalid input: Please enter a valid number.")
+                logger.info("Invalid input: Please enter a valid number.")
     
         self.custom_current_entry = ttk.Entry(custom_frame)
         self.custom_current_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
@@ -2584,7 +2795,7 @@ class RSBatteryInfo:
                     else:
                         rs422_write['cmd_byte_1'] &= 0xFE  # Reset Bit 0 to 0 to turn OFF EB1
                         self.master.after(3000, lambda: update_relay_status('eb_1', eb1_relay_control_status))
-                    print(f"EB1 Relay Status: {rs422_write['cmd_byte_1']}")
+                    logger.info(f"EB1 Relay Status: {rs422_write['cmd_byte_1']}")
 
                 def toggle_eb2_relay():
                     """Toggle EB2 Relay On/Off."""
@@ -2594,7 +2805,7 @@ class RSBatteryInfo:
                     else:
                         rs422_write['cmd_byte_1'] &= 0xFB  # Reset Bit 2 to 0 to turn OFF EB2
                         self.master.after(3000, lambda: update_relay_status('eb_2', eb2_relay_control_status))
-                    print(f"EB2 Relay Status: {rs422_write['cmd_byte_1']}")
+                    logger.info(f"EB2 Relay Status: {rs422_write['cmd_byte_1']}")
 
                 def toggle_shutdown():
                     """Toggle Shutdown On/Off."""
@@ -2604,7 +2815,7 @@ class RSBatteryInfo:
                     else:
                         rs422_write['cmd_byte_1'] &= 0xEF  # Reset Bit 4 to 0 to turn OFF Shutdown
                         shutdown_control_status.config(text="OFF", bootstyle="success")
-                    print(f"Shutdown Status: {rs422_write['cmd_byte_1']}")
+                    logger.info(f"Shutdown Status: {rs422_write['cmd_byte_1']}")
 
                 def toggle_master_slave():
                     """Toggle Master/Slave Mode."""
@@ -2614,7 +2825,7 @@ class RSBatteryInfo:
                     else:
                         rs422_write['cmd_byte_1'] &= 0xF7  # Reset Bit 3 to 0 to switch to Slave mode
                         self.master.after(3000, lambda: update_master_slave_status('slave'))
-                    print(f"Master/Slave Status: {rs422_write['cmd_byte_1']}")
+                    logger.info(f"Master/Slave Status: {rs422_write['cmd_byte_1']}")
 
                 def update_relay_status(relay_name, control_button):
                     """Update the status of the relay after toggling."""
@@ -2637,14 +2848,14 @@ class RSBatteryInfo:
                 #     eb1_relay_control_status.config(text="Auto", bootstyle="info", state="disabled")  # Disable the button and show "Auto" status
 
                 #     eb1_relay_control_status.config(text="OFF", bootstyle="success")
-                #     print(f"EB1 Relay Auto Mode: {rs422_write['cmd_byte_1']}")
+                #     logger.info(f"EB1 Relay Auto Mode: {rs422_write['cmd_byte_1']}")
 
                 # def set_eb2_auto_mode():
                 #     # Set EB2 relay to Auto (11 -> 0x0C)
                 #     rs422_write['cmd_byte_1'] |= 0x0C  # Set bits 2 and 3 to 1 (Auto Mode)
                 #     eb2_relay_control_status.config(text="Auto", bootstyle="info", state="disabled")  # Disable the button and show "Auto" status
                 #     eb2_relay_control_status.config(text="OFF", bootstyle="success")
-                #     print(f"EB2 Relay Auto Mode: {rs422_write['cmd_byte_1']}")
+                #     logger.info(f"EB2 Relay Auto Mode: {rs422_write['cmd_byte_1']}")
 
                 # Callback function for when EB1 checkbox is toggled
                 # def on_eb1_checkbox_toggled():
@@ -2937,7 +3148,7 @@ class RSBatteryInfo:
                 else:
                     rs422_write['cmd_byte_1'] &= 0xFE  # Reset Bit 0 to 0 to turn OFF EB1
                     self.master.after(3000, lambda: update_relay_status('eb_1', eb1_relay_control_status))
-                print(f"EB1 Relay Status: {rs422_write['cmd_byte_1']}")
+                logger.info(f"EB1 Relay Status: {rs422_write['cmd_byte_1']}")
             
             def toggle_eb2_relay():
                 """Toggle EB2 Relay On/Off."""
@@ -2947,7 +3158,7 @@ class RSBatteryInfo:
                 else:
                     rs422_write['cmd_byte_1'] &= 0xFB  # Reset Bit 2 to 0 to turn OFF EB2
                     self.master.after(3000, lambda: update_relay_status('eb_2', eb2_relay_control_status))
-                print(f"EB2 Relay Status: {rs422_write['cmd_byte_1']}")
+                logger.info(f"EB2 Relay Status: {rs422_write['cmd_byte_1']}")
             
             def toggle_shutdown():
                 """Toggle Shutdown On/Off."""
@@ -2957,7 +3168,7 @@ class RSBatteryInfo:
                 else:
                     rs422_write['cmd_byte_1'] &= 0xEF  # Reset Bit 4 to 0 to turn OFF Shutdown
                     shutdown_control_status.config(text="OFF", bootstyle="success")
-                print(f"Shutdown Status: {rs422_write['cmd_byte_1']}")
+                logger.info(f"Shutdown Status: {rs422_write['cmd_byte_1']}")
             
             def toggle_master_slave():
                 """Toggle Master/Slave Mode."""
@@ -2967,7 +3178,7 @@ class RSBatteryInfo:
                 else:
                     rs422_write['cmd_byte_1'] &= 0xF7  # Reset Bit 3 to 0 to switch to Slave mode
                     self.master.after(3000, lambda: update_master_slave_status('slave'))
-                print(f"Master/Slave Status: {rs422_write['cmd_byte_1']}")
+                logger.info(f"Master/Slave Status: {rs422_write['cmd_byte_1']}")
             
             def update_relay_status(relay_name, control_button):
                 """Update the status of the relay after toggling."""
@@ -2990,14 +3201,14 @@ class RSBatteryInfo:
             #     eb1_relay_control_status.config(text="Auto", bootstyle="info", state="disabled")  # Disable the button and show "Auto" status
 
             #     eb1_relay_control_status.config(text="OFF", bootstyle="success")
-            #     print(f"EB1 Relay Auto Mode: {rs422_write['cmd_byte_1']}")
+            #     logger.info(f"EB1 Relay Auto Mode: {rs422_write['cmd_byte_1']}")
 
             # def set_eb2_auto_mode():
             #     # Set EB2 relay to Auto (11 -> 0x0C)
             #     rs422_write['cmd_byte_1'] |= 0x0C  # Set bits 2 and 3 to 1 (Auto Mode)
             #     eb2_relay_control_status.config(text="Auto", bootstyle="info", state="disabled")  # Disable the button and show "Auto" status
             #     eb2_relay_control_status.config(text="OFF", bootstyle="success")
-            #     print(f"EB2 Relay Auto Mode: {rs422_write['cmd_byte_1']}")
+            #     logger.info(f"EB2 Relay Auto Mode: {rs422_write['cmd_byte_1']}")
 
             # Callback function for when EB1 checkbox is toggled
             # def on_eb1_checkbox_toggled():
@@ -3339,5 +3550,5 @@ class RSBatteryInfo:
         t2_value = self.t2_entry.get()
         repeat_value = self.repeat_entry.get()
 
-        # Process the values (for now, we will print them as a placeholder)
-        print(f"L1: {l1_value}, L2: {l2_value}, T1: {t1_value}, T2: {t2_value}, Repeat: {repeat_value}")
+        # Process the values (for now, we will logger.info them as a placeholder)
+        logger.info(f"L1: {l1_value}, L2: {l2_value}, T1: {t1_value}, T2: {t2_value}, Repeat: {repeat_value}")
