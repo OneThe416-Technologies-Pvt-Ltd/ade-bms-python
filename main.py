@@ -120,7 +120,7 @@ class MainWindow:
         self.can_battery_info.show_dashboard()  # Show default dashboard view
         logger.info("CAN Battery Info dashboard displayed.")
 
-        self.can_battery_info.auto_refresh()  # Start auto-refresh for CAN battery info
+        # self.can_battery_info.auto_refresh()  # Start auto-refresh for CAN battery info
         logger.info("Auto refresh started for CAN Battery Info.")
     
     def show_rs_battery_info(self, event=None):

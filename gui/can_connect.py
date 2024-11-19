@@ -21,7 +21,6 @@ class CanConnection(tk.Frame):
         try:
             self.create_widgets()  # Create GUI elements
             self.initialize_options()  # Initialize CAN options
-            self.load_saved_values()  # Load saved configuration values
             self.update_displayed_values()  # Update labels with saved values
         except Exception as e:
             logger.error(f"Error initializing CanConnection: {e}")
@@ -81,6 +80,7 @@ class CanConnection(tk.Frame):
             self.saved_baudrate = config.config_values['can_config'].get('baudrate', '250 kBit/sec')
             self.saved_ioport = config.config_values['can_config'].get('input_output_port', '0100')
             self.saved_interrupt = config.config_values['can_config'].get('interrupt', '3')
+
         except Exception as e:
             logger.error(f"Error loading saved values: {e}")
             tk.messagebox.showerror("Configuration Error", f"Error loading saved values: {e}")
@@ -123,6 +123,7 @@ class CanConnection(tk.Frame):
     def update_displayed_values(self):
         """Update labels to show the current configuration values."""
         try:
+            self.load_saved_values()  # Load saved configuration values
             self.hwtype_label.config(text=self.saved_hwtype)
             self.baudrate_label.config(text=self.saved_baudrate)
             self.ioport_label.config(text=self.saved_ioport)

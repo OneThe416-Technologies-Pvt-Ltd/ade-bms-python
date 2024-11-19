@@ -452,7 +452,7 @@ class CanBatteryInfo:
 
 
     def show_discharging_frame(self):
-        """Display the Charging section."""
+        """Display the Discharging section."""
         self.clear_control_content_frame()
 
         title_label = ttk.Label(self.control_content_frame, text="Dicharging", font=("Arial", 24, "bold"))

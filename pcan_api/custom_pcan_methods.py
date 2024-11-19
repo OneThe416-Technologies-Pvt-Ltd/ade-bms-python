@@ -324,7 +324,7 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
                 pcan_write_read('remaining_capacity', 1)       
                 pcan_write_read('full_charge_capacity', 1)
                 log_can_data(device_data_battery_1)  # Log data for battery 1
-                messagebox.showinfo("Info!", "Device Connected with 2 batteries")  # Display info message
+                # messagebox.showinfo("Info!", "Device Connected with 2 batteries")  # Display info message
                 return True  # Indicate success
             
             # If only battery 1 is connected, fetch and log data for battery 1
@@ -337,7 +337,7 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
                 pcan_write_read('remaining_capacity', 1)       
                 pcan_write_read('full_charge_capacity', 1)
                 log_can_data(device_data_battery_1)  # Log data for battery 1
-                messagebox.showinfo("Info!", "Device Connected with 1 battery")  # Display info message
+                # messagebox.showinfo("Info!", "Device Connected with 1 battery")  # Display info message
                 return True  # Indicate success
             
             # If no batteries are connected, show an error message and uninitialize the PCAN device

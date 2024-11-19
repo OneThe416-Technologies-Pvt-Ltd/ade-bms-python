@@ -222,7 +222,7 @@ def connect_to_serial_port(flag):
             if battery_1_control_232.is_open and battery_2_control_232.is_open:
                 print(f"Connected to {battery_1_port_232} with baud rate {baud_rate}.")
                 # Once connected, we could start periodic communication (uncomment to activate communication loop)
-                # start_communication()
+                start_communication()
                 return True  # Return True if both connections succeed
             else:
                 return False  # Return False if either connection fails
