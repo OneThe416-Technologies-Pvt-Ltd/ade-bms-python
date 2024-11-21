@@ -18,8 +18,10 @@ logger.setLevel(logging.DEBUG)
 file_handler = logging.FileHandler(LOG_FILE_PATH, mode='a')  # 'a' mode to append if file exists
 file_handler.setLevel(logging.DEBUG)
 
-# Log formatting
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+# Log formatting including filename and line number
+formatter = logging.Formatter(
+    '%(asctime)s - %(levelname)s - %(message)s [%(filename)s:%(lineno)d]'
+)
 file_handler.setFormatter(formatter)
 
 # Adding file handler to the logger

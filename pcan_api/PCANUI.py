@@ -1,5 +1,5 @@
 import sys
-from pcan_api.pcan import *        ## PCAN-Basic library import
+from pcan import *        ## PCAN-Basic library import
 
 ## Imports for UI
 ##

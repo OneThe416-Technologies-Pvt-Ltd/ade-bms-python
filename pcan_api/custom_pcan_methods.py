@@ -9,6 +9,7 @@ import asyncio  # For asynchronous programming
 from openpyxl import Workbook, load_workbook  # For working with Excel files
 import datetime  # For date and time functions
 from fpdf import FPDF  # For generating PDF reports
+import traceback
 import os  # For file system operations
 import helpers.pdf_generator as pdf_generator  # Helper for generating PDFs
 import helpers.config as config  # Config helper for configuration management
@@ -180,7 +181,7 @@ device_data_battery_1 = {
     'current': 0,
     'voltage': 0,
     'avg_current': 0,
-    'charging_current': 0,
+    'charging_current': 100,
     'full_charge_capacity': 103.8,
     'charging_voltage': 0,
     'at_rate_time_to_full': 0,
@@ -263,12 +264,11 @@ async def update_device_data():
             tasks.append(task)
         
         # Await completion of all tasks
-        await asyncio.gather(*tasks)
-    
+        await asyncio.gather(*tasks)   
     except Exception as e:
-        # Log and show error message in case of failure
-        logger.error(f"Error in update_device_data: {e}")
-        messagebox.showerror("Error!", f"Failed to update device data: {str(e)}")
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
 
 # Function to fetch and store data asynchronously
@@ -279,12 +279,11 @@ async def fetch_and_store_data(call_name, key):
             await asyncio.to_thread(pcan_write_read, call_name, 1)  # Fetch data from battery 1
             await asyncio.to_thread(pcan_write_read, call_name, 2)  # Fetch data from battery 2
         else:
-            await asyncio.to_thread(pcan_write_read, call_name, 1)  # Only fetch data from battery 1
-    
+            await asyncio.to_thread(pcan_write_read, call_name, 1)  # Only fetch data from battery 1 
     except Exception as e:
-        # Log and show error message in case of failure
-        logger.error(f"Error in fetch_and_store_data for {call_name}: {e}")
-        messagebox.showerror("Error!", f"Failed to fetch {call_name} data: {str(e)}")
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
 
 # Function to initialize the PCAN device with specified parameters
@@ -344,12 +343,11 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
             else:
                 messagebox.showinfo("Error!", "Connection Failed! Wait for 10 seconds after disconnecting")
                 m_objPCANBasic.Uninitialize(m_PcanHandle)  # Uninitialize the PCAN device
-                return False  # Indicate failure
-    
+                return False  # Indicate failure   
     except Exception as e:
-        # Log and show error message in case of failure during initialization
-        logger.error(f"Error in pcan_initialize: {e}")
-        messagebox.showerror("Error!", f"Failed to initialize the PCAN device: {str(e)}")
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
         return False
 
 
@@ -372,9 +370,9 @@ def pcan_uninitialize():
             messagebox.showinfo("Info!", "Connection Disconnect!")
             return True  # Return success status
     except Exception as e:
-        # Catch any unexpected errors and display them in a message box
-        logger.error(f"Error in pcan_uninitialize: {e}")
-        messagebox.showerror("Error!", f"An error occurred during uninitialization: {str(e)}")
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
         return False  # Return failure status
 
 
@@ -584,12 +582,11 @@ def pcan_write_read(call_name, battery_no):
         
         # Call pcan_read() to read the response from the bus
         result_code = pcan_read()
-        return result_code  # Return the result code from the read operation
-    
+        return result_code  # Return the result code from the read operation   
     except Exception as e:
-        # Catch any unexpected errors and log them
-        logger.error(f"Error in pcan_write_read: {e}")
-        messagebox.showerror("Error!", f"An error occurred: {str(e)}")  # Show the error message to the user
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
         return -1  # Indicate failure if an exception occurs
 
 
@@ -633,280 +630,284 @@ def pcan_read():
             convert_data(newMsg, theMsg, decimal_value)
 
             # Return the error code from the read operation
-            return result[0]
-    
+            return result[0] 
     except Exception as e:
-        # Handle any unexpected exceptions
-        logger.error(f"Error in pcan_read: {e}")
-        messagebox.showerror("Error!", f"An error occurred: {str(e)}")  # Show error message to the user
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
         return -1  # Indicate failure if an exception occurs
 
 
 def convert_data(newMsg, theMsg, decimal_value):
-    # Conversion rules
-    if newMsg.DATA[4] == 0x04:  # AtRate: mA / 40 unsigned
-        if newMsg.DATA[7] == 0x02:
-            device_data_battery_1['at_rate'] = (decimal_value*40)/1000
-        elif newMsg.DATA[7] == 0x1D:
-            device_data_battery_2['at_rate'] = (decimal_value*40)/1000
-        else:
-            logger.info("AtRate Not Found")
-    elif newMsg.DATA[4] == 0x05:  # AtRateTimeToFull: minutes unsigned
-        if newMsg.DATA[7] == 0x03:
-            device_data_battery_1['at_rate_time_to_full'] = round((decimal_value / 1000),1)
-        elif newMsg.DATA[7] == 0x1E:
-            device_data_battery_2['at_rate_time_to_full'] = round((decimal_value / 1000),1)
-        else:
-            logger.info("AtRateTimeToFull Not Found")
-    elif newMsg.DATA[4] == 0x06:  # AtRateTimeToEmpty: minutes unsigned
-        if newMsg.DATA[7] == 0x04:
-            device_data_battery_1['at_rate_time_to_empty'] = round((decimal_value / 1000),1)
-        elif newMsg.DATA[7] == 0x1F:
-            device_data_battery_2['at_rate_time_to_empty'] = round((decimal_value / 1000),1)
-        else:
-            logger.info("AtRateTimeToEmpty Not Found")
-    elif newMsg.DATA[4] == 0x07:  # AtRateOK: Boolean
-        if newMsg.DATA[7] == 0x05:
-            device_data_battery_1['at_rate_ok_text'] = "Yes" if decimal_value != 0 else "No" 
-        elif newMsg.DATA[7] == 0x20:
-            device_data_battery_2['at_rate_ok_text'] = "Yes" if decimal_value != 0 else "No" 
-        else:
-            logger.info("AtRateOK Not Found")
-    elif newMsg.DATA[4] == 0x08: # Temperature: Boolean
-        temperature_k = decimal_value / 10.0
-        temperature_c = temperature_k - 273.15
-        if newMsg.DATA[7] == 0x06:
-            device_data_battery_1['temperature'] = round(temperature_c,1) 
-        elif newMsg.DATA[7] == 0x21:
-            device_data_battery_2['temperature'] = round(temperature_c,1)
-        else:
-            logger.info("Temperature Not Found")
-    elif newMsg.DATA[4] == 0x09:  # Voltage: mV unsigned
-        if newMsg.DATA[7] == 0x07:
-            device_data_battery_1['voltage'] = round((decimal_value / 1000),1)
-        elif newMsg.DATA[7] == 0x22:
-            device_data_battery_2['voltage'] = round((decimal_value / 1000),1)
-        else:
-            logger.info("Voltage Not Found")
-    elif newMsg.DATA[4] == 0x0a:  # Current: mA / 40 signed
-        if decimal_value == 0:
-            if newMsg.DATA[7] == 0x08:
-                device_data_battery_1['current'] = decimal_value
-            elif newMsg.DATA[7] == 0x23:
-                device_data_battery_2['current'] = decimal_value
+    try:
+        # Conversion rules
+        if newMsg.DATA[4] == 0x04:  # AtRate: mA / 40 unsigned
+            if newMsg.DATA[7] == 0x02:
+                device_data_battery_1['at_rate'] = (decimal_value*40)/1000
+            elif newMsg.DATA[7] == 0x1D:
+                device_data_battery_2['at_rate'] = (decimal_value*40)/1000
             else:
-                logger.info("Current Not Found")
-        else:
-            if decimal_value > 32767:
-                decimal_value -= 65536
-            currentmA = decimal_value*40
-            currentA = currentmA / 1000
-            if currentA > 1:
-                if newMsg.DATA[7] == 0x08:
-                    device_data_battery_1['charging_battery_status'] = "Charging"
-                    device_data_battery_1['current'] = 0
-                    device_data_battery_1['charging_current'] = abs(currentA)
-                elif newMsg.DATA[7] == 0x23:
-                    device_data_battery_2['charging_battery_status'] = "Charging"
-                    device_data_battery_2['current'] = 0
-                    device_data_battery_2['charging_current'] = abs(currentA)
-                else:
-                    logger.info("Current Not Found")
-            elif currentA < 1:
-                if newMsg.DATA[7] == 0x08:
-                    device_data_battery_1['charging_battery_status'] = "Discharging"
-                    device_data_battery_1['current'] = abs(currentA)
-                    device_data_battery_1['charging_current'] = 0
-                elif newMsg.DATA[7] == 0x23:
-                    device_data_battery_2['charging_battery_status'] = "Discharging"
-                    device_data_battery_2['current'] = abs(currentA)
-                    device_data_battery_2['charging_current'] = 0
-                else:
-                    logger.info("Current Not Found")
-            elif currentA == 0:
-                if newMsg.DATA[7] == 0x08:
-                    device_data_battery_1['charging_battery_status'] = "Off"
-                    device_data_battery_1['current'] = abs(currentA)
-                    device_data_battery_1['charging_current'] = 0
-                elif newMsg.DATA[7] == 0x23:
-                    device_data_battery_2['charging_battery_status'] = "Off"
-                    device_data_battery_2['current'] = abs(currentA)
-                    device_data_battery_2['charging_current'] = 0
-                else:
-                    logger.info("Current Not Found")
+                logger.info("AtRate Not Found")
+        elif newMsg.DATA[4] == 0x05:  # AtRateTimeToFull: minutes unsigned
+            if newMsg.DATA[7] == 0x03:
+                device_data_battery_1['at_rate_time_to_full'] = round((decimal_value / 1000),1)
+            elif newMsg.DATA[7] == 0x1E:
+                device_data_battery_2['at_rate_time_to_full'] = round((decimal_value / 1000),1)
             else:
+                logger.info("AtRateTimeToFull Not Found")
+        elif newMsg.DATA[4] == 0x06:  # AtRateTimeToEmpty: minutes unsigned
+            if newMsg.DATA[7] == 0x04:
+                device_data_battery_1['at_rate_time_to_empty'] = round((decimal_value / 1000),1)
+            elif newMsg.DATA[7] == 0x1F:
+                device_data_battery_2['at_rate_time_to_empty'] = round((decimal_value / 1000),1)
+            else:
+                logger.info("AtRateTimeToEmpty Not Found")
+        elif newMsg.DATA[4] == 0x07:  # AtRateOK: Boolean
+            if newMsg.DATA[7] == 0x05:
+                device_data_battery_1['at_rate_ok_text'] = "Yes" if decimal_value != 0 else "No" 
+            elif newMsg.DATA[7] == 0x20:
+                device_data_battery_2['at_rate_ok_text'] = "Yes" if decimal_value != 0 else "No" 
+            else:
+                logger.info("AtRateOK Not Found")
+        elif newMsg.DATA[4] == 0x08: # Temperature: Boolean
+            temperature_k = decimal_value / 10.0
+            temperature_c = temperature_k - 273.15
+            if newMsg.DATA[7] == 0x06:
+                device_data_battery_1['temperature'] = round(temperature_c,1) 
+            elif newMsg.DATA[7] == 0x21:
+                device_data_battery_2['temperature'] = round(temperature_c,1)
+            else:
+                logger.info("Temperature Not Found")
+        elif newMsg.DATA[4] == 0x09:  # Voltage: mV unsigned
+            if newMsg.DATA[7] == 0x07:
+                device_data_battery_1['voltage'] = round((decimal_value / 1000),1)
+            elif newMsg.DATA[7] == 0x22:
+                device_data_battery_2['voltage'] = round((decimal_value / 1000),1)
+            else:
+                logger.info("Voltage Not Found")
+        elif newMsg.DATA[4] == 0x0a:  # Current: mA / 40 signed
+            if decimal_value == 0:
                 if newMsg.DATA[7] == 0x08:
-                    device_data_battery_1['charging_battery_status'] = "Off"
-                    device_data_battery_1['current'] = 0
-                    device_data_battery_1['charging_current'] = 0
+                    device_data_battery_1['current'] = decimal_value
                 elif newMsg.DATA[7] == 0x23:
                     device_data_battery_2['current'] = decimal_value
-                    device_data_battery_2['current'] = decimal_value
-                    device_data_battery_2['current'] = decimal_value
                 else:
                     logger.info("Current Not Found")
-    elif newMsg.DATA[4] == 0x0b:  # Avg Current: mA / 40 signed
-        if decimal_value == 0:
-            if newMsg.DATA[7] == 0x09:
-                device_data_battery_1['avg_current'] = decimal_value
-            elif newMsg.DATA[7] == 0x24:
-                device_data_battery_2['avg_current'] = decimal_value
             else:
-                logger.info("Avg Current Not Found")
-        else:
-            if decimal_value > 32767:
-                decimal_value -= 65536
-            currentmA = decimal_value*40
-            currentA = currentmA / 1000
-            if newMsg.DATA[7] == 0x09:
-                device_data_battery_1['avg_current'] = currentA
-            elif newMsg.DATA[7] == 0x24:
-                device_data_battery_2['avg_current'] = currentA
+                if decimal_value > 32767:
+                    decimal_value -= 65536
+                currentmA = decimal_value*40
+                currentA = currentmA / 1000
+                if currentA > 1:
+                    if newMsg.DATA[7] == 0x08:
+                        device_data_battery_1['charging_battery_status'] = "Charging"
+                        device_data_battery_1['current'] = 0
+                        device_data_battery_1['charging_current'] = abs(currentA)
+                    elif newMsg.DATA[7] == 0x23:
+                        device_data_battery_2['charging_battery_status'] = "Charging"
+                        device_data_battery_2['current'] = 0
+                        device_data_battery_2['charging_current'] = abs(currentA)
+                    else:
+                        logger.info("Current Not Found")
+                elif currentA < 1:
+                    if newMsg.DATA[7] == 0x08:
+                        device_data_battery_1['charging_battery_status'] = "Discharging"
+                        device_data_battery_1['current'] = abs(currentA)
+                        device_data_battery_1['charging_current'] = 0
+                    elif newMsg.DATA[7] == 0x23:
+                        device_data_battery_2['charging_battery_status'] = "Discharging"
+                        device_data_battery_2['current'] = abs(currentA)
+                        device_data_battery_2['charging_current'] = 0
+                    else:
+                        logger.info("Current Not Found")
+                elif currentA == 0:
+                    if newMsg.DATA[7] == 0x08:
+                        device_data_battery_1['charging_battery_status'] = "Off"
+                        device_data_battery_1['current'] = abs(currentA)
+                        device_data_battery_1['charging_current'] = 0
+                    elif newMsg.DATA[7] == 0x23:
+                        device_data_battery_2['charging_battery_status'] = "Off"
+                        device_data_battery_2['current'] = abs(currentA)
+                        device_data_battery_2['charging_current'] = 0
+                    else:
+                        logger.info("Current Not Found")
+                else:
+                    if newMsg.DATA[7] == 0x08:
+                        device_data_battery_1['charging_battery_status'] = "Off"
+                        device_data_battery_1['current'] = 0
+                        device_data_battery_1['charging_current'] = 0
+                    elif newMsg.DATA[7] == 0x23:
+                        device_data_battery_2['current'] = decimal_value
+                        device_data_battery_2['current'] = decimal_value
+                        device_data_battery_2['current'] = decimal_value
+                    else:
+                        logger.info("Current Not Found")
+        elif newMsg.DATA[4] == 0x0b:  # Avg Current: mA / 40 signed
+            if decimal_value == 0:
+                if newMsg.DATA[7] == 0x09:
+                    device_data_battery_1['avg_current'] = decimal_value
+                elif newMsg.DATA[7] == 0x24:
+                    device_data_battery_2['avg_current'] = decimal_value
+                else:
+                    logger.info("Avg Current Not Found")
             else:
-                logger.info("Avg Current Not Found")
-    elif newMsg.DATA[4] == 0x0c:  # MaxError: Percent unsigned
-        if newMsg.DATA[7] == 0x0A:
-            device_data_battery_1['max_error'] = decimal_value
-        elif newMsg.DATA[7] == 0x25:
-            device_data_battery_2['max_error'] = decimal_value
+                if decimal_value > 32767:
+                    decimal_value -= 65536
+                currentmA = decimal_value*40
+                currentA = currentmA / 1000
+                if newMsg.DATA[7] == 0x09:
+                    device_data_battery_1['avg_current'] = currentA
+                elif newMsg.DATA[7] == 0x24:
+                    device_data_battery_2['avg_current'] = currentA
+                else:
+                    logger.info("Avg Current Not Found")
+        elif newMsg.DATA[4] == 0x0c:  # MaxError: Percent unsigned
+            if newMsg.DATA[7] == 0x0A:
+                device_data_battery_1['max_error'] = decimal_value
+            elif newMsg.DATA[7] == 0x25:
+                device_data_battery_2['max_error'] = decimal_value
+            else:
+                logger.info("MaxError Not Found")
+        elif newMsg.DATA[4] == 0x0d:  # RelStateofCharge: Percent unsigned
+            if newMsg.DATA[7] == 0x0B:
+                device_data_battery_1['rel_state_of_charge'] = decimal_value
+            elif newMsg.DATA[7] == 0x26:
+                device_data_battery_2['rel_state_of_charge'] = decimal_value
+            else:
+                logger.info("RelStateofCharge Not Found")
+        elif newMsg.DATA[4] == 0x0e:  # AbsoluteStateofCharge: Percent unsigned
+            if newMsg.DATA[7] == 0x0C:
+                device_data_battery_1['abs_state_of_charge'] = decimal_value
+            elif newMsg.DATA[7] == 0x27:
+                device_data_battery_2['abs_state_of_charge'] = decimal_value
+            else:
+                logger.info("AbsoluteStateofCharge Not Found")
+        elif newMsg.DATA[4] == 0x0f:  # RemainingCapacity: mAh / 40 unsigned
+            if newMsg.DATA[7] == 0x0D:
+                device_data_battery_1['remaining_capacity'] = (decimal_value*40)/1000
+            elif newMsg.DATA[7] == 0x28:
+                device_data_battery_2['remaining_capacity'] = (decimal_value*40)/1000
+            else:
+                logger.info("MaxError Not Found")
+        elif newMsg.DATA[4] == 0x10:  # FullChargeCapacity: mAh / 40 unsigned
+            if newMsg.DATA[7] == 0x0E:
+                device_data_battery_1['full_charge_capacity'] = (decimal_value*40)/1000
+            elif newMsg.DATA[7] == 0x29:
+                device_data_battery_2['full_charge_capacity'] = (decimal_value*40)/1000
+            else:
+                logger.info("FullChargeCapacity Not Found")
+        elif newMsg.DATA[4] == 0x11:  # RunTimeToEmpty: minutes unsigned
+            if newMsg.DATA[7] == 0x0F:
+                device_data_battery_1['run_time_to_empty'] = round((decimal_value / 10),1)
+            elif newMsg.DATA[7] == 0x2A:
+                device_data_battery_2['run_time_to_empty'] = round((decimal_value / 10),1)
+            else:
+                logger.info("RunTimeToEmpty Not Found")
+        elif newMsg.DATA[4] == 0x12:  # AvgTimeToEmpty: minutes unsigned
+            if newMsg.DATA[7] == 0x10:
+                device_data_battery_1['avg_time_to_empty'] = round((decimal_value / 10),1)
+            elif newMsg.DATA[7] == 0x2B:
+                device_data_battery_2['avg_time_to_empty'] = round((decimal_value / 10),1)
+            else:
+                logger.info("AvgTimeToEmpty Not Found")
+            device_data['avg_time_to_empty'] = round((decimal_value / 10),1)
+        elif newMsg.DATA[4] == 0x13:  # AvgTimeToFull: minutes unsigned
+            if newMsg.DATA[7] == 0x11:
+                device_data_battery_1['avg_time_to_full'] = round((decimal_value / 1000),1)
+            elif newMsg.DATA[7] == 0x2C:
+                device_data_battery_2['avg_time_to_full'] = round((decimal_value / 1000),1)
+            else:
+                logger.info("AvgTimeToFull Not Found")
+        elif newMsg.DATA[4] == 0x15:  # ChargingVoltage: mV unsigned
+            if newMsg.DATA[7] == 0x13:
+                device_data_battery_1['charging_voltage'] = round((decimal_value / 1000),1)
+                logger.info(f"Charging Voltage {device_data_battery_1['charging_voltage']}")
+            elif newMsg.DATA[7] == 0x2E:
+                device_data_battery_2['charging_voltage'] = round((decimal_value / 1000),1)
+            else:
+                logger.info("ChargingVoltage Not Found")
+        elif newMsg.DATA[4] == 0x16:  # BatteryStatus: bit flags unsigned
+            binary_value = format(decimal_value, '016b')  # Convert to 16-bit binary string
+
+            # Swap the bytes before interpreting the bits
+            swapped_value = binary_value[8:] + binary_value[:8]
+            if newMsg.DATA[7] == 0x14:
+                device_data_battery_1['battery_status'] = swapped_value
+                battery_1_status_flags.update({
+                        "overcharged_alarm": int(swapped_value[0]),  # Bit 15
+                        "terminate_charge_alarm": int(swapped_value[1]),  # Bit 14
+                        "over_temperature_alarm": int(swapped_value[3]),  # Bit 12
+                        "terminate_discharge_alarm": int(swapped_value[4]),  # Bit 11
+                        "remaining_capacity_alarm": int(swapped_value[6]),  # Bit 9
+                        "remaining_time_alarm": int(swapped_value[7]),  # Bit 8
+                        "initialization": int(swapped_value[8]),  # Bit 7
+                        "charge_fet_test": int(swapped_value[9]),  # Bit 6
+                        "fully_charged": int(swapped_value[10]),  # Bit 5
+                        "fully_discharged": int(swapped_value[11]),  # Bit 4
+                        "error_codes": int(swapped_value[12:], 2)  # Bits 3:0, convert remaining bits to an integer
+                    })
+            elif newMsg.DATA[7] == 0x2F:
+                device_data_battery_2['battery_status'] = swapped_value
+                battery_2_status_flags.update({
+                        "overcharged_alarm": int(swapped_value[0]),  # Bit 15
+                        "terminate_charge_alarm": int(swapped_value[1]),  # Bit 14
+                        "over_temperature_alarm": int(swapped_value[3]),  # Bit 12
+                        "terminate_discharge_alarm": int(swapped_value[4]),  # Bit 11
+                        "remaining_capacity_alarm": int(swapped_value[6]),  # Bit 9
+                        "remaining_time_alarm": int(swapped_value[7]),  # Bit 8
+                        "initialization": int(swapped_value[8]),  # Bit 7
+                        "charge_fet_test": int(swapped_value[9]),  # Bit 6
+                        "fully_charged": int(swapped_value[10]),  # Bit 5
+                        "fully_discharged": int(swapped_value[11]),  # Bit 4
+                        "error_codes": int(swapped_value[12:], 2)  # Bits 3:0, convert remaining bits to an integer
+                    })
+            else:
+                logger.info("Battery Status Not Found")          
+        elif newMsg.DATA[4] == 0x18:  # DesignCapacity: mAh / 40 unsigned
+            if newMsg.DATA[7] == 0x16:
+                device_data_battery_1['design_capacity'] = (decimal_value*40)/1000
+            elif newMsg.DATA[7] == 0x2F:
+                device_data_battery_2['design_capacity'] = (decimal_value*40)/1000
+            else:
+                logger.info("Design Capacity Not Found")
+            device_data['design_capacity'] = (decimal_value*40)/1000
+        elif newMsg.DATA[4] == 0x19:  # DesignVoltage: mV unsigned
+            if newMsg.DATA[7] == 0x17:
+                device_data_battery_1['design_voltage'] = round((decimal_value / 1000),1)
+            elif newMsg.DATA[7] == 0x31:
+                device_data_battery_2['design_voltage'] = round((decimal_value / 1000),1)
+            else:
+                logger.info("Design Voltage Not Found")
+        elif newMsg.DATA[4] == 0x1c:  # SerialNumber: number unsigned
+            if newMsg.DATA[7] == 0x01:
+                device_data_battery_1['serial_number'] = decimal_value
+            elif newMsg.DATA[7] == 0x1C:
+                device_data_battery_2['serial_number'] = decimal_value
+            else:
+                logger.info("Serial Number Not Found")
         else:
-            logger.info("MaxError Not Found")
-    elif newMsg.DATA[4] == 0x0d:  # RelStateofCharge: Percent unsigned
-        if newMsg.DATA[7] == 0x0B:
-            device_data_battery_1['rel_state_of_charge'] = decimal_value
-        elif newMsg.DATA[7] == 0x26:
-            device_data_battery_2['rel_state_of_charge'] = decimal_value
-        else:
-            logger.info("RelStateofCharge Not Found")
-    elif newMsg.DATA[4] == 0x0e:  # AbsoluteStateofCharge: Percent unsigned
-        if newMsg.DATA[7] == 0x0C:
-            device_data_battery_1['abs_state_of_charge'] = decimal_value
-        elif newMsg.DATA[7] == 0x27:
-            device_data_battery_2['abs_state_of_charge'] = decimal_value
-        else:
-            logger.info("AbsoluteStateofCharge Not Found")
-    elif newMsg.DATA[4] == 0x0f:  # RemainingCapacity: mAh / 40 unsigned
-        if newMsg.DATA[7] == 0x0D:
-            device_data_battery_1['remaining_capacity'] = (decimal_value*40)/1000
-        elif newMsg.DATA[7] == 0x28:
-            device_data_battery_2['remaining_capacity'] = (decimal_value*40)/1000
-        else:
-            logger.info("MaxError Not Found")
-    elif newMsg.DATA[4] == 0x10:  # FullChargeCapacity: mAh / 40 unsigned
-        if newMsg.DATA[7] == 0x0E:
-            device_data_battery_1['full_charge_capacity'] = (decimal_value*40)/1000
-        elif newMsg.DATA[7] == 0x29:
-            device_data_battery_2['full_charge_capacity'] = (decimal_value*40)/1000
-        else:
-            logger.info("FullChargeCapacity Not Found")
-    elif newMsg.DATA[4] == 0x11:  # RunTimeToEmpty: minutes unsigned
-        if newMsg.DATA[7] == 0x0F:
-            device_data_battery_1['run_time_to_empty'] = round((decimal_value / 10),1)
-        elif newMsg.DATA[7] == 0x2A:
-            device_data_battery_2['run_time_to_empty'] = round((decimal_value / 10),1)
-        else:
-            logger.info("RunTimeToEmpty Not Found")
-    elif newMsg.DATA[4] == 0x12:  # AvgTimeToEmpty: minutes unsigned
-        if newMsg.DATA[7] == 0x10:
-            device_data_battery_1['avg_time_to_empty'] = round((decimal_value / 10),1)
-        elif newMsg.DATA[7] == 0x2B:
-            device_data_battery_2['avg_time_to_empty'] = round((decimal_value / 10),1)
-        else:
-            logger.info("AvgTimeToEmpty Not Found")
-        device_data['avg_time_to_empty'] = round((decimal_value / 10),1)
-    elif newMsg.DATA[4] == 0x13:  # AvgTimeToFull: minutes unsigned
-        if newMsg.DATA[7] == 0x11:
-            device_data_battery_1['avg_time_to_full'] = round((decimal_value / 1000),1)
-        elif newMsg.DATA[7] == 0x2C:
-            device_data_battery_2['avg_time_to_full'] = round((decimal_value / 1000),1)
-        else:
-            logger.info("AvgTimeToFull Not Found")
-    elif newMsg.DATA[4] == 0x15:  # ChargingVoltage: mV unsigned
-        if newMsg.DATA[7] == 0x13:
-            device_data_battery_1['charging_voltage'] = round((decimal_value / 1000),1)
-            logger.info(f"Charging Voltage {device_data_battery_1['charging_voltage']}")
-        elif newMsg.DATA[7] == 0x2E:
-            device_data_battery_2['charging_voltage'] = round((decimal_value / 1000),1)
-        else:
-            logger.info("ChargingVoltage Not Found")
-    elif newMsg.DATA[4] == 0x16:  # BatteryStatus: bit flags unsigned
-        binary_value = format(decimal_value, '016b')  # Convert to 16-bit binary string
-        
-        # Swap the bytes before interpreting the bits
-        swapped_value = binary_value[8:] + binary_value[:8]
-        if newMsg.DATA[7] == 0x14:
-            device_data_battery_1['battery_status'] = swapped_value
-            battery_1_status_flags.update({
-                    "overcharged_alarm": int(swapped_value[0]),  # Bit 15
-                    "terminate_charge_alarm": int(swapped_value[1]),  # Bit 14
-                    "over_temperature_alarm": int(swapped_value[3]),  # Bit 12
-                    "terminate_discharge_alarm": int(swapped_value[4]),  # Bit 11
-                    "remaining_capacity_alarm": int(swapped_value[6]),  # Bit 9
-                    "remaining_time_alarm": int(swapped_value[7]),  # Bit 8
-                    "initialization": int(swapped_value[8]),  # Bit 7
-                    "charge_fet_test": int(swapped_value[9]),  # Bit 6
-                    "fully_charged": int(swapped_value[10]),  # Bit 5
-                    "fully_discharged": int(swapped_value[11]),  # Bit 4
-                    "error_codes": int(swapped_value[12:], 2)  # Bits 3:0, convert remaining bits to an integer
-                })
-        elif newMsg.DATA[7] == 0x2F:
-            device_data_battery_2['battery_status'] = swapped_value
-            battery_2_status_flags.update({
-                    "overcharged_alarm": int(swapped_value[0]),  # Bit 15
-                    "terminate_charge_alarm": int(swapped_value[1]),  # Bit 14
-                    "over_temperature_alarm": int(swapped_value[3]),  # Bit 12
-                    "terminate_discharge_alarm": int(swapped_value[4]),  # Bit 11
-                    "remaining_capacity_alarm": int(swapped_value[6]),  # Bit 9
-                    "remaining_time_alarm": int(swapped_value[7]),  # Bit 8
-                    "initialization": int(swapped_value[8]),  # Bit 7
-                    "charge_fet_test": int(swapped_value[9]),  # Bit 6
-                    "fully_charged": int(swapped_value[10]),  # Bit 5
-                    "fully_discharged": int(swapped_value[11]),  # Bit 4
-                    "error_codes": int(swapped_value[12:], 2)  # Bits 3:0, convert remaining bits to an integer
-                })
-        else:
-            logger.info("Battery Status Not Found")          
-    elif newMsg.DATA[4] == 0x18:  # DesignCapacity: mAh / 40 unsigned
-        if newMsg.DATA[7] == 0x16:
-            device_data_battery_1['design_capacity'] = (decimal_value*40)/1000
-        elif newMsg.DATA[7] == 0x2F:
-            device_data_battery_2['design_capacity'] = (decimal_value*40)/1000
-        else:
-            logger.info("Design Capacity Not Found")
-        device_data['design_capacity'] = (decimal_value*40)/1000
-    elif newMsg.DATA[4] == 0x19:  # DesignVoltage: mV unsigned
-        if newMsg.DATA[7] == 0x17:
-            device_data_battery_1['design_voltage'] = round((decimal_value / 1000),1)
-        elif newMsg.DATA[7] == 0x31:
-            device_data_battery_2['design_voltage'] = round((decimal_value / 1000),1)
-        else:
-            logger.info("Design Voltage Not Found")
-    elif newMsg.DATA[4] == 0x1c:  # SerialNumber: number unsigned
-        if newMsg.DATA[7] == 0x01:
-            device_data_battery_1['serial_number'] = decimal_value
-        elif newMsg.DATA[7] == 0x1C:
-            device_data_battery_2['serial_number'] = decimal_value
-        else:
-            logger.info("Serial Number Not Found")
-    else:
-        if newMsg.DATA[7] == 0x1B:
-            data_packet = [int(hex(newMsg.DATA[i]), 16) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
-            major_version = data_packet[0]
-            minor_version = data_packet[1]
-            patch_number = (data_packet[3] << 8) | data_packet[2]
-            build_number = (data_packet[5] << 8) | data_packet[4]
-            version_string = f"{major_version}.{minor_version}.{patch_number}.{build_number}"
-            device_data_battery_1['firmware_version'] = version_string
-        elif newMsg.DATA[7] == 0x32:
-            data_packet = [int(hex(newMsg.DATA[i]), 16) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
-            major_version = data_packet[0]
-            minor_version = data_packet[1]
-            patch_number = (data_packet[3] << 8) | data_packet[2]
-            build_number = (data_packet[5] << 8) | data_packet[4]
-            version_string = f"{major_version}.{minor_version}.{patch_number}.{build_number}"
-            device_data_battery_2['firmware_version'] = version_string
-        else:
-            logger.info("Firmware version is not found")
+            if newMsg.DATA[7] == 0x1B:
+                data_packet = [int(hex(newMsg.DATA[i]), 16) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
+                major_version = data_packet[0]
+                minor_version = data_packet[1]
+                patch_number = (data_packet[3] << 8) | data_packet[2]
+                build_number = (data_packet[5] << 8) | data_packet[4]
+                version_string = f"{major_version}.{minor_version}.{patch_number}.{build_number}"
+                device_data_battery_1['firmware_version'] = version_string
+            elif newMsg.DATA[7] == 0x32:
+                data_packet = [int(hex(newMsg.DATA[i]), 16) for i in range(8 if (theMsg.LEN > 8) else theMsg.LEN)]
+                major_version = data_packet[0]
+                minor_version = data_packet[1]
+                patch_number = (data_packet[3] << 8) | data_packet[2]
+                build_number = (data_packet[5] << 8) | data_packet[4]
+                version_string = f"{major_version}.{minor_version}.{patch_number}.{build_number}"
+                device_data_battery_2['firmware_version'] = version_string
+            else:
+                logger.info("Firmware version is not found")
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
 
 def GetFormatedError(error):
@@ -914,11 +915,16 @@ def GetFormatedError(error):
         # If the function success, the translated error is returned. If it fails,
         # a text describing the current error is returned.
         #
-        stsReturn = m_objPCANBasic.GetErrorText(error, 0)
-        if stsReturn[0] != PCAN_ERROR_OK:
-            return "An error occurred. Error-code's text ({0:X}h) couldn't be retrieved".format(error)
-        else:
-            return stsReturn[1]
+        try:
+            stsReturn = m_objPCANBasic.GetErrorText(error, 0)
+            if stsReturn[0] != PCAN_ERROR_OK:
+                return "An error occurred. Error-code's text ({0:X}h) couldn't be retrieved".format(error)
+            else:
+                return stsReturn[1]
+        except Exception as e:
+            error_details = traceback.format_exc()
+            logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+            messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
 
 # PCAN Write Control API Call with added comments and exception handling
@@ -1032,12 +1038,11 @@ def pcan_write_control(call_name, battery_no):
                 return 0
         else:
             logger.info("Enter Diag State : Failed")
-            return 0
-            
+            return 0         
     except Exception as e:
-        # Handle unexpected exceptions
-        logger.error(f"Error in pcan_write_control: {e}")
-        messagebox.showerror("Error!", f"An error occurred: {str(e)}")
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
         return -1  # Indicate failure if an exception occurs
 
 
@@ -1045,32 +1050,46 @@ def pcan_write_control(call_name, battery_no):
 def update_device_data_to_default():
     def set_default_data(device_data_dict):
         """Helper function to set default values for a device's data."""
-        for key in device_data_dict.keys():
-            if key == 'device_name':
-                device_data_dict[key] = "BT-70939APH"
-            elif key == 'manufacturer_name':
-                device_data_dict[key] = "Bren-Tronics"
-            elif key == 'serial_number':
-                device_data_dict[key] = 1476
-            elif key == 'charging_battery_status':
-                device_data_dict[key] = "Off"
-            elif isinstance(device_data_dict[key], str):
-                device_data_dict[key] = ""
-            elif isinstance(device_data_dict[key], (int, float)):
-                device_data_dict[key] = 0
-
-    # Update both batteries' data
-    set_default_data(device_data_battery_1)
-    set_default_data(device_data_battery_2)
+        try:
+            for key in device_data_dict.keys():
+                if key == 'device_name':
+                    device_data_dict[key] = "BT-70939APH"
+                elif key == 'manufacturer_name':
+                    device_data_dict[key] = "Bren-Tronics"
+                elif key == 'serial_number':
+                    device_data_dict[key] = 1476
+                elif key == 'charging_battery_status':
+                    device_data_dict[key] = "Off"
+                elif isinstance(device_data_dict[key], str):
+                    device_data_dict[key] = ""
+                elif isinstance(device_data_dict[key], (int, float)):
+                    device_data_dict[key] = 0
+        except Exception as e:
+            error_details = traceback.format_exc()
+            logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+            messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
+    try:
+        # Update both batteries' data
+        set_default_data(device_data_battery_1)
+        set_default_data(device_data_battery_2)
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
 
 # Update battery status flag with default values
 def update_battery_status_flags_to_default():
     """Reset battery status flags to default (0)."""
-    for key in battery_1_status_flags.keys():
-        battery_1_status_flags[key] = 0
-    for key in battery_2_status_flags.keys():
-        battery_2_status_flags[key] = 0
+    try:
+        for key in battery_1_status_flags.keys():
+            battery_1_status_flags[key] = 0
+        for key in battery_2_status_flags.keys():
+            battery_2_status_flags[key] = 0
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
 
 # Log CAN data to an Excel file
@@ -1160,10 +1179,10 @@ def log_can_data(update_can_data):
         workbook.save(file_path)
         workbook.close()
         logger.info(f"CAN data logged in {file_path}.")
-
     except Exception as e:
-        logger.error(f"An error occurred while updating the Excel file: {str(e)}")
-        messagebox.showerror("Error", f"An error occurred while updating the Excel file: {str(e)}")
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
 # Retrieves the most recent CAN data for the specified serial number.
 def get_latest_can_data(serial_number):
@@ -1211,11 +1230,10 @@ def get_latest_can_data(serial_number):
         # If the serial number wasn't found in the sheet, show a warning
         messagebox.showwarning("Warning", f"Serial number {serial_number} not found in the CAN data.")
         return {}
-
     except Exception as e:
-        # Log the error and show an error message
-        logger.error(f"An error occurred while retrieving CAN data: {str(e)}")
-        messagebox.showerror("Error", f"An error occurred while retrieving CAN data: {str(e)}")
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
         return {}
 
 
@@ -1257,11 +1275,10 @@ def update_cycle_count_in_can_data(serial_number, new_cycle_count):
         # Save the updated Excel file
         workbook.save(file_path)
         messagebox.showinfo("Success", f"Cycle count updated successfully for Serial Number {serial_number}.")
-
     except Exception as e:
-        # Log the error and show an error message
-        logger.error(f"An error occurred while updating the cycle count: {str(e)}")
-        messagebox.showerror("Error", f"An error occurred while updating the cycle count: {str(e)}")
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
 
 def update_excel_and_download_pdf(data):
@@ -1285,7 +1302,6 @@ def update_excel_and_download_pdf(data):
         df_can_data['OCV Before Charging'] = df_can_data['OCV Before Charging'].astype(float)
         df_can_data['OCV Before Discharging'] = df_can_data['OCV Before Discharging'].astype(float)
         index = df_can_data[df_can_data['Serial Number'] == serial_number].index
-        logger.info(f"{df_can_data['Serial Number']} test {serial_number}")
         logger.info(f"{index} index")
 
         if not index.empty:
@@ -1309,29 +1325,33 @@ def update_excel_and_download_pdf(data):
 
         # Generate the PDF with the updated values
         pdf_generator.create_can_report_pdf(serial_number, "CAN")
-
     except Exception as e:
-        # Log the error and show an error message
-        logger.error(f"An error occurred while updating Excel and generating PDF: {str(e)}")
-        messagebox.showerror("Error", f"An error occurred: {str(e)}")
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
 
 def open_pdf_folder():
-    # Get the folder path where the PDFs are saved
-    folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_PDFs")
-    
-    # Check if the folder exists, if not, show an error
-    if not os.path.exists(folder_path):
-        messagebox.showerror("Error", "No PDF files found. Please generate a PDF first.")
-        return
-    
-    # Open the folder
     try:
-        os.startfile(folder_path)  # This will open the folder in Windows Explorer
+        # Get the folder path where the PDFs are saved
+        folder_path = os.path.join(os.path.expanduser("~"), "Documents", "Battery_PDFs")
+
+        # Check if the folder exists, if not, show an error
+        if not os.path.exists(folder_path):
+            messagebox.showerror("Error", "No PDF files found. Please generate a PDF first.")
+            return
+
+        # Open the folder
+        try:
+            os.startfile(folder_path)  # This will open the folder in Windows Explorer
+        except Exception as e:
+            error_details = traceback.format_exc()
+            logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+            messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
     except Exception as e:
-        # Log the error and show an error message
-        logger.error(f"Unable to open folder: {str(e)}")
-        messagebox.showerror("Error", f"Unable to open folder: {str(e)}")
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
 
 def update_charging_ocv_in_excel(serial_number, ocv_value):
@@ -1379,13 +1399,18 @@ def update_charging_ocv_in_excel(serial_number, ocv_value):
         workbook.save(file_path)
         workbook.close()
         return True
-    
     except FileNotFoundError:
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
         messagebox.showerror("Error", "The Excel file could not be found.")
     except PermissionError:
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
         messagebox.showerror("Error", "The Excel file is currently open. Please close it and try again.")
     except Exception as e:
-        messagebox.showerror("Error", f"An unexpected error occurred: {str(e)}")
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
 
 def update_discharging_ocv_in_excel(serial_number, ocv_value):
@@ -1432,12 +1457,17 @@ def update_discharging_ocv_in_excel(serial_number, ocv_value):
         # Save the changes to the Excel file
         workbook.save(file_path)
         workbook.close()
-        return True
-    
+        return True  
     except FileNotFoundError:
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
         messagebox.showerror("Error", "The Excel file could not be found.")
     except PermissionError:
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
         messagebox.showerror("Error", "The Excel file is currently open. Please close it and try again.")
     except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
         messagebox.showerror("Error", f"An unexpected error occurred: {str(e)}")
 

@@ -5,6 +5,7 @@ from openpyxl import Workbook, load_workbook
 import datetime
 import helpers.config as config
 import os
+import traceback
 from tkinter import messagebox
 import pandas as pd
 import helpers.pdf_generator as pdf_generator  # Config helper
@@ -160,6 +161,7 @@ def set_interval_async(func, interval):
     Returns:
     - A threading.Event object used to stop the interval function.
     """
+    
     # Event to stop the loop when needed
     stopped = threading.Event()
 

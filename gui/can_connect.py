@@ -3,6 +3,7 @@ import customtkinter as ctk
 from pcan_api.custom_pcan_methods import *
 import helpers.config as config
 from helpers.logger import logger  # Import the logger
+import traceback
 
 class CanConnection(tk.Frame):
     can_connected = False  # Track CAN connection status
@@ -23,7 +24,8 @@ class CanConnection(tk.Frame):
             self.initialize_options()  # Initialize CAN options
             self.update_displayed_values()  # Update labels with saved values
         except Exception as e:
-            logger.error(f"Error initializing CanConnection: {e}")
+            error_details = traceback.format_exc()
+            logger.error(f"Error initializing CanConnection: {e}\n{error_details}")
             tk.messagebox.showerror("Initialization Error", f"Error initializing CanConnection: {e}")
 
     def initialize_options(self):
@@ -70,7 +72,8 @@ class CanConnection(tk.Frame):
                 '11': 11, '12': 12, '15': 15
             }
         except Exception as e:
-            logger.error(f"Error initializing options: {e}")
+            error_details = traceback.format_exc()
+            logger.error(f"Error initializing options: {e}\n{error_details}")
             tk.messagebox.showerror("Options Error", f"Error initializing CAN options: {e}")
 
     def load_saved_values(self):
@@ -82,7 +85,8 @@ class CanConnection(tk.Frame):
             self.saved_interrupt = config.config_values['can_config'].get('interrupt', '3')
 
         except Exception as e:
-            logger.error(f"Error loading saved values: {e}")
+            error_details = traceback.format_exc()
+            logger.error(f"Error loading saved values: {e}\n{error_details}")
             tk.messagebox.showerror("Configuration Error", f"Error loading saved values: {e}")
 
     def create_widgets(self):
@@ -117,7 +121,8 @@ class CanConnection(tk.Frame):
             self.grid_columnconfigure(0, weight=1)
             self.pack(expand=True, fill='both')
         except Exception as e:
-            logger.error(f"Error creating widgets: {e}")
+            error_details = traceback.format_exc()
+            logger.error(f"Error creating widgets: {e}\n{error_details}")
             tk.messagebox.showerror("Widget Error", f"Error creating widgets: {e}")
 
     def update_displayed_values(self):
@@ -129,7 +134,8 @@ class CanConnection(tk.Frame):
             self.ioport_label.config(text=self.saved_ioport)
             self.interrupt_label.config(text=self.saved_interrupt)
         except Exception as e:
-            logger.error(f"Error updating displayed values: {e}")
+            error_details = traceback.format_exc()
+            logger.error(f"Error updating displayed values: {e}\n{error_details}")
             tk.messagebox.showerror("Display Update Error", f"Error updating displayed values: {e}")
 
     def on_connect(self):
@@ -154,7 +160,8 @@ class CanConnection(tk.Frame):
             else:
                 raise Exception("Failed to establish CAN connection. Please check the settings.")
         except Exception as e:
-            logger.error(f"Error during connection: {e}")
+            error_details = traceback.format_exc()
+            logger.error(f"Error during connection: {e}\n{error_details}")
             tk.messagebox.showerror("Connection Error", f"Error connecting to CAN: {e}")
 
 if __name__ == "__main__":

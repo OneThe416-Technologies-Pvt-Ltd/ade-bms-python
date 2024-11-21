@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox  # Import messagebox from tkinter
+import traceback
+from helpers.logger import logger
 
 class AutoCloseMessageBox:
     def __init__(self, root, title="Message", message="This is a message", timeout=10, message_type="info"):
@@ -22,7 +24,10 @@ class AutoCloseMessageBox:
 
             self.create_message_box()
         except Exception as e:
-            print(f"Error initializing AutoCloseMessageBox: {e}")
+            # Log any unexpected error in the settings function
+            error_details = traceback.format_exc()
+            logger.error(f"Error initializing AutoCloseMessageBox: {e}\n{error_details}")
+            messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
     def create_message_box(self):
         """Creates a custom message box that closes automatically after the specified timeout and is centered on the screen."""
@@ -71,15 +76,9 @@ class AutoCloseMessageBox:
             # Optional close button for manual dismissal
             close_button = ttk.Button(self.message_box, text="Close", command=self.message_box.destroy)
             close_button.pack(pady=5)
-
         except Exception as e:
-            print(f"Error creating message box: {e}")
-            messagebox.showerror("Error", "An error occurred while creating the message box.")
+            # Log any unexpected error in the settings function
+            error_details = traceback.format_exc()
+            logger.error(f"Error creating message box: {e}\n{error_details}")
+            messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
-# Example usage:
-# try:
-#     AutoCloseMessageBox(root, title="Info", message="This is an informational message.", timeout=10, message_type="info")
-#     AutoCloseMessageBox(root, title="Warning", message="This is a warning message.", timeout=10, message_type="warning")
-#     AutoCloseMessageBox(root, title="Error", message="This is an error message.", timeout=10, message_type="error")
-# except Exception as e:
-#     print(f"Error during message box creation: {e}")

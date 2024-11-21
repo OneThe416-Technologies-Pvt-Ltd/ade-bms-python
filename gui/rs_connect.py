@@ -5,6 +5,8 @@ import serial.tools.list_ports
 from tkinter import messagebox
 from pcomm_api.pcomm import connect_to_serial_port, set_active_protocol
 import re
+from helpers.logger import logger  # Import the logger
+import traceback
 
 class RSConnection(tk.Frame):
     rs_connected = False
@@ -28,10 +30,11 @@ class RSConnection(tk.Frame):
             else:
                 # If not connected, still create the widgets but inform the user
                 self.create_widgets()
-
         except Exception as e:
             # If any exception occurs during initialization, display an error message
-            print(f"Error initializing RSConnection: {e}")
+            error_details = traceback.format_exc()
+            logger.error(f"Error initializing CanConnection: {e}\n{error_details}")
+            logger.error(f"Error initializing RSConnection: {e}")
             messagebox.showerror("Initialization Error", f"Error initializing RSConnection: {e}")
 
     def is_moxa_connected(self):
@@ -44,7 +47,9 @@ class RSConnection(tk.Frame):
                     return True
             return False
         except Exception as e:
-            print(f"Error checking Moxa connection: {e}")
+            error_details = traceback.format_exc()
+            logger.error(f"Error initializing CanConnection: {e}\n{error_details}")
+            logger.error(f"Error checking Moxa connection: {e}")
             messagebox.showerror("Connection Error", f"Error checking Moxa connection: {e}")
             return False
 
@@ -72,9 +77,10 @@ class RSConnection(tk.Frame):
             self.grid_rowconfigure(5, weight=1)  # Ensure row 5 expands to center vertically
             self.grid_columnconfigure(0, weight=1)  # Ensure column 0 expands to center horizontally
             self.pack(expand=True, fill='both')
-
         except Exception as e:
-            print(f"Error creating widgets: {e}")
+            error_details = traceback.format_exc()
+            logger.error(f"Error initializing CanConnection: {e}\n{error_details}")
+            logger.error(f"Error creating widgets: {e}")
             messagebox.showerror("Widget Creation Error", f"Error creating widgets: {e}")
 
     def set_interface_mode(self, com_port, mode):
@@ -99,11 +105,12 @@ class RSConnection(tk.Frame):
                 raise ValueError("Invalid mode selected. Choose 'RS232' or 'RS422'.")
 
             winreg.CloseKey(key)
-            print(f"Successfully set {com_port} to {mode} mode.")
+            logger.info(f"Successfully set {com_port} to {mode} mode.")
             messagebox.showinfo("Success", f"{com_port} set to {mode} mode.")
-
         except Exception as e:
-            print(f"Failed to set {com_port} to {mode} mode. Error: {e}")
+            error_details = traceback.format_exc()
+            logger.error(f"Error initializing CanConnection: {e}\n{error_details}")
+            logger.error(f"Failed to set {com_port} to {mode} mode. Error: {e}")
             messagebox.showerror("Error", f"Failed to set {com_port} to {mode} mode. Error: {e}")
 
     def get_com_ports(self):
@@ -126,10 +133,11 @@ class RSConnection(tk.Frame):
             moxa_ports.sort(key=lambda x: x[0])
 
             # Return only the formatted string part
-            return [port[1] for port in moxa_ports]
-        
+            return [port[1] for port in moxa_ports]  
         except Exception as e:
-            print(f"Error retrieving COM ports: {e}")
+            error_details = traceback.format_exc()
+            logger.error(f"Error initializing CanConnection: {e}\n{error_details}")
+            logger.error(f"Error retrieving COM ports: {e}")
             messagebox.showerror("Error", f"Error retrieving COM ports: {e}")
             return []
 
@@ -144,11 +152,12 @@ class RSConnection(tk.Frame):
             elif selected_mode == "RS-422":
                 self.main_window.show_rs_battery_info()
             else:
-                print("Invalid Mode selected.")
+                logger.info("Invalid Mode selected.")
                 messagebox.showwarning("Selection Error", "Please select a valid Mode.")
-
         except Exception as e:
-            print(f"Error during connection: {e}")
+            error_details = traceback.format_exc()
+            logger.error(f"Error initializing CanConnection: {e}\n{error_details}")
+            logger.error(f"Error during connection: {e}")
             messagebox.showerror("Connection Error", f"Error during connection: {e}")
 
     def set_rs232_interface(self, com_port):
@@ -158,8 +167,10 @@ class RSConnection(tk.Frame):
             key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SYSTEM\CurrentControlSet\Services\Serial', 0, winreg.KEY_WRITE)
             winreg.SetValueEx(key, 'Interface', 0, winreg.REG_SZ, 'RS232')
             winreg.CloseKey(key)
-            print(f"Port {com_port} set to RS232 mode.")
+            logger.info(f"Port {com_port} set to RS232 mode.")
         except Exception as e:
+            error_details = traceback.format_exc()
+            logger.error(f"Error initializing CanConnection: {e}\n{error_details}")
             messagebox.showerror("Error", f"Failed to set {com_port} to RS232 mode. Error: {e}")
 
     def set_rs422_interface(self, com_port):
@@ -169,8 +180,10 @@ class RSConnection(tk.Frame):
             key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r'SYSTEM\CurrentControlSet\Services\Serial', 0, winreg.KEY_WRITE)
             winreg.SetValueEx(key, 'Interface', 0, winreg.REG_SZ, 'RS422')
             winreg.CloseKey(key)
-            print(f"Port {com_port} set to RS422 mode.")
+            logger.info(f"Port {com_port} set to RS422 mode.")
         except Exception as e:
+            error_details = traceback.format_exc()
+            logger.error(f"Error Failed to set Port: {e}\n{error_details}")
             messagebox.showerror("Error", f"Failed to set {com_port} to RS422 mode. Error: {e}")
 
 if __name__ == "__main__":
@@ -180,5 +193,6 @@ if __name__ == "__main__":
         app.pack()
         root.mainloop()
     except Exception as e:
-        print(f"Error starting the application: {e}")
+        error_details = traceback.format_exc()
+        logger.error(f"Error starting the application: {e}")
         messagebox.showerror("Startup Error", f"Error starting the application: {e}")

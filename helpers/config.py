@@ -1,7 +1,9 @@
 import os
 import json
+import tkinter as tk
 from helpers.logger import logger  # Import the logger for logging actions
 import pandas as pd  # Ensure you have pandas installed for Excel file handling
+import traceback
 
 # Path to store the configuration file in the user's AppData/Local/ade bms/config directory
 CONFIG_DIR = os.path.join(os.getenv('LOCALAPPDATA'), "ADE BMS", "config")
@@ -88,7 +90,10 @@ def ensure_config_dir_exists():
             os.makedirs(CONFIG_DIR)
             logger.info(f"Created directory {CONFIG_DIR} for configuration files.")
     except Exception as e:
-        logger.error(f"Failed to create config directory {CONFIG_DIR}: {e}")
+        # Log any unexpected error in the settings function
+        error_details = traceback.format_exc()
+        logger.error(f"Failed to create config directory {CONFIG_DIR}: {e}\n{error_details}")
+        tk.messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
         raise
 
 
@@ -109,7 +114,10 @@ def ensure_database_dir_exists():
             else:
                 logger.info(f"Excel file {file_path} already exists.")
     except Exception as e:
-        logger.error(f"Error in creating database directory or files: {e}")
+        # Log any unexpected error in the settings function
+        error_details = traceback.format_exc()
+        logger.error(f"Error in creating database directory or files: {e}\n{error_details}")
+        tk.messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
         raise
 
 
@@ -129,7 +137,10 @@ def load_config():
             save_config()  # Create the config.json file with default values
             logger.info(f"Configuration file not found. Created default configuration at {CONFIG_FILE_PATH}.")
     except Exception as e:
-        logger.error(f"Failed to load configuration: {e}")
+        # Log any unexpected error in the settings function
+        error_details = traceback.format_exc()
+        logger.error(f"Failed to load configuration: {e}\n{error_details}")
+        tk.messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
         raise
 
 
@@ -141,7 +152,10 @@ def save_config():
             json.dump(config_values, config_file, indent=4)
         logger.info(f"Configuration saved to {CONFIG_FILE_PATH}")
     except Exception as e:
-        logger.error(f"Failed to save configuration to {CONFIG_FILE_PATH}: {e}")
+        # Log any unexpected error in the settings function
+        error_details = traceback.format_exc()
+        logger.error(f"Failed to save configuration to {CONFIG_FILE_PATH}: {e}\n{error_details}")
+        tk.messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
         raise
 
 
@@ -172,7 +186,10 @@ def update_can_config(discharging_current_max=None, logging_time=None, discharge
 
         save_config()
     except Exception as e:
-        logger.error(f"Error updating CAN configuration: {e}")
+        # Log any unexpected error in the settings function
+        error_details = traceback.format_exc()
+        logger.error(f"Error updating CAN configuration: {e}\n{error_details}")
+        tk.messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
         raise
 
 
@@ -200,7 +217,10 @@ def update_rs_config(logging_time=None, discharge_cutoff_volt=None, charging_cut
 
         save_config()
     except Exception as e:
-        logger.error(f"Error updating RS configuration: {e}")
+        # Log any unexpected error in the settings function
+        error_details = traceback.format_exc()
+        logger.error(f"Error updating RS configuration: {e}\n{error_details}")
+        tk.messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
         raise
 
 
@@ -214,7 +234,10 @@ def add_project_to_can(project_name):
         else:
             logger.info(f"Project '{project_name}' already exists in CAN projects.")
     except Exception as e:
-        logger.error(f"Error adding project '{project_name}' to CAN projects: {e}")
+        # Log any unexpected error in the settings function
+        error_details = traceback.format_exc()
+        logger.error(f"Error adding project '{project_name}' to CAN projects: {e}\n{error_details}")
+        tk.messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
         raise
 
 
@@ -228,7 +251,10 @@ def add_project_to_rs(project_name):
         else:
             logger.info(f"Project '{project_name}' already exists in RS projects.")
     except Exception as e:
-        logger.error(f"Error adding project '{project_name}' to RS projects: {e}")
+        # Log any unexpected error in the settings function
+        error_details = traceback.format_exc()
+        logger.error(f"Error adding project '{project_name}' to RS projects: {e}\n{error_details}")
+        tk.messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
         raise
 
 
@@ -242,7 +268,10 @@ def delete_can_project(project_name):
         else:
             logger.info(f"Project '{project_name}' not found in CAN projects.")
     except Exception as e:
-        logger.error(f"Error deleting project '{project_name}' from CAN projects: {e}")
+        # Log any unexpected error in the settings function
+        error_details = traceback.format_exc()
+        logger.error(f"Error deleting project '{project_name}' from CAN projects: {e}\n{error_details}")
+        tk.messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
         raise
 
 
@@ -256,7 +285,10 @@ def delete_rs_project(project_name):
         else:
             logger.info(f"Project '{project_name}' not found in RS projects.")
     except Exception as e:
-        logger.error(f"Error deleting project '{project_name}' from RS projects: {e}")
+        # Log any unexpected error in the settings function
+        error_details = traceback.format_exc()
+        logger.error(f"Error deleting project '{project_name}' from RS projects: {e}\n{error_details}")
+        tk.messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
         raise
 
 
@@ -271,7 +303,10 @@ def edit_can_project(old_name, new_name):
         else:
             logger.info(f"Project '{old_name}' not found in CAN projects.")
     except Exception as e:
-        logger.error(f"Error renaming CAN project '{old_name}' to '{new_name}': {e}")
+        # Log any unexpected error in the settings function
+        error_details = traceback.format_exc()
+        logger.error(f"Error renaming CAN project '{old_name}' to '{new_name}': {e}\n{error_details}")
+        tk.messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
         raise
 
 
@@ -286,5 +321,8 @@ def edit_rs_project(old_name, new_name):
         else:
             logger.info(f"Project '{old_name}' not found in RS projects.")
     except Exception as e:
-        logger.error(f"Error renaming RS project '{old_name}' to '{new_name}': {e}")
+        # Log any unexpected error in the settings function
+        error_details = traceback.format_exc()
+        logger.error(f"Error renaming RS project '{old_name}' to '{new_name}': {e}\n{error_details}")
+        tk.messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
         raise

@@ -1,6 +1,7 @@
 import pyvisa
 from tkinter import messagebox
 from helpers.logger import logger  # Import the logger
+import traceback
 
 # Initialize variables
 rm = pyvisa.ResourceManager()  # Create a ResourceManager instance to communicate with instruments
@@ -32,7 +33,8 @@ def find_and_connect():
         # If no Chroma device found, show a warning message
         messagebox.showwarning("Device Not Found", "Chroma device not found")
     except Exception as e:
-        logger.error(f"Error during device search: {e}")
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
         messagebox.showerror("Connection Error", "An error occurred while searching for devices.")
 
 def turn_load_on():
@@ -45,7 +47,9 @@ def turn_load_on():
         else:
             logger.warning("Chroma device is not connected.")
     except Exception as e:
-        logger.error(f"Error turning load on: {e}")
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
 def turn_load_off():
     """Turn off the load."""
@@ -57,7 +61,9 @@ def turn_load_off():
         else:
             logger.warning("Chroma device is not connected.")
     except Exception as e:
-        logger.error(f"Error turning load off: {e}")
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
 # Set load to 100A and turn it on
 def set_l1_100a_and_turn_on():
@@ -71,7 +77,9 @@ def set_l1_100a_and_turn_on():
         else:
             logger.warning("Chroma device is not connected.")
     except Exception as e:
-        logger.error(f"Error setting load to 100A: {e}")
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
 # Set custom L1 value and turn load on or off separately
 def set_custom_l1_value(value):
@@ -84,7 +92,9 @@ def set_custom_l1_value(value):
         else:
             logger.warning("Chroma device is not connected.")
     except Exception as e:
-        logger.error(f"Error setting custom load current: {e}")
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
 # Set load to 25A and turn it on
 def set_l1_25a_and_turn_on():
@@ -98,7 +108,9 @@ def set_l1_25a_and_turn_on():
         else:
             logger.warning("Chroma device is not connected.")
     except Exception as e:
-        logger.error(f"Error setting load to 25A: {e}")
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
 # Set load to 50A and turn it on
 def set_l1_50a_and_turn_on():
@@ -112,7 +124,9 @@ def set_l1_50a_and_turn_on():
         else:
             logger.warning("Chroma device is not connected.")
     except Exception as e:
-        logger.error(f"Error setting load to 50A: {e}")
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
 # Set dynamic values for current, time, and repeat
 def set_dynamic_values(l1, l2, t1, t2, repeat):
@@ -129,7 +143,9 @@ def set_dynamic_values(l1, l2, t1, t2, repeat):
         else:
             logger.warning("Chroma device is not connected.")
     except Exception as e:
-        logger.error(f"Error setting dynamic values: {e}")
+        error_details = traceback.format_exc()
+        logger.error(f"An unexpected error occurred: {e}\n{error_details}")
+        messagebox.showerror("Error", f"An unexpected error occurred: {e}\nCheck logs for details.")
 
 def get_load_current():
     """Get the current load value."""

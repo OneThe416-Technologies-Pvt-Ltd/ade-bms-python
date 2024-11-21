@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox  # Import messagebox to show error messages
 from PIL import Image, ImageTk
 import os
+import traceback
 
 # Define base directory for assets
 base_dir = os.path.dirname(__file__)
@@ -57,7 +58,6 @@ class SplashScreen(tk.Toplevel):
 
             # Set the splash screen to close after 5 seconds
             self.after(5000, self.close_splash)  # Close splash screen after 5 seconds
-
         except Exception as e:
             # Handle any exceptions that occur during initialization
             print(f"Error initializing splash screen: {e}")
