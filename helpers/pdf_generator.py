@@ -187,7 +187,7 @@ def create_can_report_pdf(serial_number, protocol):
             pdf.cell(voltage_width, 8, str(row["Voltage"]), border=1)
             pdf.cell(current_width, 8, str(row["Current"]), border=1)
             pdf.cell(temperature_width, 8, str(row["Temperature"]), border=1)
-            pdf.cell(soc_width, 8, str(row["Load Currents"]), border=1)
+            pdf.cell(soc_width, 8, str(row["Load Current"]), border=1)
             pdf.cell(remarks_width, 8, "", border=1, ln=True)
 
         pdf.ln(20)

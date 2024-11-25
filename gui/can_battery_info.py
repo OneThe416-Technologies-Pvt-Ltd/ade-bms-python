@@ -2823,16 +2823,6 @@ class CanBatteryInfo:
                 # Save the updated DataFrame back to the Excel file
                 df.to_excel(excel_file_path, index=False)
 
-            # Check if the discharging process should stop
-            if battery_1_current > 0 and battery_1_voltage <= config.config_values['can_config'].get('discharge_cutoff_volt'):
-                # Show messagebox and stop logging
-                messagebox.showinfo("Discharging Completed", "Battery 1 discharging completed. Stopping log.")
-                turn_load_off()
-                pcan_write_control('both_off',1)
-                self.discharger_control_var_battery_1.set(False)      
-                self.toggle_button_style(tk.BooleanVar(value=False), self.discharge_button_battery_1, 'charge', self.selected_battery)
-                return  # Stop the recursion here
-
             # Schedule the method to run again after the logging interval (in milliseconds)
             self.update_discharging_log_battery_1_task = self.master.after(log_interval_minutes * 60 * 1000, self.update_discharging_log_battery_1)
         except Exception as e:
@@ -2908,15 +2898,6 @@ class CanBatteryInfo:
 
                 # Save the updated DataFrame back to the Excel file
                 df.to_excel(excel_file_path, index=False)
-
-            # Check if the discharging process should stop
-            if battery_2_current > 0 and battery_2_voltage <= config.config_values['can_config'].get('discharge_cutoff_volt'):
-                # Show messagebox and stop logging
-                messagebox.showinfo("Discharging Completed", "Battery 2 discharging completed. Stopping log.")
-                self.discharger_control_var_battery_2.set(False)
-                turn_load_off()
-                self.toggle_button_style(tk.BooleanVar(value=False), self.discharge_button_battery_2, 'discharge', self.selected_battery)
-                return  # Stop the recursion here
 
             # Schedule the method to run again after the logging interval (in milliseconds)
             self.update_discharging_log_battery_2_task = self.master.after(log_interval_minutes * 60 * 1000, self.update_discharging_log_battery_2)

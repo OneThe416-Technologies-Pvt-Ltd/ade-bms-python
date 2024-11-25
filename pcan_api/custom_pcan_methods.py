@@ -169,7 +169,7 @@ device_data = {
 # Battery 1 specific data dictionary with values specific to Battery 1
 device_data_battery_1 = {
     'device_name': "BT-70939APH",
-    'serial_number': 1478,
+    'serial_number': 0,
     'manufacturer_name': "Bren-Tronics",
     'firmware_version': "",
     'battery_status': "",
@@ -181,7 +181,7 @@ device_data_battery_1 = {
     'current': 0,
     'voltage': 0,
     'avg_current': 0,
-    'charging_current': 100,
+    'charging_current': 0,
     'full_charge_capacity': 103.8,
     'charging_voltage': 0,
     'at_rate_time_to_full': 0,
@@ -294,11 +294,12 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
         
         # If initialization fails, log data and display error message
         if result != PCAN_ERROR_OK:
-            log_can_data(device_data_battery_1)  # Log data for battery 1
+            # log_can_data(device_data_battery_1)  # Log data for battery 1
             if result == 5120:
                 result = 512  # Adjust error code if necessary
             messagebox.showerror("Error!", GetFormatedError(result))  # Show formatted error message
-            return True  # Indicate failure
+            # return True  # Indicate failure
+            return False  # Indicate failure
         
         # If initialization succeeds, fetch data for both batteries if available
         else:
@@ -341,7 +342,7 @@ def pcan_initialize(baudrate, hwtype, ioport, interrupt):
             
             # If no batteries are connected, show an error message and uninitialize the PCAN device
             else:
-                messagebox.showinfo("Error!", "Connection Failed! Wait for 10 seconds after disconnecting")
+                # messagebox.showinfo("Error!", "Connection Failed! Wait for 10 seconds after disconnecting")
                 m_objPCANBasic.Uninitialize(m_PcanHandle)  # Uninitialize the PCAN device
                 return False  # Indicate failure   
     except Exception as e:

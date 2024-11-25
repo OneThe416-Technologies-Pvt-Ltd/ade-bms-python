@@ -22,7 +22,7 @@ class RSBatteryInfo:
             # self.center_window(1200, 600)  # Center the window with specified dimensions
             self.master.resizable(True, False)
             # Calculate one-fourth of the main window width for the side menu
-            self.side_menu_width_ratio = 0.13  # 20% for side menu
+            self.side_menu_width_ratio = 0.15  # 20% for side menu
             self.update_frame_sizes()  # Set initial size
             self.auto_refresh_var = tk.BooleanVar()
             self.device_1_data = {}
@@ -124,25 +124,16 @@ class RSBatteryInfo:
             )
             self.side_menu_heading.pack(fill="x", pady=(10, 20))
 
-            self.dashboard_button =  ttk.Button(
-                self.side_menu_frame,
-                text=" Dashboard      ",
-                command=lambda: self.select_button(self.dashboard_button,self.show_new_dashboard),
-                image=self.dashboard_icon,
-                compound="left",  # Place the icon to the left of the text
-                bootstyle="info"
-            )
-            self.dashboard_button.pack(fill="x", pady=5)
-            self.info_button = ttk.Button(
-                self.side_menu_frame,
-                text=" Info                 ",
-                command=lambda: self.select_button(self.info_button, self.show_new_info),
-                image=self.info_icon,
-                compound="left",  # Place the icon to the left of the text
-                bootstyle="info"
-            )
-            self.info_button.pack(fill="x", pady=5)
             if self.rs232_flag:
+                self.dashboard_button =  ttk.Button(
+                    self.side_menu_frame,
+                    text=" Dashboard      ",
+                    command=lambda: self.select_button(self.dashboard_button,self.show_new_dashboard),
+                    image=self.dashboard_icon,
+                    compound="left",  # Place the icon to the left of the text
+                    bootstyle="info"
+                )
+                self.dashboard_button.pack(fill="x", pady=5)
                 self.control_button = ttk.Button(
                     self.side_menu_frame,
                     text=" Controls         ",
@@ -152,6 +143,15 @@ class RSBatteryInfo:
                     bootstyle="info"
                 )
                 self.control_button.pack(fill="x", pady=2)
+                self.info_button = ttk.Button(
+                    self.side_menu_frame,
+                    text=" Info                 ",
+                    command=lambda: self.select_button(self.info_button, self.show_new_info),
+                    image=self.info_icon,
+                    compound="left",  # Place the icon to the left of the text
+                    bootstyle="info"
+                )
+                self.info_button.pack(fill="x", pady=5)
 
                 self.report_button = ttk.Button(
                     self.side_menu_frame,
@@ -162,6 +162,25 @@ class RSBatteryInfo:
                     bootstyle="info"
                 )
                 self.report_button.pack(fill="x", pady=2)
+            elif self.rs422_flag:
+                self.dashboard_button =  ttk.Button(
+                    self.side_menu_frame,
+                    text=" Dashboard      ",
+                    command=lambda: self.select_button(self.dashboard_button,self.show_new_dashboard),
+                    image=self.dashboard_icon,
+                    compound="left",  # Place the icon to the left of the text
+                    bootstyle="info"
+                )
+                self.dashboard_button.pack(fill="x", pady=5)
+                self.info_button = ttk.Button(
+                    self.side_menu_frame,
+                    text=" Info                 ",
+                    command=lambda: self.select_button(self.info_button, self.show_new_info),
+                    image=self.info_icon,
+                    compound="left",  # Place the icon to the left of the text
+                    bootstyle="info"
+                )
+                self.info_button.pack(fill="x", pady=5)
 
             self.help_button = ttk.Button(
                 self.side_menu_frame,
@@ -198,7 +217,7 @@ class RSBatteryInfo:
             )
             self.disconnect_button.pack(side="bottom",pady=15)
 
-            # self.periodic_refresh()
+            self.periodic_refresh()
             self.show_new_dashboard()
 
 
@@ -2463,8 +2482,8 @@ class RSBatteryInfo:
 
         # Function to toggle Bus 1
         def toggle_bus1():
-            if rs232_write['cmd_byte_1'] & 0x01 == 0:  # If Bus 1 is OFF (Bit 0 = 0)
-                rs232_write['cmd_byte_1'] |= 0x01  # Set Bit 0 to 1 to turn ON Bus 1
+            if rs232_device_1_write['cmd_byte_1'] & 0x01 == 0:  # If Bus 1 is OFF (Bit 0 = 0)
+                rs232_device_1_write['cmd_byte_1'] |= 0x01  # Set Bit 0 to 1 to turn ON Bus 1
                 time.sleep(3)
                 bus1_status = self.device_1_data.get('bus1_status', 0)
                 if bus1_status == 1:
@@ -2472,19 +2491,19 @@ class RSBatteryInfo:
                 else:
                     bus1_control_status.config(text="OFF", bootstyle="danger")
             else:
-                rs232_write['cmd_byte_1'] &= 0xFE  # Reset Bit 0 to 0 to turn OFF Bus 1
+                rs232_device_1_write['cmd_byte_1'] &= 0xFE  # Reset Bit 0 to 0 to turn OFF Bus 1
                 time.sleep(3)
                 bus1_status = self.device_1_data.get('bus1_status', 0)
                 if bus1_status == 1:
                     bus1_control_status.config(text="ON", bootstyle="success")
                 else:
                     bus1_control_status.config(text="OFF", bootstyle="danger")
-            logger.info(f"Bus 1 Status: {rs232_write['cmd_byte_1']:08b}")
+            logger.info(f"Bus 1 Status: {rs232_device_1_write['cmd_byte_1']:08b}")
 
         # Function to toggle Bus 2
         def toggle_bus2():
-            if rs232_write['cmd_byte_1'] & 0x02 == 0:  # If Bus 2 is OFF (Bit 1 = 0)
-                rs232_write['cmd_byte_1'] |= 0x02  # Set Bit 1 to 1 to turn ON Bus 2
+            if rs232_device_1_write['cmd_byte_1'] & 0x02 == 0:  # If Bus 2 is OFF (Bit 1 = 0)
+                rs232_device_1_write['cmd_byte_1'] |= 0x02  # Set Bit 1 to 1 to turn ON Bus 2
                 time.sleep(3)
                 bus2_status = self.device_1_data.get('bus2_status', 0)
                 if bus2_status == 1:
@@ -2492,19 +2511,19 @@ class RSBatteryInfo:
                 else:
                     bus2_control_status.config(text="OFF", bootstyle="danger")
             else:
-                rs232_write['cmd_byte_1'] &= 0xFD  # Reset Bit 1 to 0 to turn OFF Bus 2
+                rs232_device_1_write['cmd_byte_1'] &= 0xFD  # Reset Bit 1 to 0 to turn OFF Bus 2
                 time.sleep(3)
                 bus2_status = self.device_1_data.get('bus2_status', 0)
                 if bus2_status == 0:
                     bus2_control_status.config(text="OFF", bootstyle="danger")
                 else:
                     bus2_control_status.config(text="ON", bootstyle="success")
-            logger.info(f"Bus 2 Status: {rs232_write['cmd_byte_1']:08b}")
+            logger.info(f"Bus 2 Status: {rs232_device_1_write['cmd_byte_1']:08b}")
 
         # Function to toggle Charger
         def toggle_charger():
-            if rs232_write['cmd_byte_1'] & 0x04 == 0:  # If Charger is OFF (Bit 2 = 0)
-                rs232_write['cmd_byte_1'] |= 0x04  # Set Bit 2 to 1 to turn ON Charger
+            if rs232_device_1_write['cmd_byte_1'] & 0x04 == 0:  # If Charger is OFF (Bit 2 = 0)
+                rs232_device_1_write['cmd_byte_1'] |= 0x04  # Set Bit 2 to 1 to turn ON Charger
                 time.sleep(3)
                 charger_status = self.device_1_data.get('charging_on_off_status', 0)
                 if charger_status == 1:
@@ -2512,19 +2531,19 @@ class RSBatteryInfo:
                 else:
                     charger_control_status.config(text="OFF", bootstyle="danger")
             else:
-                rs232_write['cmd_byte_1'] &= 0xFB  # Reset Bit 2 to 0 to turn OFF Charger
+                rs232_device_1_write['cmd_byte_1'] &= 0xFB  # Reset Bit 2 to 0 to turn OFF Charger
                 time.sleep(3)
                 charger_status = self.device_1_data.get('charging_on_off_status', 0)
                 if charger_status == 1:
                     charger_control_status.config(text="OFF", bootstyle="danger")
                 else:
                     charger_control_status.config(text="ON", bootstyle="success")
-            logger.info(f"Charger Status: {rs232_write['cmd_byte_1']:08b}")
+            logger.info(f"Charger Status: {rs232_device_1_write['cmd_byte_1']:08b}")
 
         # Function to toggle Charger Output Relay
         def toggle_output_relay():
-            if rs232_write['cmd_byte_1'] & 0x08 == 0:  # If Output Relay is OFF (Bit 3 = 0)
-                rs232_write['cmd_byte_1'] |= 0x08  # Set Bit 3 to 1 to turn ON Output Relay
+            if rs232_device_1_write['cmd_byte_1'] & 0x08 == 0:  # If Output Relay is OFF (Bit 3 = 0)
+                rs232_device_1_write['cmd_byte_1'] |= 0x08  # Set Bit 3 to 1 to turn ON Output Relay
                 time.sleep(3)
                 charger_relay_status = self.device_1_data.get('charger_relay_status', 0)
                 if charger_relay_status == 1:
@@ -2532,18 +2551,18 @@ class RSBatteryInfo:
                 else:
                     output_relay_control_status.config(text="OFF", bootstyle="danger")
             else:
-                rs232_write['cmd_byte_1'] &= 0xF7  # Reset Bit 3 to 0 to turn OFF Output Relay
+                rs232_device_1_write['cmd_byte_1'] &= 0xF7  # Reset Bit 3 to 0 to turn OFF Output Relay
                 time.sleep(3)
                 charger_relay_status = self.device_1_data.get('charger_relay_status', 0)
                 if charger_relay_status == 0:
                     output_relay_control_status.config(text="OFF", bootstyle="danger")
                 else:
                     output_relay_control_status.config(text="ON", bootstyle="success")
-            logger.info(f"Output Relay Status: {rs232_write['cmd_byte_1']:08b}")
+            logger.info(f"Output Relay Status: {rs232_device_1_write['cmd_byte_1']:08b}")
 
         def toggle_reset():
             # Write the reset command value (0x23) to cmd_byte_2
-            rs232_write['cmd_byte_2'] = 0x23  # Set Byte 2 to the reset command value
+            rs232_device_1_write['cmd_byte_2'] = 0x23  # Set Byte 2 to the reset command value
         
             # Update the reset button UI (could be any relevant UI change)
             messagebox.showinfo("Reset Triggered", "The reset command has been successfully triggered.")
@@ -2554,7 +2573,7 @@ class RSBatteryInfo:
             # You can reset the UI back to normal after the reset process completes
             reset_button.config(text="RESET", bootstyle="danger")
             
-            logger.info(f"Reset Command Triggered: {rs232_write['cmd_byte_2']:08b}")
+            logger.info(f"Reset Command Triggered: {rs232_device_1_write['cmd_byte_2']:08b}")
 
 
         # Section: Charger Control Frame
@@ -2844,9 +2863,9 @@ class RSBatteryInfo:
         self.clear_content_frame()  # Clear the current UI
         self.refresh_active = False  # Stop periodic refresh
 
-        # if self.main_window.rs_battery_info is not None:
-        #     del self.main_window.rs_battery_info
-        #     self.main_window.rs_battery_info = None
+        if self.main_window.rs_battery_info is not None:
+            del self.main_window.rs_battery_info
+            self.main_window.rs_battery_info = None
     
         self.main_frame.pack_forget()
         self.main_window.show_main_window()
@@ -2873,31 +2892,49 @@ class RSBatteryInfo:
                 battery_1_frame = ttk.Labelframe(main_frame, text="Battery 1", bootstyle='dark',borderwidth=5, relief="solid")
                 battery_1_frame.grid(row=0, column=0,rowspan=12, columnspan=5, padx=10, pady=5, sticky="nsew")
                 
-                heater_circle_color = "green" if self.device_1_data.get('heater_pad') == 1 else "red"
-                heater_status_label = ttk.Label(battery_1_frame, text="HEATER", font=("Arial", 8), anchor="center")
-                heater_status_label.grid(row=0, column=0, columnspan=1, padx=5, pady=18)
-                ttk.Label(battery_1_frame, text="●", foreground=heater_circle_color, font=("Arial", 18)).grid(row=1, column=0, padx=5, pady=10)
-                con_volt_circle_color = "green" if self.device_1_data.get('constant_voltage_mode') == 1 else "red"
-                con_volt_status_label = ttk.Label(battery_1_frame, text="CONST VOLT MOD", font=("Arial", 8), anchor="center")
-                con_volt_status_label.grid(row=0, column=1, columnspan=1, padx=5, pady=18)
-                ttk.Label(battery_1_frame, text="●", foreground=con_volt_circle_color, font=("Arial", 18)).grid(row=1, column=1, padx=5, pady=10)
-                con_current_circle_color = "green" if self.device_1_data.get('constant_current_mode') == 1 else "red"
-                con_current_status_label = ttk.Label(battery_1_frame, text="CONST CUR MOD", font=("Arial", 8), anchor="center")
-                con_current_status_label.grid(row=0, column=2, columnspan=1, padx=5, pady=18)
-                ttk.Label(battery_1_frame, text="●", foreground=con_current_circle_color, font=("Arial", 18)).grid(row=1, column=2, padx=5, pady=10)
-                over_current_circle_color = "green" if self.device_1_data.get('output_over_current') == 1 else "red"
-                over_current_status_label = ttk.Label(battery_1_frame, text="O/P OVER CUR", font=("Arial", 8), anchor="center")
-                over_current_status_label.grid(row=0, column=3, columnspan=1, padx=5, pady=18)
-                ttk.Label(battery_1_frame, text="●", foreground=over_current_circle_color, font=("Arial", 18)).grid(row=1, column=3, padx=5, pady=10)
-                under_volt_circle_color = "green" if self.device_1_data.get('input_under_voltage') == 1 else "red"
-                under_volt_status_label = ttk.Label(battery_1_frame, text="I/P UNDER VOLT", font=("Arial", 8), anchor="center")
-                under_volt_status_label.grid(row=0, column=4, columnspan=1, padx=5, pady=18)
-                ttk.Label(battery_1_frame, text="●", foreground=under_volt_circle_color, font=("Arial", 18)).grid(row=1, column=4, padx=5, pady=10)
+                # Status Frame
+                status_frame = ttk.Frame(battery_1_frame, borderwidth=2, relief="groove")
+                status_frame.grid(row=0, column=0, rowspan=2, columnspan=5, padx=10, pady=10, sticky="nsew")
 
-                # ttk.Label(battery_1_frame, text="", foreground=over_current_circle_color).grid(row=2, column=0, padx=5, pady=10)
-                volt_label = ttk.Label(battery_1_frame, text="Volt", anchor="center")
+                # HEATER Status
+                heater_circle_color = "green" if self.device_1_data.get('heater_pad') == 1 else "red"
+                heater_status_label = ttk.Label(status_frame, text="HEATER", font=("Arial", 8), anchor="center")
+                heater_status_label.grid(row=0, column=0, padx=5, pady=5)
+                ttk.Label(status_frame, text="●", foreground=heater_circle_color, font=("Arial", 18)).grid(row=1, column=0, padx=5, pady=5)
+
+                # CONST VOLTAGE MODE Status
+                con_volt_circle_color = "green" if self.device_1_data.get('constant_voltage_mode') == 1 else "red"
+                con_volt_status_label = ttk.Label(status_frame, text="CONST VOLT MOD", font=("Arial", 8), anchor="center")
+                con_volt_status_label.grid(row=0, column=1, padx=5, pady=5)
+                ttk.Label(status_frame, text="●", foreground=con_volt_circle_color, font=("Arial", 18)).grid(row=1, column=1, padx=5, pady=5)
+
+                # CONST CURRENT MODE Status
+                con_current_circle_color = "green" if self.device_1_data.get('constant_current_mode') == 1 else "red"
+                con_current_status_label = ttk.Label(status_frame, text="CONST CUR MOD", font=("Arial", 8), anchor="center")
+                con_current_status_label.grid(row=0, column=2, padx=5, pady=5)
+                ttk.Label(status_frame, text="●", foreground=con_current_circle_color, font=("Arial", 18)).grid(row=1, column=2, padx=5, pady=5)
+
+                # OUTPUT OVERCURRENT Status
+                over_current_circle_color = "green" if self.device_1_data.get('output_over_current') == 1 else "red"
+                over_current_status_label = ttk.Label(status_frame, text="O/P OVER CUR", font=("Arial", 8), anchor="center")
+                over_current_status_label.grid(row=0, column=3, padx=5, pady=5)
+                ttk.Label(status_frame, text="●", foreground=over_current_circle_color, font=("Arial", 18)).grid(row=1, column=3, padx=5, pady=5)
+
+                # INPUT UNDERVOLTAGE Status
+                under_volt_circle_color = "green" if self.device_1_data.get('input_under_voltage') == 1 else "red"
+                under_volt_status_label = ttk.Label(status_frame, text="I/P UNDER VOLT", font=("Arial", 8), anchor="center")
+                under_volt_status_label.grid(row=0, column=4, padx=5, pady=5)
+                ttk.Label(status_frame, text="●", foreground=under_volt_circle_color, font=("Arial", 18)).grid(row=1, column=4, padx=5, pady=5)
+
+
+                # BAT Details Frame
+                bat_details_frame = ttk.Frame(battery_1_frame, borderwidth=2, relief="ridge")
+                bat_details_frame.grid(row=2, column=0, rowspan=10,columnspan=5, padx=10, pady=10, sticky="nsew")
+
+                # ttk.Label(battery_2_frame, text="", foreground=over_current_circle_color).grid(row=2, column=0, padx=5, pady=10)
+                volt_label = ttk.Label(bat_details_frame, text="Volt", anchor="center")
                 volt_label.grid(row=3, column=1, columnspan=1, padx=5, pady=18)
-                temp_label = ttk.Label(battery_1_frame, text="Temp", anchor="center")
+                temp_label = ttk.Label(bat_details_frame, text="Temp", anchor="center")
                 temp_label.grid(row=3, column=2, columnspan=1, padx=5, pady=18)
                 # Create labels and entries for each BAT (Voltage, Temperature, Status)
                 for i in range(7):
@@ -2905,19 +2942,21 @@ class RSBatteryInfo:
                     battery_1_cell_status_color = "green" if self.device_1_data.get(f'cell_{i+1}_status') == 1 else "red"
 
                     # Row for each BAT
-                    ttk.Label(battery_1_frame, text=f"BAT{i+1}", foreground=battery_1_cell_status_color).grid(row=i+4, column=0, columnspan=1, padx=5, pady=18)
+                    ttk.Label(bat_details_frame, text=f"BAT{i+1}", foreground=battery_1_cell_status_color).grid(row=i+4, column=0, columnspan=1, padx=5, pady=18)
 
                     # Set the values from the device data dictionary
                     voltage_value = self.device_1_data.get(f'cell_{i+1}_voltage', 'N/A')
                     temp_value = self.device_1_data.get(f'cell_{i+1}_temp', 'N/A')
 
                     # Voltage label styled like an Entry (with border)
-                    voltage_label = ttk.Label(battery_1_frame, text=voltage_value, anchor="center", foreground=battery_1_cell_status_color,)
+                    voltage_label = ttk.Label(bat_details_frame, text=voltage_value, anchor="center", foreground=battery_1_cell_status_color,)
                     voltage_label.grid(row=i+4, column=1, columnspan=1, padx=5, pady=18)
 
                     # Temperature label styled like an Entry (with border)
-                    temperature_label = ttk.Label(battery_1_frame, text=temp_value, anchor="center", foreground=battery_1_cell_status_color,)
+                    temperature_label = ttk.Label(bat_details_frame, text=temp_value, anchor="center", foreground=battery_1_cell_status_color,)
                     temperature_label.grid(row=i+4, column=2, columnspan=1, padx=5, pady=18)
+
+                
                 # ttk.Label(battery_1_frame, text="", foreground=over_current_circle_color).grid(row=11, column=0, padx=5, pady=0)
                 ic_charger_current_frame = ttk.Label(battery_1_frame, text="IC Temp", anchor="center")
                 ic_charger_current_frame.grid(row=11, column=0, columnspan=1, padx=15, pady=5, sticky="nsew")
@@ -2947,26 +2986,39 @@ class RSBatteryInfo:
                 battery_2_frame.grid(row=0, column=5, columnspan=5, rowspan=12, padx=10, pady=5, sticky="nsew")
 
 
+                # Status Frame
+                status_frame = ttk.Frame(battery_2_frame, borderwidth=2, relief="groove")
+                status_frame.grid(row=0, column=0, rowspan=2, columnspan=5, padx=10, pady=10, sticky="nsew")
+                
+                # HEATER Status
                 heater_circle_color = "green" if self.device_1_data.get('heater_pad') == 1 else "red"
-                heater_status_label = ttk.Label(battery_2_frame, text="HEATER", font=("Arial", 8), anchor="center")
-                heater_status_label.grid(row=0, column=0, columnspan=1, padx=5, pady=18)
-                ttk.Label(battery_2_frame, text="●", foreground=heater_circle_color, font=("Arial", 18)).grid(row=1, column=0, padx=5, pady=10)
+                heater_status_label = ttk.Label(status_frame, text="HEATER", font=("Arial", 8), anchor="center")
+                heater_status_label.grid(row=0, column=0, padx=5, pady=5)
+                ttk.Label(status_frame, text="●", foreground=heater_circle_color, font=("Arial", 18)).grid(row=1, column=0, padx=5, pady=5)
+                
+                # CONST VOLTAGE MODE Status
                 con_volt_circle_color = "green" if self.device_1_data.get('constant_voltage_mode') == 1 else "red"
-                con_volt_status_label = ttk.Label(battery_2_frame, text="CONST VOLT MOD", font=("Arial", 8), anchor="center")
-                con_volt_status_label.grid(row=0, column=1, columnspan=1, padx=5, pady=18)
-                ttk.Label(battery_2_frame, text="●", foreground=con_volt_circle_color, font=("Arial", 18)).grid(row=1, column=1, padx=5, pady=10)
+                con_volt_status_label = ttk.Label(status_frame, text="CONST VOLT MOD", font=("Arial", 8), anchor="center")
+                con_volt_status_label.grid(row=0, column=1, padx=5, pady=5)
+                ttk.Label(status_frame, text="●", foreground=con_volt_circle_color, font=("Arial", 18)).grid(row=1, column=1, padx=5, pady=5)
+                
+                # CONST CURRENT MODE Status
                 con_current_circle_color = "green" if self.device_1_data.get('constant_current_mode') == 1 else "red"
-                con_current_status_label = ttk.Label(battery_2_frame, text="CONST CUR MOD", font=("Arial", 8), anchor="center")
-                con_current_status_label.grid(row=0, column=2, columnspan=1, padx=5, pady=18)
-                ttk.Label(battery_2_frame, text="●", foreground=con_current_circle_color, font=("Arial", 18)).grid(row=1, column=2, padx=5, pady=10)
+                con_current_status_label = ttk.Label(status_frame, text="CONST CUR MOD", font=("Arial", 8), anchor="center")
+                con_current_status_label.grid(row=0, column=2, padx=5, pady=5)
+                ttk.Label(status_frame, text="●", foreground=con_current_circle_color, font=("Arial", 18)).grid(row=1, column=2, padx=5, pady=5)
+                
+                # OUTPUT OVERCURRENT Status
                 over_current_circle_color = "green" if self.device_1_data.get('output_over_current') == 1 else "red"
-                over_current_status_label = ttk.Label(battery_2_frame, text="O/P OVER CUR", font=("Arial", 8), anchor="center")
-                over_current_status_label.grid(row=0, column=3, columnspan=1, padx=5, pady=18)
-                ttk.Label(battery_2_frame, text="●", foreground=over_current_circle_color, font=("Arial", 18)).grid(row=1, column=3, padx=5, pady=10)
+                over_current_status_label = ttk.Label(status_frame, text="O/P OVER CUR", font=("Arial", 8), anchor="center")
+                over_current_status_label.grid(row=0, column=3, padx=5, pady=5)
+                ttk.Label(status_frame, text="●", foreground=over_current_circle_color, font=("Arial", 18)).grid(row=1, column=3, padx=5, pady=5)
+                
+                # INPUT UNDERVOLTAGE Status
                 under_volt_circle_color = "green" if self.device_1_data.get('input_under_voltage') == 1 else "red"
-                under_volt_status_label = ttk.Label(battery_2_frame, text="I/P UNDER VOLT", font=("Arial", 8), anchor="center")
-                under_volt_status_label.grid(row=0, column=4, columnspan=1, padx=5, pady=18)
-                ttk.Label(battery_2_frame, text="●", foreground=under_volt_circle_color, font=("Arial", 18)).grid(row=1, column=4, padx=5, pady=10)
+                under_volt_status_label = ttk.Label(status_frame, text="I/P UNDER VOLT", font=("Arial", 8), anchor="center")
+                under_volt_status_label.grid(row=0, column=4, padx=5, pady=5)
+                ttk.Label(status_frame, text="●", foreground=under_volt_circle_color, font=("Arial", 18)).grid(row=1, column=4, padx=5, pady=5)
 
                 # ttk.Label(battery_2_frame, text="", foreground=over_current_circle_color).grid(row=2, column=0, padx=5, pady=10)
                 volt_label = ttk.Label(battery_2_frame, text="Volt", anchor="center")
@@ -2992,6 +3044,7 @@ class RSBatteryInfo:
                     # Temperature label styled like an Entry (with border)
                     temperature_label = ttk.Label(battery_2_frame, text=temp_value, anchor="center", foreground=battery_1_cell_status_color,)
                     temperature_label.grid(row=i+4, column=2, columnspan=1, padx=5, pady=18)
+                
                 ttk.Label(battery_2_frame, text="", foreground=over_current_circle_color).grid(row=11, column=0, padx=5, pady=0)
                 ic_charger_current_frame = ttk.Label(battery_2_frame, text="IC Temp", anchor="center")
                 ic_charger_current_frame.grid(row=11, column=0, columnspan=1, padx=15, pady=5, sticky="nsew")
@@ -3079,43 +3132,43 @@ class RSBatteryInfo:
 
                 def toggle_eb1_relay():
                     """Toggle EB1 Relay On/Off."""
-                    if rs422_write['cmd_byte_1'] & 0x01 == 0:  # If EB1 is OFF (Bit 0 = 0)
-                        rs422_write['cmd_byte_1'] |= 0x01  # Set Bit 0 to 1 to turn ON EB1
+                    if rs422_device_1_write['cmd_byte_1'] & 0x01 == 0:  # If EB1 is OFF (Bit 0 = 0)
+                        rs422_device_1_write['cmd_byte_1'] |= 0x01  # Set Bit 0 to 1 to turn ON EB1
                         self.master.after(3000, lambda: update_relay_status('eb_1', eb1_relay_control_status))
                     else:
-                        rs422_write['cmd_byte_1'] &= 0xFE  # Reset Bit 0 to 0 to turn OFF EB1
+                        rs422_device_1_write['cmd_byte_1'] &= 0xFE  # Reset Bit 0 to 0 to turn OFF EB1
                         self.master.after(3000, lambda: update_relay_status('eb_1', eb1_relay_control_status))
-                    logger.info(f"EB1 Relay Status: {rs422_write['cmd_byte_1']}")
+                    logger.info(f"EB1 Relay Status: {rs422_device_1_write['cmd_byte_1']}")
 
                 def toggle_eb2_relay():
                     """Toggle EB2 Relay On/Off."""
-                    if rs422_write['cmd_byte_1'] & 0x04 == 0:  # If EB2 is OFF (Bit 2 = 0)
-                        rs422_write['cmd_byte_1'] |= 0x04  # Set Bit 2 to 1 to turn ON EB2
+                    if rs422_device_1_write['cmd_byte_1'] & 0x04 == 0:  # If EB2 is OFF (Bit 2 = 0)
+                        rs422_device_1_write['cmd_byte_1'] |= 0x04  # Set Bit 2 to 1 to turn ON EB2
                         self.master.after(3000, lambda: update_relay_status('eb_2', eb2_relay_control_status))
                     else:
-                        rs422_write['cmd_byte_1'] &= 0xFB  # Reset Bit 2 to 0 to turn OFF EB2
+                        rs422_device_1_write['cmd_byte_1'] &= 0xFB  # Reset Bit 2 to 0 to turn OFF EB2
                         self.master.after(3000, lambda: update_relay_status('eb_2', eb2_relay_control_status))
-                    logger.info(f"EB2 Relay Status: {rs422_write['cmd_byte_1']}")
+                    logger.info(f"EB2 Relay Status: {rs422_device_1_write['cmd_byte_1']}")
 
                 def toggle_shutdown():
                     """Toggle Shutdown On/Off."""
-                    if rs422_write['cmd_byte_1'] & 0x10 == 0:  # If Shutdown is OFF (Bit 4 = 0)
-                        rs422_write['cmd_byte_1'] |= 0x10  # Set Bit 4 to 1 to turn ON Shutdown
+                    if rs422_device_1_write['cmd_byte_1'] & 0x10 == 0:  # If Shutdown is OFF (Bit 4 = 0)
+                        rs422_device_1_write['cmd_byte_1'] |= 0x10  # Set Bit 4 to 1 to turn ON Shutdown
                         shutdown_control_status.config(text="Shutdown", bootstyle="danger")
                     else:
-                        rs422_write['cmd_byte_1'] &= 0xEF  # Reset Bit 4 to 0 to turn OFF Shutdown
+                        rs422_device_1_write['cmd_byte_1'] &= 0xEF  # Reset Bit 4 to 0 to turn OFF Shutdown
                         shutdown_control_status.config(text="OFF", bootstyle="success")
-                    logger.info(f"Shutdown Status: {rs422_write['cmd_byte_1']}")
+                    logger.info(f"Shutdown Status: {rs422_device_1_write['cmd_byte_1']}")
 
                 def toggle_master_slave():
                     """Toggle Master/Slave Mode."""
-                    if rs422_write['cmd_byte_1'] & 0x08 == 0:  # If in Slave mode (Bit 3 = 0)
-                        rs422_write['cmd_byte_1'] |= 0x08  # Set Bit 3 to 1 to switch to Master mode
+                    if rs422_device_1_write['cmd_byte_1'] & 0x08 == 0:  # If in Slave mode (Bit 3 = 0)
+                        rs422_device_1_write['cmd_byte_1'] |= 0x08  # Set Bit 3 to 1 to switch to Master mode
                         self.master.after(3000, lambda: update_master_slave_status('master'))
                     else:
-                        rs422_write['cmd_byte_1'] &= 0xF7  # Reset Bit 3 to 0 to switch to Slave mode
+                        rs422_device_1_write['cmd_byte_1'] &= 0xF7  # Reset Bit 3 to 0 to switch to Slave mode
                         self.master.after(3000, lambda: update_master_slave_status('slave'))
-                    logger.info(f"Master/Slave Status: {rs422_write['cmd_byte_1']}")
+                    logger.info(f"Master/Slave Status: {rs422_device_1_write['cmd_byte_1']}")
 
                 def update_relay_status(relay_name, control_button):
                     """Update the status of the relay after toggling."""
@@ -3134,18 +3187,18 @@ class RSBatteryInfo:
 
                 # def set_eb1_auto_mode():
                 #     # Set EB1 relay to Auto (11 -> 0x03)
-                #     rs422_write['cmd_byte_1'] |= 0x03  # Set bits 0 and 1 to 1 (Auto Mode)
+                #     rs422_device_1_write['cmd_byte_1'] |= 0x03  # Set bits 0 and 1 to 1 (Auto Mode)
                 #     eb1_relay_control_status.config(text="Auto", bootstyle="info", state="disabled")  # Disable the button and show "Auto" status
 
                 #     eb1_relay_control_status.config(text="OFF", bootstyle="success")
-                #     logger.info(f"EB1 Relay Auto Mode: {rs422_write['cmd_byte_1']}")
+                #     logger.info(f"EB1 Relay Auto Mode: {rs422_device_1_write['cmd_byte_1']}")
 
                 # def set_eb2_auto_mode():
                 #     # Set EB2 relay to Auto (11 -> 0x0C)
-                #     rs422_write['cmd_byte_1'] |= 0x0C  # Set bits 2 and 3 to 1 (Auto Mode)
+                #     rs422_device_1_write['cmd_byte_1'] |= 0x0C  # Set bits 2 and 3 to 1 (Auto Mode)
                 #     eb2_relay_control_status.config(text="Auto", bootstyle="info", state="disabled")  # Disable the button and show "Auto" status
                 #     eb2_relay_control_status.config(text="OFF", bootstyle="success")
-                #     logger.info(f"EB2 Relay Auto Mode: {rs422_write['cmd_byte_1']}")
+                #     logger.info(f"EB2 Relay Auto Mode: {rs422_device_1_write['cmd_byte_1']}")
 
                 # Callback function for when EB1 checkbox is toggled
                 # def on_eb1_checkbox_toggled():
@@ -3432,43 +3485,43 @@ class RSBatteryInfo:
 
             def toggle_eb1_relay():
                 """Toggle EB1 Relay On/Off."""
-                if rs422_write['cmd_byte_1'] & 0x01 == 0:  # If EB1 is OFF (Bit 0 = 0)
-                    rs422_write['cmd_byte_1'] |= 0x01  # Set Bit 0 to 1 to turn ON EB1
+                if rs422_device_1_write['cmd_byte_1'] & 0x01 == 0:  # If EB1 is OFF (Bit 0 = 0)
+                    rs422_device_1_write['cmd_byte_1'] |= 0x01  # Set Bit 0 to 1 to turn ON EB1
                     self.master.after(3000, lambda: update_relay_status('eb_1', eb1_relay_control_status))
                 else:
-                    rs422_write['cmd_byte_1'] &= 0xFE  # Reset Bit 0 to 0 to turn OFF EB1
+                    rs422_device_1_write['cmd_byte_1'] &= 0xFE  # Reset Bit 0 to 0 to turn OFF EB1
                     self.master.after(3000, lambda: update_relay_status('eb_1', eb1_relay_control_status))
-                logger.info(f"EB1 Relay Status: {rs422_write['cmd_byte_1']}")
+                logger.info(f"EB1 Relay Status: {rs422_device_1_write['cmd_byte_1']}")
             
             def toggle_eb2_relay():
                 """Toggle EB2 Relay On/Off."""
-                if rs422_write['cmd_byte_1'] & 0x04 == 0:  # If EB2 is OFF (Bit 2 = 0)
-                    rs422_write['cmd_byte_1'] |= 0x04  # Set Bit 2 to 1 to turn ON EB2
+                if rs422_device_1_write['cmd_byte_1'] & 0x04 == 0:  # If EB2 is OFF (Bit 2 = 0)
+                    rs422_device_1_write['cmd_byte_1'] |= 0x04  # Set Bit 2 to 1 to turn ON EB2
                     self.master.after(3000, lambda: update_relay_status('eb_2', eb2_relay_control_status))
                 else:
-                    rs422_write['cmd_byte_1'] &= 0xFB  # Reset Bit 2 to 0 to turn OFF EB2
+                    rs422_device_1_write['cmd_byte_1'] &= 0xFB  # Reset Bit 2 to 0 to turn OFF EB2
                     self.master.after(3000, lambda: update_relay_status('eb_2', eb2_relay_control_status))
-                logger.info(f"EB2 Relay Status: {rs422_write['cmd_byte_1']}")
+                logger.info(f"EB2 Relay Status: {rs422_device_1_write['cmd_byte_1']}")
             
             def toggle_shutdown():
                 """Toggle Shutdown On/Off."""
-                if rs422_write['cmd_byte_1'] & 0x10 == 0:  # If Shutdown is OFF (Bit 4 = 0)
-                    rs422_write['cmd_byte_1'] |= 0x10  # Set Bit 4 to 1 to turn ON Shutdown
+                if rs422_device_1_write['cmd_byte_1'] & 0x10 == 0:  # If Shutdown is OFF (Bit 4 = 0)
+                    rs422_device_1_write['cmd_byte_1'] |= 0x10  # Set Bit 4 to 1 to turn ON Shutdown
                     shutdown_control_status.config(text="Shutdown", bootstyle="danger")
                 else:
-                    rs422_write['cmd_byte_1'] &= 0xEF  # Reset Bit 4 to 0 to turn OFF Shutdown
+                    rs422_device_1_write['cmd_byte_1'] &= 0xEF  # Reset Bit 4 to 0 to turn OFF Shutdown
                     shutdown_control_status.config(text="OFF", bootstyle="success")
-                logger.info(f"Shutdown Status: {rs422_write['cmd_byte_1']}")
+                logger.info(f"Shutdown Status: {rs422_device_1_write['cmd_byte_1']}")
             
             def toggle_master_slave():
                 """Toggle Master/Slave Mode."""
-                if rs422_write['cmd_byte_1'] & 0x08 == 0:  # If in Slave mode (Bit 3 = 0)
-                    rs422_write['cmd_byte_1'] |= 0x08  # Set Bit 3 to 1 to switch to Master mode
+                if rs422_device_1_write['cmd_byte_1'] & 0x08 == 0:  # If in Slave mode (Bit 3 = 0)
+                    rs422_device_1_write['cmd_byte_1'] |= 0x08  # Set Bit 3 to 1 to switch to Master mode
                     self.master.after(3000, lambda: update_master_slave_status('master'))
                 else:
-                    rs422_write['cmd_byte_1'] &= 0xF7  # Reset Bit 3 to 0 to switch to Slave mode
+                    rs422_device_1_write['cmd_byte_1'] &= 0xF7  # Reset Bit 3 to 0 to switch to Slave mode
                     self.master.after(3000, lambda: update_master_slave_status('slave'))
-                logger.info(f"Master/Slave Status: {rs422_write['cmd_byte_1']}")
+                logger.info(f"Master/Slave Status: {rs422_device_1_write['cmd_byte_1']}")
             
             def update_relay_status(relay_name, control_button):
                 """Update the status of the relay after toggling."""
@@ -3487,18 +3540,18 @@ class RSBatteryInfo:
 
             # def set_eb1_auto_mode():
             #     # Set EB1 relay to Auto (11 -> 0x03)
-            #     rs422_write['cmd_byte_1'] |= 0x03  # Set bits 0 and 1 to 1 (Auto Mode)
+            #     rs422_device_1_write['cmd_byte_1'] |= 0x03  # Set bits 0 and 1 to 1 (Auto Mode)
             #     eb1_relay_control_status.config(text="Auto", bootstyle="info", state="disabled")  # Disable the button and show "Auto" status
 
             #     eb1_relay_control_status.config(text="OFF", bootstyle="success")
-            #     logger.info(f"EB1 Relay Auto Mode: {rs422_write['cmd_byte_1']}")
+            #     logger.info(f"EB1 Relay Auto Mode: {rs422_device_1_write['cmd_byte_1']}")
 
             # def set_eb2_auto_mode():
             #     # Set EB2 relay to Auto (11 -> 0x0C)
-            #     rs422_write['cmd_byte_1'] |= 0x0C  # Set bits 2 and 3 to 1 (Auto Mode)
+            #     rs422_device_1_write['cmd_byte_1'] |= 0x0C  # Set bits 2 and 3 to 1 (Auto Mode)
             #     eb2_relay_control_status.config(text="Auto", bootstyle="info", state="disabled")  # Disable the button and show "Auto" status
             #     eb2_relay_control_status.config(text="OFF", bootstyle="success")
-            #     logger.info(f"EB2 Relay Auto Mode: {rs422_write['cmd_byte_1']}")
+            #     logger.info(f"EB2 Relay Auto Mode: {rs422_device_1_write['cmd_byte_1']}")
 
             # Callback function for when EB1 checkbox is toggled
             # def on_eb1_checkbox_toggled():

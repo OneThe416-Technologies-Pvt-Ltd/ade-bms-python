@@ -3,7 +3,7 @@ import winreg
 import customtkinter as ctk
 import serial.tools.list_ports
 from tkinter import messagebox
-from pcomm_api.pcomm import connect_to_serial_port, set_active_protocol
+from pcomm_api.pcomm import *
 import re
 from helpers.logger import logger  # Import the logger
 import traceback
@@ -143,21 +143,83 @@ class RSConnection(tk.Frame):
 
     def on_connect(self):
         """Handle the connect button click event."""
+        def update_serial_numbers_and_proceed():
+            try:
+                # Retrieve serial numbers from user input
+                battery_1_serial = battery_1_entry.get().strip()
+                battery_2_serial = battery_2_entry.get().strip()
+
+                if not battery_1_serial or not battery_2_serial:
+                    messagebox.showwarning("Warning", "Serial numbers cannot be empty!")
+                    return
+
+                # Update serial numbers
+                update_serial_number(battery_1_serial, battery_2_serial)
+
+                # Close the pop-up and show the appropriate battery info page
+                popup.destroy()
+                selected_mode = self.rs232_422_modes.get()
+                connect_to_serial_port(selected_mode)
+
+                if selected_mode == "RS-232":
+                    self.main_window.show_rs_battery_info()
+                elif selected_mode == "RS-422":
+                    self.main_window.show_rs_battery_info()
+            except Exception as e:
+                error_details = traceback.format_exc()
+                logger.error(f"Failed to update serial numbers: {e}\n{error_details}")
+                messagebox.showerror("Error", f"Failed to update serial numbers: {e}\nCheck logs for details.")
+
         try:
             selected_mode = self.rs232_422_modes.get()
             set_active_protocol(selected_flag=selected_mode)
 
-            if selected_mode == "RS-232":
-                self.main_window.show_rs_battery_info()
-            elif selected_mode == "RS-422":
-                self.main_window.show_rs_battery_info()
+            if selected_mode in ["RS-232", "RS-422"]:
+                # Create a pop-up dialog for updating serial numbers
+                popup = tk.Toplevel(self.main_window.master)
+                popup.title("Update Battery Serial Numbers")
+
+                # Set dimensions of the pop-up
+                popup_width = 400
+                popup_height = 200
+
+                # Get dimensions of the main window
+                main_width = self.main_window.master.winfo_width()
+                main_height = self.main_window.master.winfo_height()
+                main_x = self.main_window.master.winfo_x()
+                main_y = self.main_window.master.winfo_y()
+
+                # Calculate the position to center the pop-up relative to the main window
+                center_x = main_x + (main_width - popup_width) // 2
+                center_y = main_y + (main_height - popup_height) // 2
+
+                # Set the geometry of the pop-up to make it centered
+                popup.geometry(f"{popup_width}x{popup_height}+{center_x}+{center_y}")
+                popup.transient(self.main_window.master)
+                popup.grab_set()  # Make the pop-up modal
+
+                # Function to validate numeric input
+                def validate_numeric_input(char):
+                    return char.isdigit() or char == ""  # Allow only digits or empty input
+                
+                # Register the validation function
+                validate_command = popup.register(validate_numeric_input)
+                
+                tk.Label(popup, text="Enter Serial Number for Battery 1:").pack(pady=5)
+                battery_1_entry = tk.Entry(popup, width=30, validate="key", validatecommand=(validate_command, "%P"))
+                battery_1_entry.pack(pady=5)
+                
+                tk.Label(popup, text="Enter Serial Number for Battery 2:").pack(pady=5)
+                battery_2_entry = tk.Entry(popup, width=30, validate="key", validatecommand=(validate_command, "%P"))
+                battery_2_entry.pack(pady=5)
+                
+                tk.Button(popup, text="Update and Continue", command=lambda:update_serial_numbers_and_proceed()).pack(pady=10)
             else:
                 logger.info("Invalid Mode selected.")
                 messagebox.showwarning("Selection Error", "Please select a valid Mode.")
         except Exception as e:
             error_details = traceback.format_exc()
-            logger.error(f"Error initializing CanConnection: {e}\n{error_details}")
-            logger.error(f"Error during connection: {e}")
+            logger.error(f"Error during connection: {e}\n{error_details}")
             messagebox.showerror("Connection Error", f"Error during connection: {e}")
 
     def set_rs232_interface(self, com_port):

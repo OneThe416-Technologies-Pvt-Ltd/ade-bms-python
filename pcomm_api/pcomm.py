@@ -9,6 +9,7 @@ import traceback
 from tkinter import messagebox
 import pandas as pd
 import helpers.pdf_generator as pdf_generator  # Config helper
+from helpers.logger import logger  # Import the logger
 
 battery_1_control_232=None
 battery_2_control_232=None
@@ -24,39 +25,39 @@ rs422_interval_event = None
 
 rs232_device_1_data ={
             'battery_id': 1,
-            'serial_number': 1,
+            'serial_number': 0,
             'hw_version': 1,
             'sw_version': 1,
-            'cell_1_voltage': 100,
-            'cell_2_voltage': 100,
-            'cell_3_voltage': 100,
-            'cell_4_voltage': 100,
-            'cell_5_voltage': 100,
-            'cell_6_voltage': 100,
-            'cell_7_voltage': 100,
-            'cell_1_temp': 20,
-            'cell_2_temp': 20,
-            'cell_3_temp': 20,
-            'cell_4_temp': 20,
-            'cell_5_temp': 20,
-            'cell_6_temp': 20,
-            'cell_7_temp': 20,
+            'cell_1_voltage': 0,
+            'cell_2_voltage': 0,
+            'cell_3_voltage': 0,
+            'cell_4_voltage': 0,
+            'cell_5_voltage': 0,
+            'cell_6_voltage': 0,
+            'cell_7_voltage': 0,
+            'cell_1_temp': 0,
+            'cell_2_temp': 0,
+            'cell_3_temp': 0,
+            'cell_4_temp': 0,
+            'cell_5_temp': 0,
+            'cell_6_temp': 0,
+            'cell_7_temp': 0,
             'ic_temp': 25,
-            'bus_1_voltage_before_diode': 100,
-            'bus_2_voltage_before_diode': 100,
-            'bus_1_voltage_after_diode': 100,
-            'bus_2_voltage_after_diode': 100,
-            'bus_1_current_sensor1': 100,
-            'bus_2_current_sensor1': 100,
-            'charger_input_current': 100,
-            'charger_output_current': 100,
-            'charger_output_voltage': 100,
+            'bus_1_voltage_before_diode': 0,
+            'bus_2_voltage_before_diode': 0,
+            'bus_1_voltage_after_diode': 0,
+            'bus_2_voltage_after_diode': 0,
+            'bus_1_current_sensor1': 0,
+            'bus_2_current_sensor1': 0,
+            'charger_input_current': 0,
+            'charger_output_current': 0,
+            'charger_output_voltage': 0,
             'charging_on_off_status': 1,
             'charger_relay_status': 1,
             'constant_voltage_mode': 1,
             'constant_current_mode': 1,
-            'input_under_voltage': 100,
-            'output_over_current': 100,
+            'input_under_voltage': 0,
+            'output_over_current': 0,
             'bus1_status': 0,
             'bus2_status': 1,
             'heater_pad': 1,
@@ -64,6 +65,7 @@ rs232_device_1_data ={
 
 
 rs422_device_1_data ={
+            'serial_number': 1,
             'eb_1_relay_status': 0,
             'eb_2_relay_status': 0,
             'heater_pad_charger_relay_status': 0,
@@ -79,7 +81,7 @@ rs422_device_1_data ={
 
 rs232_device_2_data ={
             'battery_id': 1,
-            'serial_number': 1,
+            'serial_number': 0,
             'hw_version': 1,
             'sw_version': 1,
             'cell_1_voltage': 2,
@@ -97,21 +99,21 @@ rs232_device_2_data ={
             'cell_6_temp': 1,
             'cell_7_temp': 1,
             'ic_temp': 25,
-            'bus_1_voltage_before_diode': 100,
-            'bus_2_voltage_before_diode': 100,
-            'bus_1_voltage_after_diode': 100,
-            'bus_2_voltage_after_diode': 100,
-            'bus_1_current_sensor1': 100,
-            'bus_2_current_sensor1': 100,
-            'charger_input_current': 100,
-            'charger_output_current': 100,
-            'charger_output_voltage': 100,
+            'bus_1_voltage_before_diode': 0,
+            'bus_2_voltage_before_diode': 0,
+            'bus_1_voltage_after_diode': 0,
+            'bus_2_voltage_after_diode': 0,
+            'bus_1_current_sensor1': 0,
+            'bus_2_current_sensor1': 0,
+            'charger_input_current': 0,
+            'charger_output_current': 0,
+            'charger_output_voltage': 0,
             'charging_on_off_status': 1,
             'charger_relay_status': 1,
             'constant_voltage_mode': 1,
             'constant_current_mode': 1,
-            'input_under_voltage': 100,
-            'output_over_current': 100,
+            'input_under_voltage': 0,
+            'output_over_current': 0,
             'bus1_status': 1,
             'bus2_status': 0,
             'heater_pad': 1,
@@ -119,6 +121,7 @@ rs232_device_2_data ={
 
 
 rs422_device_2_data ={
+            'serial_number': 0,
             'eb_1_relay_status': 0,
             'eb_2_relay_status': 0,
             'heater_pad_charger_relay_status': 0,
@@ -132,7 +135,7 @@ rs422_device_2_data ={
 }
 
 
-rs232_write = {
+rs232_device_1_write = {
     'header' : 0xAA,
     'cmd_byte_1' : 0x00,
     'cmd_byte_2' : 0x00,
@@ -141,7 +144,24 @@ rs232_write = {
 }
 
 
-rs422_write = {
+rs422_device_1_write = {
+    'header' : 0x55,
+    'cmd_byte_1' : 0xC0,
+    'cmd_byte_2' : 0x08,
+    'cmd_byte_3' : 0x00,
+}
+
+
+rs232_device_2_write = {
+    'header' : 0xAA,
+    'cmd_byte_1' : 0x00,
+    'cmd_byte_2' : 0x00,
+    'cmd_byte_3' : 0x00,
+    'cmd_byte_4' : 0x00,
+}
+
+
+rs422_device_2_write = {
     'header' : 0x55,
     'cmd_byte_1' : 0xC0,
     'cmd_byte_2' : 0x08,
@@ -181,6 +201,7 @@ def set_interval_async(func, interval):
 
 
 def connect_to_serial_port(flag):
+    global battery_1_control_232,battery_2_control_232,battery_1_control_422_c_1,battery_1_control_422_c_2,battery_2_control_422_c_1,battery_2_control_422_c_2
     """
     Connect to a serial port for RS-232 or RS-422 communication and configure it with default settings.
     
@@ -191,7 +212,7 @@ def connect_to_serial_port(flag):
     - True if both connections succeed, False if connection fails, None if there is an error.
     """
     # Define baud rate, data bits, parity, and stop bits for the serial connection
-    baud_rate = 19200 if flag == "RS-232" else 9600  # Default baud rate for RS-232 or RS-422
+    baud_rate = 1900 if flag == "RS-232" else 9600  # Default baud rate for RS-232 or RS-422
     data_bits = serial.EIGHTBITS  # 8 data bits
     parity = serial.PARITY_NONE  # No parity checking
     stop_bits = serial.STOPBITS_ONE  # One stop bit for the serial communication
@@ -199,6 +220,10 @@ def connect_to_serial_port(flag):
     # Retrieve port configurations from the `config` object (assuming it's a dictionary)
     battery_1_port_232 = config.config_values['rs_config'].get('battery_1_rs232')
     battery_2_port_232 = config.config_values['rs_config'].get('battery_2_rs232')
+    battery_1_port_422_ch1 = config.config_values['rs_config'].get('battery_1_rs422_c_1')
+    battery_1_port_422_ch2 = config.config_values['rs_config'].get('battery_1_rs422_c_2')
+    battery_2_port_422_ch1 = config.config_values['rs_config'].get('battery_2_rs422_c_1')
+    battery_2_port_422_ch2 = config.config_values['rs_config'].get('battery_2_rs422_c_2')
 
     try:
         if flag == "RS-232":  # Check if RS-232 flag is passed
@@ -219,178 +244,493 @@ def connect_to_serial_port(flag):
                 stopbits=stop_bits,
                 timeout=1  # Timeout of 1 second for reading data
             )
-
             # Check if both serial ports are open and ready
             if battery_1_control_232.is_open and battery_2_control_232.is_open:
-                print(f"Connected to {battery_1_port_232} with baud rate {baud_rate}.")
+                logger.info(f"Connected to {battery_1_port_232} with baud rate {baud_rate}.")
+                logger.info(f"Connected to {battery_2_port_232} with baud rate {baud_rate}.")
                 # Once connected, we could start periodic communication (uncomment to activate communication loop)
                 start_communication()
                 return True  # Return True if both connections succeed
             else:
                 return False  # Return False if either connection fails
-    except serial.SerialException as e:
-        # Handle any serial connection errors
-        print(f"Error opening the serial port: {e}")
+        elif flag == "RS-422":
+            # Open serial connections for battery 1 and 2 using RS-422 settings
+            battery_1_control_422_c_1 = serial.Serial(
+                port=battery_1_port_422_ch1,
+                baudrate=baud_rate,
+                bytesize=data_bits,
+                parity=parity,
+                stopbits=stop_bits,
+                timeout=1  # Timeout of 1 second for reading data
+            )
+            battery_1_control_422_c_2 = serial.Serial(
+                port=battery_1_port_422_ch2,
+                baudrate=baud_rate,
+                bytesize=data_bits,
+                parity=parity,
+                stopbits=stop_bits,
+                timeout=1  # Timeout of 1 second for reading data
+            )   
+            battery_2_control_422_c_1 = serial.Serial(
+                port=battery_2_port_422_ch1,
+                baudrate=baud_rate,
+                bytesize=data_bits,
+                parity=parity,
+                stopbits=stop_bits,
+                timeout=1  # Timeout of 1 second for reading data
+            )
+            battery_2_control_422_c_2 = serial.Serial(
+                port=battery_2_port_422_ch2,
+                baudrate=baud_rate,
+                bytesize=data_bits,
+                parity=parity,
+                stopbits=stop_bits,
+                timeout=1  # Timeout of 1 second for reading data
+            )   
+            # Check if both serial ports are open and ready
+            if battery_1_control_422_c_1.is_open and battery_1_control_422_c_2.is_open and battery_2_control_422_c_1.is_open and battery_2_control_422_c_2.is_open:
+                logger.info(f"Connected to {battery_1_port_422_ch1} with baud rate {baud_rate}.")
+                logger.info(f"Connected to {battery_1_port_422_ch2} with baud rate {baud_rate}.")
+                logger.info(f"Connected to {battery_2_port_422_ch1} with baud rate {baud_rate}.")
+                logger.info(f"Connected to {battery_2_port_422_ch2} with baud rate {baud_rate}.")
+                # Once connected, we could start periodic communication (uncomment to activate communication loop)
+                start_communication()
+                return True  # Return True if both connections succeed
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
         return None  # Return None if there's an error opening the port
 
 
 # Method to send RS232 or RS422 data based on the flag
-def send_data():
+def send_battery_1_data():
+    global battery_1_control_232,battery_2_control_232,battery_1_control_422_c_1,battery_1_control_422_c_2
     """Send RS232 or RS422 data periodically based on the flag."""
-    while battery_1_control_232 and battery_1_control_232.is_open:
-        if rs_232_flag:
-            send_rs232_data()  # Send RS232 data if flag is set
-        elif rs_422_flag:
-            send_rs422_data()  # Send RS422 data if flag is set
-        # battery_1_control_232.flush()  # Uncomment to flush the buffer if necessary
-        threading.Event().wait(0.16)  # Wait for 160ms between each send
+    try:
+        logger.info("Send Bat 1 RS232 or RS422 data periodically based on the flag.")
+        while battery_1_control_232 and battery_1_control_232.is_open:
+            send_rs232_bat_1_data()  # Send RS232 data if flag is set
+            # battery_1_control_232.flush()  # Uncomment to flush the buffer if necessary
+            threading.Event().wait(0.16)  # Wait for 160ms between each send
+        while battery_1_control_422_c_2 and battery_1_control_422_c_2.is_open:
+            send_rs422_bat_1_data()  # Send RS422 data if flag is set
+            # battery_1_control_232.flush()  # Uncomment to flush the buffer if necessary
+            threading.Event().wait(0.16)  # Wait for 160ms between each send
+    except Exception as e:
+            error_details = traceback.format_exc()
+            logger.error(f"Error during connection: {e}\n{error_details}")
+            messagebox.showerror("Connection Error", f"Error during connection: {e}")
 
 
 # Method to read RS232 or RS422 data based on the flag
-def read_data():
+def read_battery_1_data():
+    global battery_1_control_232,battery_2_control_232,battery_1_control_422_c_2
     """Read RS232 or RS422 data periodically based on the flag."""
-    while battery_1_control_232 and battery_1_control_232.is_open:
-        if rs_232_flag:
-            read_rs232_data()  # Read RS232 data if flag is set
-        elif rs_422_flag:
-            read_rs422_data()  # Read RS422 data if flag is set
-        threading.Event().wait(0.16)  # Adjust the read interval if necessary
+    try:
+        logger.info("Read Bat 1 RS232 or RS422 data periodically based on the flag.")
+        while battery_1_control_232 and battery_1_control_232.is_open:
+            read_rs232_bat_1_data()  # Read RS232 data if flag is set
+            threading.Event().wait(0.16)  # Adjust the read interval if necessary
+        while battery_1_control_422_c_2 and battery_1_control_422_c_2.is_open:
+            read_rs422_bat_1_data()  # Read RS422 data if flag is set
+            threading.Event().wait(0.16)  # Adjust the read interval if necessary
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
+
+
+# Method to send RS232 or RS422 data based on the flag
+def send_battery_2_data():
+    global battery_1_control_232,battery_2_control_232,battery_2_control_422_c_1,battery_2_control_422_c_2
+    """Send RS232 or RS422 data periodically based on the flag."""
+    try:
+        logger.info("Send Bat 1 RS232 or RS422 data periodically based on the flag.")
+        while battery_2_control_232 and battery_2_control_232.is_open:
+            send_rs232_bat_2_data()  # Send RS232 data if flag is set
+            # battery_1_control_232.flush()  # Uncomment to flush the buffer if necessary
+            threading.Event().wait(0.32)  # Wait for 160ms between each send
+        while battery_2_control_422_c_2 and battery_2_control_422_c_2.is_open:
+            send_rs422_bat_2_data()  # Send RS422 data if flag is set
+            # battery_1_control_232.flush()  # Uncomment to flush the buffer if necessary
+            threading.Event().wait(0.32)  # Wait for 160ms between each send
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
+
+
+# Method to read RS232 or RS422 data based on the flag
+def read_battery_2_data():
+    global battery_1_control_232,battery_2_control_232,battery_2_control_422_c_2
+    """Read RS232 or RS422 data periodically based on the flag."""
+    try:
+        logger.info("Read Bat 2 RS232 or RS422 data periodically based on the flag.")
+        while battery_2_control_232 and battery_2_control_232.is_open:
+            read_rs232_bat_2_data()  # Read RS232 data if flag is set
+            threading.Event().wait(0.32)  # Adjust the read interval if necessary
+        while battery_2_control_422_c_2 and battery_2_control_422_c_2.is_open:
+            read_rs422_bat_2_data()  # Read RS422 data if flag is set
+            threading.Event().wait(0.32)  # Adjust the read interval if necessary
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
 
 
 # Start a separate thread for sending data
-def start_sending():
+def start_sending_bat_1():
     """Start a separate thread to handle sending data periodically."""
-    send_thread = threading.Thread(target=send_data, daemon=True)  # Create the thread as a daemon
-    send_thread.start()  # Start the thread
+    try:
+        logger.info("Start a separate thread to handle sending Bat 1 data periodically.")
+        bat_1_send_thread = threading.Thread(target=send_battery_1_data, daemon=True)  # Create the thread as a daemon
+        bat_1_send_thread.start()  # Start the thread
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
+
+
+def start_sending_bat_2():
+    try:
+        logger.info("Start a separate thread to handle sending Bat 2 data periodically.")
+        bat_2_send_thread = threading.Thread(target=send_battery_2_data, daemon=True)  # Create the thread as a daemon
+        bat_2_send_thread.start()  # Start the thread
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
 
 
 # Start a separate thread for reading data
-def start_reading():
+def start_reading_bat_1():
     """Start a separate thread to handle reading data periodically."""
-    read_thread = threading.Thread(target=read_data, daemon=True)  # Create the thread as a daemon
-    read_thread.start()  # Start the thread
+    try:
+        logger.info("Start a separate thread to handle reading Bat 1 data periodically.")
+        bat_1_read_thread = threading.Thread(target=read_battery_1_data, daemon=True)  # Create the thread as a daemon
+        bat_1_read_thread.start()  # Start the thread
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
+
+
+def start_reading_bat_2():
+    try:
+        logger.info("Start a separate thread to handle reading Bat 2 data periodically.")
+        bat_2_read_thread = threading.Thread(target=read_battery_2_data, daemon=True)  # Create the thread as a daemon
+        bat_2_read_thread.start()  # Start the thread
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
 
 
 # Send RS232 data
-def send_rs232_data():
+def send_rs232_bat_1_data():
+    global battery_1_control_232,battery_2_control_232
     """Send RS232 data by creating and sending a packet."""
-    # if battery_1_control_232.is_open:  # Uncomment if you need to check if port is open
-    data = create_rs232_packet()  # Create the RS232 packet
-    print(f"{data} data send")  # Log the data being sent
-    battery_1_control_232.write(data)  # Write the data to the serial port
-    print(f"Sent RS232 data: {data.hex()}")  # Log the hex format of the sent data
+    try:
+        logger.info("Send RS232 data by creating and sending Bat 1 a packet.")
+        if battery_1_control_232.is_open:  # Uncomment if you need to check if port is open
+            device_1_data = create_rs232_packet(rs232_device_1_write)  # Create the RS232 packet
+            logger.info(f"{device_1_data} data send")  # Log the data being sent
+            battery_1_control_232.write(device_1_data)  # Write the data to the serial port
+            logger.info(f"Sent RS232 data: {device_1_data.hex()}")  # Log the hex format of the sent data
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
 
 
 # Send RS422 data
-def send_rs422_data():
+def send_rs422_bat_1_data():
+    global battery_1_control_232,battery_2_control_232, battery_1_control_422_c_1,battery_1_control_422_c_2
     """Send RS422 data by creating and sending a packet."""
-    # if battery_1_control_232.is_open:  # Uncomment if you need to check if port is open
-    data = create_rs422_packet()  # Create the RS422 packet
-    battery_1_control_232.write(data)  # Write the data to the serial port
-    print(f"Sent RS422 data: {data.hex()}")  # Log the hex format of the sent data
+    try:
+        logger.info("Send RS422 data by creating and sending Bat 1 a packet.")
+        if battery_1_control_422_c_2.is_open:  # Uncomment if you need to check if port is open
+            data = create_rs422_packet(rs422_device_1_write)  # Create the RS422 packet
+            battery_1_control_422_c_2.write(data)  # Write the data to the serial port
+            logger.info(f"Sent RS422 data: {data.hex()}")  # Log the hex format of the sent data
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
 
+
+# Send RS232 data
+def send_rs232_bat_2_data():
+    global battery_1_control_232,battery_2_control_232
+    """Send RS232 data by creating and sending a packet."""
+    try:
+        logger.info("Send RS232 data by creating and sending Bat 2 a packet.")
+        if battery_2_control_232.is_open:  # Uncomment if you need to check if port is open
+            device_1_data = create_rs232_packet(rs232_device_2_write)  # Create the RS232 packet
+            logger.info(f"{device_1_data} data send")  # Log the data being sent
+            battery_2_control_232.write(device_1_data)  # Write the data to the serial port
+            logger.info(f"Sent RS232 data: {device_1_data.hex()}")  # Log the hex format of the sent data
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
+
+# Send RS422 data
+def send_rs422_bat_2_data():
+    global battery_1_control_232, battery_2_control_232, battery_2_control_422_c_1,battery_2_control_422_c_2
+    """Send RS422 data by creating and sending a packet."""
+    try:
+        logger.info("Send RS422 data by creating and sending Bat 2 a packet.")
+        if battery_2_control_422_c_2.is_open:  # Uncomment if you need to check if port is open
+            data = create_rs422_packet(rs422_device_2_write)  # Create the RS422 packet
+            battery_2_control_422_c_2.write(data)  # Write the data to the serial port
+            logger.info(f"Sent RS422 data: {data.hex()}")  # Log the hex format of the sent data
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
 
 # Read RS232 data, find a valid 64-byte block and update device data
-def read_rs232_data():
+def read_rs232_bat_1_data():
+    global battery_1_control_232,battery_2_control_232
     """Read 256 bytes of data, find the valid 64-byte block, and update RS232 data."""
-    if battery_1_control_232.is_open:
-        received_data = battery_1_control_232.read(256)  # Read 256 bytes of data
-        if len(received_data) == 256:
-            # Log the received data in hex format for debugging purposes
-            received_hex = received_data.hex()
-            print(f"RS232 Data received: {received_hex}")
+    try:
+        logger.info("Bat 1 Read 256 bytes of data, find the valid 64-byte block, and update RS232 data.")
+        if battery_1_control_232.is_open:
+            battery_1_received_data = battery_1_control_232.read(128)  # Read 256 bytes of data
+            if len(battery_1_received_data) == 128:
+                # Log the received data in hex format for debugging purposes
+                received_hex = battery_1_received_data.hex()
+                logger.info(f"RS232 Data received: {received_hex}")
 
-            # Search for the start (0x66AA) and end (0x55BB) of the 64-byte data block
-            for i in range(0, 192):  # Search up to byte 192 to have room for 64 bytes
-                if received_data[i] == 0x66 and received_data[i+1] == 0xAA:
-                    if received_data[i+62] == 0x55 and received_data[i+63] == 0xBB:
-                        # Extract the 64-byte block
-                        valid_block = received_data[i:i+64]
-                        print(f"RS232 valid Data received: {valid_block.hex()}")
-                        print(f"Valid RS232 data block found from index {i} to {i+63}.")
-                        # Pass the valid block to update the device data
-                        update_rs232_device_1_data(valid_block)
-                        log_rs_data(rs232_device_1_data)
-                        return  # Exit after finding and processing the valid block
-            print("No valid RS232 data block found in the received 256 bytes.")
-        else:
-            print("Received data is not 256 bytes long. Discarding data.")
+                # Search for the start (0x66AA) and end (0x55BB) of the 64-byte data block
+                for i in range(0, 127):  # Search up to byte 192 to have room for 64 bytes
+                    if battery_1_received_data[i] == 0x66 and battery_1_received_data[i+1] == 0xAA:
+                        if battery_1_received_data[i+62] == 0x55 and battery_1_received_data[i+63] == 0xBB:
+                            # Extract the 64-byte block
+                            battery_1_valid_block = battery_1_received_data[i:i+64]
+                            logger.info(f"RS232 valid Data received: {battery_1_valid_block.hex()}")
+                            logger.info(f"Valid RS232 data block found from index {i} to {i+63}.")
+                            # Pass the valid block to update the device data
+                            update_rs232_device_1_data(battery_1_valid_block)
+                            log_rs_data(rs232_device_1_data)
+                            return  # Exit after finding and processing the valid block
+                logger.info("No valid RS232 data block found in the received 256 bytes.")
+            else:
+                logger.info("Received data is not 256 bytes long. Discarding data.")
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
 
 
 # Read RS422 data, validate checksum, and update device data
-def read_rs422_data():
+def read_rs422_bat_1_data():
+    global battery_1_control_232,battery_2_control_232,battery_1_control_422_c_1
     """Read 40 bytes, validate the first 18-byte RS422 data block, and update the device data."""
-    if battery_1_control_232.is_open:
-        received_data = battery_1_control_232.read(40)  # Read 40 bytes of data
-        if len(received_data) == 40:
-            print(f"RS422 Data received (40 bytes): {received_data.hex()}")
+    try:
+        logger.info("Bat 1 Read 256 bytes of data, find the valid 64-byte block, and update RS232 data.")
+        if battery_1_control_422_c_1.is_open:
+            received_data = battery_1_control_422_c_1.read(40)  # Read 40 bytes of data
+            if len(received_data) == 40:
+                logger.info(f"RS422 Data received (40 bytes): {received_data.hex()}")
 
-            # Search for 0x55 within the received data
-            start_index = -1  # Initialize with an invalid index
-            for i in range(len(received_data)):
-                if received_data[i] == 0x55:
-                    start_index = i
-                    break
+                # Search for 0x55 within the received data
+                start_index = -1  # Initialize with an invalid index
+                for i in range(len(received_data)):
+                    if received_data[i] == 0x55:
+                        start_index = i
+                        break
 
-            if start_index != -1:
-                print(f"Found 0x55 at index {start_index}. Proceeding with validation.")
+                if start_index != -1:
+                    logger.info(f"Found 0x55 at index {start_index}. Proceeding with validation.")
 
-                # Ensure we have enough data for a 40-byte block starting from this index
-                if start_index + 17 <= len(received_data):
-                    block = received_data[start_index:start_index + 19]
+                    # Ensure we have enough data for a 40-byte block starting from this index
+                    if start_index + 17 <= len(received_data):
+                        block = received_data[start_index:start_index + 19]
 
-                    # Calculate checksum for the first 39 bytes
-                    calculated_checksum = 0
-                    for byte in block[0:17]:
-                        calculated_checksum ^= byte  # XOR each byte
+                        # Calculate checksum for the first 39 bytes
+                        calculated_checksum = 0
+                        for byte in block[0:17]:
+                            calculated_checksum ^= byte  # XOR each byte
 
-                    # Validate checksum against the 40th byte
-                    if calculated_checksum == block[18]:
-                        print(f"Valid RS422 data block found: {block.hex()}")
-                        # Pass the valid 40-byte block to update the device data
-                        update_rs422_device_1_data(block)
+                        # Validate checksum against the 40th byte
+                        if calculated_checksum == block[18]:
+                            logger.info(f"Valid RS422 data block found: {block.hex()}")
+                            # Pass the valid 40-byte block to update the device data
+                            update_rs422_device_1_data(block)
+                        else:
+                            logger.info(f"Checksum mismatch. Calculated: {calculated_checksum}, Received: {block[18]}. Discarding block.")
                     else:
-                        print(f"Checksum mismatch. Calculated: {calculated_checksum}, Received: {block[18]}. Discarding block.")
+                        logger.info(f"Not enough data to process a full 40-byte block starting from index {start_index}.")
                 else:
-                    print(f"Not enough data to process a full 40-byte block starting from index {start_index}.")
+                    logger.info("0x55 not found in the received data. Discarding block.")
             else:
-                print("0x55 not found in the received data. Discarding block.")
-        else:
-            print("Received data is not 40 bytes long. Discarding data.")
+                logger.info("Received data is not 40 bytes long. Discarding data.")
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
+
+# Read RS232 data, find a valid 64-byte block and update device data
+def read_rs232_bat_2_data():
+    global battery_1_control_232,battery_2_control_232
+    """Read 256 bytes of data, find the valid 64-byte block, and update RS232 data."""
+    try:
+        logger.info("Bat 2 Read 256 bytes of data, find the valid 64-byte block, and update RS232 data.")
+        if battery_2_control_232.is_open:
+            battery_2_received_data = battery_2_control_232.read(128)  # Read 256 bytes of data
+            if len(battery_2_received_data) == 128:
+                # Log the received data in hex format for debugging purposes
+                received_hex = battery_2_received_data.hex()
+                logger.info(f"RS232 Data received: {received_hex}")
+
+                # Search for the start (0x66AA) and end (0x55BB) of the 64-byte data block
+                for i in range(0, 127):  # Search up to byte 192 to have room for 64 bytes
+                    if battery_2_received_data[i] == 0x66 and battery_2_received_data[i+1] == 0xAA:
+                        if battery_2_received_data[i+62] == 0x55 and battery_2_received_data[i+63] == 0xBB:
+                            # Extract the 64-byte block
+                            battery_2_valid_block = battery_2_received_data[i:i+64]
+                            logger.info(f"RS232 valid Data received: {battery_2_valid_block.hex()}")
+                            logger.info(f"Valid RS232 data block found from index {i} to {i+63}.")
+                            # Pass the valid block to update the device data
+                            update_rs232_device_2_data(battery_2_valid_block)
+                            log_rs_data(rs232_device_1_data)
+                            return  # Exit after finding and processing the valid block
+                logger.info("No valid RS232 data block found in the received 256 bytes.")
+            else:
+                logger.info("Received data is not 256 bytes long. Discarding data.")
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
+
+# Read RS422 data, validate checksum, and update device data
+def read_rs422_bat_2_data():
+    global battery_1_control_232,battery_2_control_232,battery_2_control_422_c_1
+    """Read 40 bytes, validate the first 18-byte RS422 data block, and update the device data."""
+    try:
+        logger.info("Bat 2 Read 256 bytes of data, find the valid 64-byte block, and update RS232 data.")
+        if battery_2_control_422_c_1.is_open:
+            received_data = battery_2_control_422_c_1.read(40)  # Read 40 bytes of data
+            if len(received_data) == 40:
+                logger.info(f"RS422 Data received (40 bytes): {received_data.hex()}")
+
+                # Search for 0x55 within the received data
+                start_index = -1  # Initialize with an invalid index
+                for i in range(len(received_data)):
+                    if received_data[i] == 0x55:
+                        start_index = i
+                        break
+
+                if start_index != -1:
+                    logger.info(f"Found 0x55 at index {start_index}. Proceeding with validation.")
+
+                    # Ensure we have enough data for a 40-byte block starting from this index
+                    if start_index + 17 <= len(received_data):
+                        block = received_data[start_index:start_index + 19]
+
+                        # Calculate checksum for the first 39 bytes
+                        calculated_checksum = 0
+                        for byte in block[0:17]:
+                            calculated_checksum ^= byte  # XOR each byte
+
+                        # Validate checksum against the 40th byte
+                        if calculated_checksum == block[18]:
+                            logger.info(f"Valid RS422 data block found: {block.hex()}")
+                            # Pass the valid 40-byte block to update the device data
+                            update_rs422_device_2_data(block)
+                        else:
+                            logger.info(f"Checksum mismatch. Calculated: {calculated_checksum}, Received: {block[18]}. Discarding block.")
+                    else:
+                        logger.info(f"Not enough data to process a full 40-byte block starting from index {start_index}.")
+                else:
+                    logger.info("0x55 not found in the received data. Discarding block.")
+            else:
+                logger.info("Received data is not 40 bytes long. Discarding data.")
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
 
 
 # Create an RS232 packet to send
-def create_rs232_packet():
-    """Create an RS232 packet to send."""
-    # Define the packet structure based on the rs232_write dictionary
-    packet = [rs232_write['header'], rs232_write['cmd_byte_1'], rs232_write['cmd_byte_2'], rs232_write['cmd_byte_3'], rs232_write['cmd_byte_4']]
-    checksum = calculate_checksum(packet[0:4])  # Calculate checksum for the first 4 bytes
-    packet.append(checksum)  # Append the checksum to the packet
-    packet.append(0x55)  # Footer byte
+def create_rs232_packet(device_write):
+    global battery_1_control_232,battery_2_control_232
+    """
+    Create an RS232 packet to send for a specific device.
+    
+    Args:
+        device_write (dict): The dictionary containing the device's packet structure.
 
-    # Convert the packet to a hex string for display/logging purposes
-    hex_string = ''.join([f'{byte:02X}' for byte in packet])
+    Returns:
+        bytes: The finalized RS232 packet as a byte sequence.
+    """
+    try:
+        logger.info("Create an RS232 packet to send for a specific device.")
+        # Define the packet structure based on the passed device dictionary
+        packet = [
+            device_write['header'],
+            device_write['cmd_byte_1'],
+            device_write['cmd_byte_2'],
+            device_write['cmd_byte_3'],
+            device_write['cmd_byte_4']
+        ]
+        # Calculate checksum for the first 4 bytes
+        checksum = calculate_checksum(packet[0:4])  
+        packet.append(checksum)  # Append the checksum to the packet
+        packet.append(0x55)  # Footer byte
 
-    # Convert the hex string back to bytes and return
-    final_packet = bytes.fromhex(hex_string)
-    return final_packet
+        # Convert the packet to a hex string for display/logging purposes
+        hex_string = ''.join([f'{byte:02X}' for byte in packet])
+        logger.info(f"Packet Hex String: {hex_string}")  # Debug logging
+
+        # Convert the hex string back to bytes and return
+        final_packet = bytes.fromhex(hex_string)
+        return final_packet
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
 
 
 # Create an RS422 packet to send
-def create_rs422_packet():
+def create_rs422_packet(device_write):
+    global battery_1_control_232,battery_2_control_232
     """Create an RS422 packet to send."""
-    # Define the initial part of the RS422 packet
-    packet = [rs422_write['header'], rs422_write['cmd_byte_1'], rs422_write['cmd_byte_2']]
-    pmu_heartbeat = 0x0000  # Dummy heartbeat data for the packet
-    packet.extend(struct.pack('<H', pmu_heartbeat))  # Add the heartbeat data
-    checksum = calculate_checksum(packet)  # Calculate checksum for the packet
-    packet.append(checksum)  # Append the checksum
+    try:
+        logger.info("Create an RS422 packet to send for a specific device.")
+        # Define the initial part of the RS422 packet
+        packet = [
+            device_write['header'],
+            device_write['cmd_byte_1'],
+            device_write['cmd_byte_2']
+        ]
+        # packet = [rs422_device_1_write['header'], rs422_device_1_write['cmd_byte_1'], rs422_device_1_write['cmd_byte_2']]
+        pmu_heartbeat = 0x0000  # Dummy heartbeat data for the packet
+        packet.extend(struct.pack('<H', pmu_heartbeat))  # Add the heartbeat data
+        checksum = calculate_checksum(packet)  # Calculate checksum for the packet
+        packet.append(checksum)  # Append the checksum
 
-    # Return the packet as a bytearray
-    return bytearray(packet)
+        # Convert the packet to a hex string for display/logging purposes
+        hex_string = ''.join([f'{byte:02X}' for byte in packet])
+        logger.info(f"Packet Hex String: {hex_string}")  # Debug logging
+
+        # Convert the hex string back to bytes and return
+        final_packet = bytes.fromhex(hex_string)
+        return final_packet
+
+        # # Return the packet as a bytearray
+        # return bytearray(packet)
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
 
 
 def update_rs232_device_1_data(data_hex):
+    global battery_1_control_232,battery_2_control_232
     """Update rs232_device_1_data with the received bytes."""
     
     # Helper function to calculate and validate cell voltage
@@ -402,18 +742,16 @@ def update_rs232_device_1_data(data_hex):
             if 2.0 <= cell_voltage <= 4.5:
                 return round(cell_voltage, 2)
             else:
-                print(f"Warning: Cell voltage {cell_voltage}V out of range.")
+                logger.info(f"Warning: Cell voltage {cell_voltage}V out of range.")
                 return None
         except Exception as e:
-            print(f"Error in calculating cell voltage: {e}")
+            logger.info(f"Error in calculating cell voltage: {e}")
             return None
     
     try:
+        logger.info("Update rs232_device_1_data with the received bytes.")
         # Byte 2: Battery ID
         rs232_device_1_data['battery_id'] = data_hex[2]
-
-        # Byte 3: Battery Serial Number (1-255)
-        rs232_device_1_data['serial_number'] = data_hex[3]
 
         # Byte 4: Hardware Version (1-9)
         rs232_device_1_data['hw_version'] = data_hex[4]
@@ -450,7 +788,7 @@ def update_rs232_device_1_data(data_hex):
         cell_7_voltage_raw = data_hex[12]
         rs232_device_1_data['cell_7_voltage'] = calculate_cell_voltage(cell_7_voltage_raw)
 
-        # Byte 20: Cell-1 Temperature (-40 to +125, subtract 40)
+        # Byte 0: Cell-1 Temperature (-40 to +125, subtract 40)
         rs232_device_1_data['cell_1_temp'] = data_hex[13] - 40
 
         # Byte 21: Cell-2 Temperature (-40 to +125, subtract 40)
@@ -471,7 +809,7 @@ def update_rs232_device_1_data(data_hex):
         # Byte 26: Cell-7 Temperature (-40 to +125, subtract 40)
         rs232_device_1_data['cell_7_temp'] = data_hex[19] - 40
 
-        cell_status_byte = data_hex[20]  # Byte 21 in the data (index 20)
+        cell_status_byte = data_hex[0]  # Byte 21 in the data (index 0)
         binary_status = format(cell_status_byte, '08b')  # Convert to 8-bit binary string
 
         # Get the status of each cell from the corresponding bit
@@ -480,7 +818,7 @@ def update_rs232_device_1_data(data_hex):
         rs232_device_1_data['cell_3_status'] = (cell_status_byte & 0x04) >> 2  # Bit 2: Cell 3 Status
         rs232_device_1_data['cell_4_status'] = (cell_status_byte & 0x08) >> 3  # Bit 3: Cell 4 Status
         rs232_device_1_data['cell_5_status'] = (cell_status_byte & 0x10) >> 4  # Bit 4: Cell 5 Status
-        rs232_device_1_data['cell_6_status'] = (cell_status_byte & 0x20) >> 5  # Bit 5: Cell 6 Status
+        rs232_device_1_data['cell_6_status'] = (cell_status_byte & 0x0) >> 5  # Bit 5: Cell 6 Status
         rs232_device_1_data['cell_7_status'] = (cell_status_byte & 0x40) >> 6  # Bit 6: Cell 7 Status
 
         # Byte 27: Monitor IC Temperature (-40 to +125, subtract 40)
@@ -532,13 +870,167 @@ def update_rs232_device_1_data(data_hex):
         rs232_device_1_data['bus_2_status'] = (data_hex[41] & 0x02) >> 1
         rs232_device_1_data['heater_pad_status'] = (data_hex[41] & 0x04) >> 2
 
-        print("Updated rs232_device_1_data:")
-        print(rs232_device_1_data)
+        logger.info("Updated rs232_device_1_data:")
+        logger.info(rs232_device_1_data)
     
     except IndexError as e:
-        print(f"Error: Data length mismatch. Expected at least {len(rs232_device_1_data)} bytes. Exception: {e}")
+        logger.info(f"Error: Data length mismatch. Expected at least {len(rs232_device_1_data)} bytes. Exception: {e}")
     except Exception as e:
-        print(f"Unexpected error occurred: {e}")
+        logger.info(f"Unexpected error occurred: {e}")
+
+
+def update_rs232_device_2_data(data_hex):
+    global battery_1_control_232,battery_2_control_232
+    """Update rs232_device_2_data with the received bytes."""
+    
+    # Helper function to calculate and validate cell voltage
+    def calculate_cell_voltage(raw_data):
+        try:
+            # Raw data + 2 to adjust the value
+            cell_voltage = raw_data * 0.01 + 2
+            # Ensure the voltage is in the range of 2 to 4.5V
+            if 2.0 <= cell_voltage <= 4.5:
+                return round(cell_voltage, 2)
+            else:
+                logger.info(f"Warning: Cell voltage {cell_voltage}V out of range.")
+                return None
+        except Exception as e:
+            logger.info(f"Error in calculating cell voltage: {e}")
+            return None
+    
+    try:
+        logger.info("Update rs232_device_2_data with the received bytes.")
+
+        # Byte 2: Battery ID
+        rs232_device_2_data['battery_id'] = data_hex[2]
+
+        # Byte 3: Battery Serial Number (1-255)
+        rs232_device_2_data['serial_number'] = data_hex[3]
+
+        # Byte 4: Hardware Version (1-9)
+        rs232_device_2_data['hw_version'] = data_hex[4]
+
+        # Byte 5: Software Version (1-9)
+        rs232_device_2_data['sw_version'] = data_hex[5]
+
+        # Process each cell voltage (adding 2 to raw value and ensuring it's within range)
+        # Bytes 6-7: Cell-1 Voltage (Resolution 0.01V)
+        cell_1_voltage_raw = data_hex[6]
+        rs232_device_2_data['cell_1_voltage'] = calculate_cell_voltage(cell_1_voltage_raw)
+        
+        # Bytes 8-9: Cell-2 Voltage (Resolution 0.01V)
+        cell_2_voltage_raw = data_hex[7]
+        rs232_device_2_data['cell_2_voltage'] = calculate_cell_voltage(cell_2_voltage_raw)
+        
+        # Bytes 10-11: Cell-3 Voltage (Resolution 0.01V)
+        cell_3_voltage_raw = data_hex[8]
+        rs232_device_2_data['cell_3_voltage'] = calculate_cell_voltage(cell_3_voltage_raw)
+        
+        # Bytes 12-13: Cell-4 Voltage (Resolution 0.01V)
+        cell_4_voltage_raw = data_hex[9]
+        rs232_device_2_data['cell_4_voltage'] = calculate_cell_voltage(cell_4_voltage_raw)
+        
+        # Bytes 14-15: Cell-5 Voltage (Resolution 0.01V)
+        cell_5_voltage_raw = data_hex[10]
+        rs232_device_2_data['cell_5_voltage'] = calculate_cell_voltage(cell_5_voltage_raw)
+        
+        # Bytes 16-17: Cell-6 Voltage (Resolution 0.01V)
+        cell_6_voltage_raw = data_hex[11]
+        rs232_device_2_data['cell_6_voltage'] = calculate_cell_voltage(cell_6_voltage_raw)
+        
+        # Bytes 18-19: Cell-7 Voltage (Resolution 0.01V)
+        cell_7_voltage_raw = data_hex[12]
+        rs232_device_2_data['cell_7_voltage'] = calculate_cell_voltage(cell_7_voltage_raw)
+
+        # Byte 0: Cell-1 Temperature (-40 to +125, subtract 40)
+        rs232_device_2_data['cell_1_temp'] = data_hex[13] - 40
+
+        # Byte 21: Cell-2 Temperature (-40 to +125, subtract 40)
+        rs232_device_2_data['cell_2_temp'] = data_hex[14] - 40
+
+        # Byte 22: Cell-3 Temperature (-40 to +125, subtract 40)
+        rs232_device_2_data['cell_3_temp'] = data_hex[15] - 40
+
+        # Byte 23: Cell-4 Temperature (-40 to +125, subtract 40)
+        rs232_device_2_data['cell_4_temp'] = data_hex[16] - 40
+
+        # Byte 24: Cell-5 Temperature (-40 to +125, subtract 40)
+        rs232_device_2_data['cell_5_temp'] = data_hex[17] - 40
+
+        # Byte 25: Cell-6 Temperature (-40 to +125, subtract 40)
+        rs232_device_2_data['cell_6_temp'] = data_hex[18] - 40
+
+        # Byte 26: Cell-7 Temperature (-40 to +125, subtract 40)
+        rs232_device_2_data['cell_7_temp'] = data_hex[19] - 40
+
+        cell_status_byte = data_hex[0]  # Byte 21 in the data (index 0)
+        binary_status = format(cell_status_byte, '08b')  # Convert to 8-bit binary string
+
+        # Get the status of each cell from the corresponding bit
+        rs232_device_2_data['cell_1_status'] = (cell_status_byte & 0x01)  # Bit 0: Cell 1 Status
+        rs232_device_2_data['cell_2_status'] = (cell_status_byte & 0x02) >> 1  # Bit 1: Cell 2 Status
+        rs232_device_2_data['cell_3_status'] = (cell_status_byte & 0x04) >> 2  # Bit 2: Cell 3 Status
+        rs232_device_2_data['cell_4_status'] = (cell_status_byte & 0x08) >> 3  # Bit 3: Cell 4 Status
+        rs232_device_2_data['cell_5_status'] = (cell_status_byte & 0x10) >> 4  # Bit 4: Cell 5 Status
+        rs232_device_2_data['cell_6_status'] = (cell_status_byte & 0x0) >> 5  # Bit 5: Cell 6 Status
+        rs232_device_2_data['cell_7_status'] = (cell_status_byte & 0x40) >> 6  # Bit 6: Cell 7 Status
+
+        # Byte 27: Monitor IC Temperature (-40 to +125, subtract 40)
+        rs232_device_2_data['ic_temp'] = data_hex[22] - 40
+
+        # Bytes 28-29: Bus 1 Voltage (18-33.3V, Resolution 0.06V)
+        rs232_device_2_data['bus_1_voltage_before_diode'] = round(data_hex[23] * 0.06, 2)
+
+        # Bytes 30-31: Bus 2 Voltage (18-33.3V, Resolution 0.06V)
+        rs232_device_2_data['bus_2_voltage_before_diode'] = round(data_hex[24] * 0.06, 2)
+
+        # Bytes 32-33: Bus 1 Voltage after Diode (Resolution 0.06V)
+        rs232_device_2_data['bus_1_voltage_after_diode'] = round(data_hex[25] * 0.06, 2)
+
+        # Bytes 34-35: Bus 2 Voltage after Diode (Resolution 0.06V)
+        rs232_device_2_data['bus_2_voltage_after_diode'] = round(data_hex[26] * 0.06, 2)
+
+        # Bytes 36-37: Current / Bus 1 Sensor 1 (0-63.75A, Resolution 0.25A)
+        rs232_device_2_data['bus_1_current_sensor1'] = round((data_hex[27] - 128) * 0.25, 2)
+
+        # Bytes 38-39: Current / Bus 2 Sensor 2 (0-63.75A, Resolution 0.25A)
+        rs232_device_2_data['bus_2_current_sensor1'] = round((data_hex[29] - 128) * 0.25, 2)
+
+        # Byte 40-41: Charger Input Current (0-15A, Resolution 0.1A)
+        rs232_device_2_data['charger_input_current'] = round(data_hex[31] * 0.1, 1)
+
+        # Bytes 32-33: Charger Output Current (Resolution 0.1A)
+        rs232_device_2_data['charger_output_current'] = round(data_hex[32] * 0.1, 2)
+
+        # Bytes 34-35: Charger Output Voltage (Resolution 0.1V)
+        rs232_device_2_data['charger_output_voltage'] = round(data_hex[33] * 0.06, 2)
+
+        charger_status_byte = data_hex[35]  # Byte 35 in the data
+
+        # Get the charging on/off status (0th bit)
+        rs232_device_2_data['charging_on_off_status'] = (charger_status_byte & 0x01)  # Bit 0: Charging On/Off Status
+
+        # Byte 37: Charger Relay Status
+        rs232_device_2_data['charger_relay_status'] = (charger_status_byte & 0x02) >> 1
+
+        # Byte 38: Constant Voltage Mode (1 byte)
+        rs232_device_2_data['constant_voltage_mode'] = (charger_status_byte & 0x04) >> 2
+
+        # Byte 39: Constant Current Mode (1 byte)
+        rs232_device_2_data['constant_current_mode'] = (charger_status_byte & 0x08) >> 3
+
+        # Bus 1 status (Byte 41)
+        rs232_device_2_data['bus_1_status'] = (data_hex[41] & 0x01)
+        rs232_device_2_data['bus_2_status'] = (data_hex[41] & 0x02) >> 1
+        rs232_device_2_data['heater_pad_status'] = (data_hex[41] & 0x04) >> 2
+
+        logger.info("Updated rs232_device_2_data:")
+        logger.info(rs232_device_2_data)
+    
+    except IndexError as e:
+        logger.info(f"Error: Data length mismatch. Expected at least {len(rs232_device_2_data)} bytes. Exception: {e}")
+    except Exception as e:
+        logger.info(f"Unexpected error occurred: {e}")
 
 
 def update_rs422_device_1_data(data_bytes):
@@ -550,10 +1042,10 @@ def update_rs422_device_1_data(data_bytes):
             raw_data = data_bytes[index]
             return (raw_data * resolution_factor) + offset
         except IndexError:
-            print(f"Error: Missing data at index {index}.")
+            logger.info(f"Error: Missing data at index {index}.")
             return None
         except Exception as e:
-            print(f"Unexpected error when extracting data at index {index}: {e}")
+            logger.info(f"Unexpected error when extracting data at index {index}: {e}")
             return None
 
     try:
@@ -616,13 +1108,97 @@ def update_rs422_device_1_data(data_bytes):
         raw_state_of_charge = data_bytes[9]
         rs422_device_1_data['state_of_charge'] = raw_state_of_charge
         
-        # Print updated device data for debugging
-        print(f"Updated RS422 device data: {rs422_device_1_data}")
+        # Logger.info updated device data for debugging
+        logger.info(f"Updated RS422 device 1 data: {rs422_device_1_data}")
     
     except IndexError as e:
-        print(f"Error: Data length mismatch. Expected at least {len(data_bytes)} bytes. Exception: {e}")
+        logger.info(f"Error: Data length mismatch. Expected at least {len(data_bytes)} bytes. Exception: {e}")
     except Exception as e:
-        print(f"Unexpected error occurred: {e}")
+        logger.info(f"Unexpected error occurred: {e}")
+
+
+def update_rs422_device_2_data(data_bytes):
+    """Update rs422_device_2_data with the received bytes."""
+    
+    # Helper function to safely extract data and handle any errors
+    def extract_byte_data(index, resolution_factor=1, offset=0):
+        try:
+            raw_data = data_bytes[index]
+            return (raw_data * resolution_factor) + offset
+        except IndexError:
+            logger.info(f"Error: Missing data at index {index}.")
+            return None
+        except Exception as e:
+            logger.info(f"Unexpected error when extracting data at index {index}: {e}")
+            return None
+
+    try:
+        # Byte 1: Relay status byte
+        raw_status_byte = data_bytes[1]  # First byte (Byte 1)
+        
+        # Extract and assign relay status using bitwise operations
+        rs422_device_2_data['eb_1_relay_status'] = (raw_status_byte & 0x01)  # Bit 0: EB1 Relay Status
+        rs422_device_2_data['eb_2_relay_status'] = (raw_status_byte & 0x02) >> 1  # Bit 1: EB2 Relay Status
+        rs422_device_2_data['heater_pad_status'] = (raw_status_byte & 0x04) >> 2  # Bit 2: Heater Pad Status
+        rs422_device_2_data['charger_output_relay_status'] = (raw_status_byte & 0x08) >> 3  # Bit 3: Charger Output Relay Status
+        
+        # Byte 3: Channel status byte
+        channel_status_byte = data_bytes[3]
+        
+        # Extract channel packet counts (bits 3:0 for channel 1 and bits 7:4 for channel 2)
+        channel_1_count = channel_status_byte & 0x0F  # Mask with 0x0F to get bits 3:0
+        channel_2_count = (channel_status_byte & 0xF0) >> 4  # Mask with 0xF0 and shift right by 4 to get bits 7:4
+        
+        # Determine the health status for channels
+        if 0 < channel_1_count < 15:
+            rs422_device_2_data['channel_1_status'] = 1  # Healthy
+        else:
+            rs422_device_2_data['channel_1_status'] = 0  # Not Healthy
+        
+        if 0 < channel_2_count < 15:
+            rs422_device_2_data['channel_2_status'] = 1  # Healthy
+        else:
+            rs422_device_2_data['channel_2_status'] = 0  # Not Healthy
+
+        # Determine which channel is selected based on status
+        if rs422_device_2_data['channel_1_status'] == 1:
+            rs422_device_2_data['channel_selected'] = 1  # Channel 1 selected
+        elif rs422_device_2_data['channel_2_status'] == 1:
+            rs422_device_2_data['channel_selected'] = 2  # Channel 2 selected
+        else:
+            rs422_device_2_data['channel_selected'] = 0  # No healthy channel
+        
+        # Byte 4: Voltage (Resolution 0.15V)
+        raw_voltage = data_bytes[4]
+        rs422_device_2_data['voltage'] = raw_voltage * 0.15
+        
+        # Byte 5: EB-1 Current (Resolution 0.5A, offset -63.75A)
+        raw_eb1_current = data_bytes[5]
+        rs422_device_2_data['eb_1_current'] = (raw_eb1_current * 0.5) - 63.75
+        
+        # Byte 6: EB-2 Current (Resolution 0.5A, offset -63.75A)
+        raw_eb2_current = data_bytes[6]
+        rs422_device_2_data['eb_2_current'] = (raw_eb2_current * 0.5) - 63.75
+        
+        # Byte 7: Charge Current (Resolution 0.05A)
+        raw_charge_current = data_bytes[7]
+        rs422_device_2_data['charge_current'] = raw_charge_current * 0.05
+        
+        # Byte 8: Battery Temperature (Resolution 0.5°C, offset -40°C)
+        raw_temperature = data_bytes[8]
+        rs422_device_2_data['temperature'] = raw_temperature - 40
+        
+        # Byte 9: State of Charge (No resolution conversion, just raw value)
+        raw_state_of_charge = data_bytes[9]
+        rs422_device_2_data['state_of_charge'] = raw_state_of_charge
+        
+        # Logger.info updated device data for debugging
+        logger.info(f"Updated RS422 device 2 data: {rs422_device_2_data}")
+    
+    except IndexError as e:
+        logger.info(f"Error: Data length mismatch. Expected at least {len(data_bytes)} bytes. Exception: {e}")
+    except Exception as e:
+        logger.info(f"Unexpected error occurred: {e}")
 
 
 def calculate_checksum(data):
@@ -635,8 +1211,19 @@ def calculate_checksum(data):
 
 def start_communication():
     """Start communication by initiating both sending and reading operations."""
-    start_sending()  # Placeholder for the function that handles sending data
-    start_reading()  # Placeholder for the function that handles reading data
+    try:
+        logger.info("Start communication by initiating both sending operation Bat 1")
+        start_sending_bat_1()  # Placeholder for the function that handles sending data
+        logger.info("Start communication by initiating both sending operation Bat 2")
+        start_sending_bat_2()  # Placeholder for the function that handles sending data
+        logger.info("Start communication by initiating both reading operation Bat 1")
+        start_reading_bat_1()  # Placeholder for the function that handles reading data
+        logger.info("Start communication by initiating both reading operation Bat 2")
+        start_reading_bat_2()  # Placeholder for the function that handles reading data
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
 
 
 def stop_communication():
@@ -644,6 +1231,7 @@ def stop_communication():
     global rs_232_flag, rs_422_flag, rs232_interval_event, rs422_interval_event
 
     try:
+        logger.info("Stop communication by terminating ongoing RS232/RS422 intervals and closing serial connections.")
         # Stop RS232 or RS422 intervals if they are running
         if rs232_interval_event:
             rs232_interval_event.set()  # Stop RS232 interval
@@ -657,22 +1245,29 @@ def stop_communication():
         # Close the RS232 connection if it's open
         if battery_1_control_232 and battery_1_control_232.is_open:
             battery_1_control_232.close()
-            print("Serial connection closed.")
+            battery_2_control_232.close()
+
+            logger.info("Serial connection closed.")
     except Exception as e:
-        print(f"Error in stop_communication: {e}")
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
         messagebox.showerror("Error", f"An error occurred while stopping communication: {e}")
 
 
 def get_active_protocol():
     """Get the currently active protocol (RS-232 or RS-422)."""
     global rs_422_flag, rs_232_flag
-    if rs_232_flag:
-        return "RS-232"
-    elif rs_422_flag:
-        return "RS-422"
-    else:
-        return "None"
-
+    try:
+        if rs_232_flag:
+            return "RS-232"
+        elif rs_422_flag:
+            return "RS-422"
+        else:
+            return "None"
+    except Exception as e:
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
 
 def set_active_protocol(selected_flag):
     """Set the active communication protocol (RS-232 or RS-422)."""
@@ -683,9 +1278,11 @@ def set_active_protocol(selected_flag):
         elif selected_flag == "RS-422":
             rs_422_flag = True
         else:
-            print(f"Invalid protocol selected: {selected_flag}")
+            logger.info(f"Invalid protocol selected: {selected_flag}")
     except Exception as e:
-        print(f"Error setting active protocol: {e}")
+        error_details = traceback.format_exc()
+        logger.error(f"Error during connection: {e}\n{error_details}")
+        messagebox.showerror("Connection Error", f"Error during connection: {e}")
 
 
 def log_rs_data(update_rs_data):
@@ -709,7 +1306,7 @@ def log_rs_data(update_rs_data):
                 workbook = load_workbook(file_path)
                 sheet = workbook.active
             except Exception as e:
-                print(f"Error loading the Excel file: {str(e)}")
+                logger.info(f"Error loading the Excel file: {str(e)}")
                 messagebox.showerror("Error", f"Failed to load the Excel file: {str(e)}. Recreating the file.")
                 workbook = Workbook()  # Recreate the workbook
                 sheet = workbook.active
@@ -747,7 +1344,7 @@ def log_rs_data(update_rs_data):
         for row in range(2, sheet.max_row + 1):  # Start at 2 to skip the header
             if sheet.cell(row=row, column=serial_number_column).value == serial_number:
                 serial_found = True
-                print(f"Serial number {serial_number} already exists. No action taken.")
+                logger.info(f"Serial number {serial_number} already exists. No action taken.")
                 break
 
         if not serial_found:
@@ -773,10 +1370,10 @@ def log_rs_data(update_rs_data):
         # Save the updated Excel file
         workbook.save(file_path)
         workbook.close()
-        print(f"RS232 data logged in {file_path}.")
+        logger.info(f"RS232 data logged in {file_path}.")
 
     except Exception as e:
-        print(f"An error occurred while updating the Excel file: {str(e)}")
+        logger.info(f"An error occurred while updating the Excel file: {str(e)}")
         messagebox.showerror("Error", f"An error occurred while updating the Excel file: {str(e)}")
 
 
@@ -807,12 +1404,12 @@ def get_latest_rs_data(serial_number):
         current_serial_number = sheet.cell(row=row, column=serial_number_column).value
         if current_serial_number == serial_number:
             serial_found = True
-            print(f"Serial Number {serial_number} found in row {row}")
+            logger.info(f"Serial Number {serial_number} found in row {row}")
             headers = [sheet.cell(row=1, column=col).value for col in range(1, sheet.max_column + 1)]
             values = [sheet.cell(row=row, column=col).value for col in range(1, sheet.max_column + 1)]
             latest_data = dict(zip(headers, values))
             for header, value in latest_data.items():
-                print(f"{header}: {value}")  # Debug print for fetched values
+                logger.info(f"{header}: {value}")  # Debug logger.info for fetched values
             break
 
     if not serial_found:
@@ -900,3 +1497,24 @@ def update_excel_and_download_pdf(data):
 
     # Generate the PDF with the updated values
     pdf_generator.create_rs_report_pdf(serial_number, "RS232")
+
+
+def update_serial_number(serial_no_1, serial_no_2):  
+        if rs_232_flag:
+            # Battery 1 Serial Number (1-255)
+            rs232_device_1_data['serial_number'] = serial_no_1
+            logger.info(f"Battery serial numbers updated rs232_device_1_data: {rs232_device_1_data['serial_number']}")
+
+            # Battery 2 Serial Number (1-255)
+            rs232_device_2_data['serial_number'] = serial_no_2
+            logger.info(f"Battery serial numbers updated rs232_device_2_data: {rs232_device_2_data['serial_number']}")
+        elif rs_422_flag:
+            # Battery 1 Serial Number (1-255)
+            rs422_device_1_data['serial_number'] = serial_no_1
+            logger.info(f"Battery serial numbers updated rs422_device_1_data: {rs422_device_1_data['serial_number']}")
+    
+            # Battery 2 Serial Number (1-255)
+            rs422_device_2_data['serial_number'] = serial_no_2
+            logger.info(f"Battery serial numbers updated rs422_device_2_data: {rs422_device_2_data['serial_number']}")
+
+        

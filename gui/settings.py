@@ -148,7 +148,6 @@ class Settings(tk.Frame):
                 # Save button
                 self.btnSave = ctk.CTkButton(self, text="Save", command=self.on_save, fg_color="green", hover_color='green')
                 self.btnSave.grid(row=7, columnspan=2, pady=10)
-
             elif selected_connection == "RS232":
                 # Add your RS232/RS422 settings here
                 tk.Label(self, text="RS232 Settings", font=("Helvetica", 16, "bold")).grid(row=1, columnspan=2, pady=10)
@@ -160,7 +159,7 @@ class Settings(tk.Frame):
 
                 # Example for additional fields
                 tk.Label(self, text="Select COM Port:").grid(row=4, column=0, padx=20, sticky=tk.W)
-                # self.battery_1_com_232 = ctk.CTkComboBox(self, values=["COM 1", "COM 2", "COM 3", "COM 4", "COM 5", "COM 6"])
+                # self.battery_1_com_232 = ctk.CTkComboBox(self, values=["Port 1 (COM2)", "Port 2 (COM3)", "Port 3 (COM4)", "Port 4 (COM5)", "Port 5 (COM6)", "Port 6 (COM7)"])
                 self.battery_1_com_232 = ctk.CTkComboBox(self, values=list(self.get_com_ports()))
                 self.battery_1_com_232.set("Select a COM Port")  # Set the default value shown in the dropdown
                 self.battery_1_com_232.grid(row=4, column=1, padx=20, pady=5)
@@ -170,7 +169,7 @@ class Settings(tk.Frame):
 
                 # Example for additional fields
                 tk.Label(self, text="Select COM Port:").grid(row=6, column=0, padx=20, sticky=tk.W)
-                # self.battery_2_com_232 = ctk.CTkComboBox(self, values=["COM 1", "COM 2", "COM 3", "COM 4", "COM 5", "COM 6"])
+                # self.battery_2_com_232 = ctk.CTkComboBox(self, values=["Port 1 (COM2)", "Port 2 (COM3)", "Port 3 (COM4)", "Port 4 (COM5)", "Port 5 (COM6)", "Port 6 (COM7)"])
                 self.battery_2_com_232 = ctk.CTkComboBox(self, values=list(self.get_com_ports()))
                 self.battery_2_com_232.set("Select a COM Port")  # Set the default value shown in the dropdown
                 self.battery_2_com_232.grid(row=6, column=1, padx=20, pady=5)
@@ -189,14 +188,14 @@ class Settings(tk.Frame):
 
                 # Example for additional fields
                 tk.Label(self, text="Select RS422 Channel 1 Port:").grid(row=4, column=0, padx=20, sticky=tk.W)
-                # self.battery_1_com_422_c_1 = ctk.CTkComboBox(self, values=["COM1", "COM2", "COM3"])
+                # self.battery_1_com_422_c_1 = ctk.CTkComboBox(self, values=["Port 1 (COM2)", "Port 2 (COM3)", "Port 3 (COM4)", "Port 4 (COM5)", "Port 5 (COM6)", "Port 6 (COM7)"])
                 self.battery_1_com_422_c_1 = ctk.CTkComboBox(self, values=list(self.get_com_ports()))
                 self.battery_1_com_422_c_1.set("Select RS422 Channel 1 Port:")  # Set the default value shown in the dropdown
                 self.battery_1_com_422_c_1.grid(row=4, column=1, padx=20, pady=5)
 
                 # Example for additional fields
                 tk.Label(self, text="Select RS422 Channel 2 Port:").grid(row=5, column=0, padx=20, sticky=tk.W)
-                # self.battery_1_com_422_c_2 = ctk.CTkComboBox(self, values=["COM1", "COM2", "COM3"])
+                # self.battery_1_com_422_c_2 = ctk.CTkComboBox(self, values=["Port 1 (COM2)", "Port 2 (COM3)", "Port 3 (COM4)", "Port 4 (COM5)", "Port 5 (COM6)", "Port 6 (COM7)"])
                 self.battery_1_com_422_c_2 = ctk.CTkComboBox(self, values=list(self.get_com_ports()))
                 self.battery_1_com_422_c_2.set("Select RS422 Channel 2 Port:")  # Set the default value shown in the dropdown
                 self.battery_1_com_422_c_2.grid(row=5, column=1, padx=20, pady=5)
@@ -205,14 +204,14 @@ class Settings(tk.Frame):
 
                 # Example for additional fields
                 tk.Label(self, text="Select RS422 Channel 1 Port:").grid(row=7, column=0, padx=20, sticky=tk.W)
-                # self.battery_2_com_422_c_1 = ctk.CTkComboBox(self, values=["COM1", "COM2", "COM3"])
+                # self.battery_2_com_422_c_1 = ctk.CTkComboBox(self, values=["Port 1 (COM2)", "Port 2 (COM3)", "Port 3 (COM4)", "Port 4 (COM5)", "Port 5 (COM6)", "Port 6 (COM7)"])
                 self.battery_2_com_422_c_1 = ctk.CTkComboBox(self, values=list(self.get_com_ports()))
                 self.battery_2_com_422_c_1.set("Select RS422 Channel 1 Port:")  # Set the default value shown in the dropdown
                 self.battery_2_com_422_c_1.grid(row=7, column=1, padx=20, pady=5)
 
                 # Example for additional fields
                 tk.Label(self, text="Select RS422 Channel 2 Port:").grid(row=8, column=0, padx=20, sticky=tk.W)
-                # self.battery_2_com_422_c_2 = ctk.CTkComboBox(self, values=["COM1", "COM2", "COM3"])
+                # self.battery_2_com_422_c_2 = ctk.CTkComboBox(self, values=["Port 1 (COM2)", "Port 2 (COM3)", "Port 3 (COM4)", "Port 4 (COM5)", "Port 5 (COM6)", "Port 6 (COM7)"])
                 self.battery_2_com_422_c_2 = ctk.CTkComboBox(self, values=list(self.get_com_ports()))
                 self.battery_2_com_422_c_2.set("Select RS422 Channel 2 Port:")  # Set the default value shown in the dropdown
                 self.battery_2_com_422_c_2.grid(row=8, column=1, padx=20, pady=5)
@@ -288,22 +287,31 @@ class Settings(tk.Frame):
                 config.config_values['can_config']['interrupt'] = selected_interrupt
             elif selected_connection == "RS232":
                 selected_battery_1_com_232 = self.battery_1_com_232.get()
-                config.config_values['rs_config']['battery_1_rs232'] = selected_battery_1_com_232
+                # Extract "COM2" from the string
+                com_1_value = selected_battery_1_com_232.split('(')[-1].strip(')')
+                # Set the extracted value to the config file
+                config.config_values['rs_config']['battery_1_rs232'] = com_1_value
 
                 selected_battery_2_com_232 = self.battery_2_com_232.get()
-                config.config_values['rs_config']['battery_2_rs232'] = selected_battery_2_com_232
+                com_2_value = selected_battery_2_com_232.split('(')[-1].strip(')')
+                # Set the extracted value to the config file
+                config.config_values['rs_config']['battery_2_rs232'] = com_2_value
             elif selected_connection == "RS422":
                 selected_battery_1_com_422_c_1 = self.battery_1_com_422_c_1.get()
-                config.config_values['rs_config']['battery_1_rs422_c_1'] = selected_battery_1_com_422_c_1
+                com_3_value = selected_battery_1_com_422_c_1.split('(')[-1].strip(')')
+                config.config_values['rs_config']['battery_1_rs422_c_1'] = com_3_value
 
                 selected_battery_1_com_422_c_2 = self.battery_1_com_422_c_2.get()
-                config.config_values['rs_config']['battery_1_rs422_c_2'] = selected_battery_1_com_422_c_2
+                com_4_value = selected_battery_1_com_422_c_2.split('(')[-1].strip(')')
+                config.config_values['rs_config']['battery_1_rs422_c_2'] = com_4_value
 
                 selected_battery_2_com_422_c_1 = self.battery_2_com_422_c_1.get()
-                config.config_values['rs_config']['battery_2_rs422_c_1'] = selected_battery_2_com_422_c_1
+                com_5_value = selected_battery_2_com_422_c_1.split('(')[-1].strip(')')
+                config.config_values['rs_config']['battery_2_rs422_c_1'] = com_5_value
 
                 selected_battery_2_com_422_c_2 = self.battery_2_com_422_c_2.get()
-                config.config_values['rs_config']['battery_2_rs422_c_2'] = selected_battery_2_com_422_c_2
+                com_6_value = selected_battery_2_com_422_c_2.split('(')[-1].strip(')')
+                config.config_values['rs_config']['battery_2_rs422_c_2'] = com_6_value
             # Save the updated configuration
             config.save_config()
 
